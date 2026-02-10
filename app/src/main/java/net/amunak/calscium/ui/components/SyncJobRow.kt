@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
@@ -135,7 +136,13 @@ fun SyncJobRow(
 					horizontalArrangement = Arrangement.SpaceBetween,
 					verticalAlignment = Alignment.CenterVertically
 				) {
-					TextButton(onClick = { onToggleActive(job, !job.isActive) }) {
+					FilledTonalButton(
+						onClick = { onToggleActive(job, !job.isActive) },
+						colors = ButtonDefaults.filledTonalButtonColors(
+							containerColor = MaterialTheme.colorScheme.surface,
+							contentColor = MaterialTheme.colorScheme.onSurface
+						)
+					) {
 						val icon = if (job.isActive) Icons.Default.Pause else Icons.Default.PlayArrow
 						val label = if (job.isActive) "Pause sync" else "Resume sync"
 						Icon(imageVector = icon, contentDescription = null)
@@ -145,7 +152,13 @@ fun SyncJobRow(
 						FilledTonalButton(
 							onClick = { onManualSync(job) },
 							enabled = !isSyncing,
-							modifier = Modifier.widthIn(min = 110.dp)
+							modifier = Modifier.widthIn(min = 110.dp),
+							colors = ButtonDefaults.filledTonalButtonColors(
+								containerColor = MaterialTheme.colorScheme.surface,
+								contentColor = MaterialTheme.colorScheme.onSurface,
+								disabledContainerColor = MaterialTheme.colorScheme.surface,
+								disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+							)
 						) {
 							Icon(
 								imageVector = Icons.Default.Sync,
@@ -156,36 +169,38 @@ fun SyncJobRow(
 								modifier = Modifier.padding(start = 6.dp)
 							)
 						}
-						IconButton(onClick = { menuExpanded = true }) {
-							Icon(
-								imageVector = Icons.Default.MoreVert,
-								contentDescription = "Job actions"
-							)
-						}
-						DropdownMenu(
-							expanded = menuExpanded,
-							onDismissRequest = { menuExpanded = false }
-						) {
-							DropdownMenuItem(
-								text = { Text("Edit") },
-								leadingIcon = {
-									Icon(Icons.Default.Edit, contentDescription = null)
-								},
-								onClick = {
-									menuExpanded = false
-									onEditJob(job)
-								}
-							)
-							DropdownMenuItem(
-								text = { Text("Delete") },
-								leadingIcon = {
-									Icon(Icons.Default.Delete, contentDescription = null)
-								},
-								onClick = {
-									menuExpanded = false
-									showDeleteConfirm = true
-								}
-							)
+						Box {
+							IconButton(onClick = { menuExpanded = true }) {
+								Icon(
+									imageVector = Icons.Default.MoreVert,
+									contentDescription = "Job actions"
+								)
+							}
+							DropdownMenu(
+								expanded = menuExpanded,
+								onDismissRequest = { menuExpanded = false }
+							) {
+								DropdownMenuItem(
+									text = { Text("Edit") },
+									leadingIcon = {
+										Icon(Icons.Default.Edit, contentDescription = null)
+									},
+									onClick = {
+										menuExpanded = false
+										onEditJob(job)
+									}
+								)
+								DropdownMenuItem(
+									text = { Text("Delete") },
+									leadingIcon = {
+										Icon(Icons.Default.Delete, contentDescription = null)
+									},
+									onClick = {
+										menuExpanded = false
+										showDeleteConfirm = true
+									}
+								)
+							}
 						}
 					}
 				}
@@ -215,8 +230,8 @@ fun SyncJobRow(
 			title = { Text("Delete sync job?") },
 			text = {
 				Text(
-					"This will remove the job, forget previous mappings, and stop syncing " +
-						"between the selected calendars."
+					"Delete the sync between \"$sourceName\" and \"$targetName\"? " +
+						"This removes the job, forgets previous mappings, and stops syncing."
 				)
 			},
 			confirmButton = {

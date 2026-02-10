@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -18,10 +18,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,11 +40,11 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.SyncAlt
 import net.amunak.calscium.calendar.CalendarInfo
 import net.amunak.calscium.ui.PreviewData
 import net.amunak.calscium.ui.theme.CalsciumTheme
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun CreateJobDialog(
 	calendars: List<CalendarInfo>,
@@ -82,27 +82,50 @@ fun CreateJobDialog(
 		}
 	}
 
-	AlertDialog(
-		onDismissRequest = onDismiss,
-		title = {
-			Text(if (isEdit) "Edit sync job" else "Create sync job")
-		},
-		text = {
-			Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+	BasicAlertDialog(
+		onDismissRequest = onDismiss
+	) {
+		Surface(
+			shape = MaterialTheme.shapes.extraLarge,
+			color = MaterialTheme.colorScheme.surface
+		) {
+			Column(
+				modifier = Modifier.padding(20.dp),
+				verticalArrangement = Arrangement.spacedBy(14.dp)
+			) {
+				Text(
+					text = if (isEdit) "Edit sync job" else "Create sync job",
+					style = MaterialTheme.typography.titleLarge
+				)
 				if (calendars.isEmpty()) {
 					Text("No calendars available.")
 				} else {
 					if (isEdit) {
-						Row(verticalAlignment = Alignment.CenterVertically) {
-							Icon(
-								imageVector = Icons.Default.SyncAlt,
-								contentDescription = null
-							)
-							Text(
-								text = "${source?.displayName ?: ""} → ${target?.displayName ?: ""}",
-								style = MaterialTheme.typography.bodyMedium,
-								modifier = Modifier.padding(start = 6.dp)
-							)
+						Surface(
+							shape = MaterialTheme.shapes.medium,
+							color = MaterialTheme.colorScheme.surfaceVariant
+						) {
+							Row(
+								modifier = Modifier
+									.fillMaxWidth()
+									.padding(horizontal = 12.dp, vertical = 8.dp),
+								verticalAlignment = Alignment.CenterVertically
+							) {
+								CalendarLabel(
+									name = source?.displayName ?: "",
+									color = source?.color
+								)
+								Text(
+									text = " → ",
+									style = MaterialTheme.typography.bodyMedium,
+									color = MaterialTheme.colorScheme.onSurfaceVariant,
+									modifier = Modifier.padding(horizontal = 4.dp)
+								)
+								CalendarLabel(
+									name = target?.displayName ?: "",
+									color = target?.color
+								)
+							}
 						}
 					} else {
 						CalendarPicker(
@@ -132,8 +155,6 @@ fun CreateJobDialog(
 						)
 					}
 
-					HorizontalDivider()
-
 					NumberPickerRow(
 						label = "Past days",
 						value = pastDays,
@@ -161,53 +182,56 @@ fun CreateJobDialog(
 						)
 					}
 				}
-			}
-		},
-		confirmButton = {
-			Button(
-				onClick = {
-					if (isEdit) {
-						onUpdate(
-							initialJob!!,
-							pastDays,
-							futureDays,
-							frequencySelection.minutes
+
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.SpaceBetween,
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					TextButton(onClick = onDismiss) {
+						Icon(
+							imageVector = Icons.Default.Close,
+							contentDescription = null
 						)
-					} else {
-						onCreate(
-							source!!.id,
-							target!!.id,
-							pastDays,
-							futureDays,
-							frequencySelection.minutes
+						Text(
+							text = "Cancel",
+							modifier = Modifier.padding(start = 6.dp)
 						)
 					}
-				},
-				enabled = canSave
-			) {
-				Icon(
-					imageVector = Icons.Default.Check,
-					contentDescription = null
-				)
-				Text(
-					text = if (isEdit) "Update" else "Save",
-					modifier = Modifier.padding(start = 6.dp)
-				)
-			}
-		},
-		dismissButton = {
-			TextButton(onClick = onDismiss) {
-				Icon(
-					imageVector = Icons.Default.Close,
-					contentDescription = null
-				)
-				Text(
-					text = "Cancel",
-					modifier = Modifier.padding(start = 6.dp)
-				)
+					Button(
+						onClick = {
+							if (isEdit) {
+								onUpdate(
+									initialJob!!,
+									pastDays,
+									futureDays,
+									frequencySelection.minutes
+								)
+							} else {
+								onCreate(
+									source!!.id,
+									target!!.id,
+									pastDays,
+									futureDays,
+									frequencySelection.minutes
+								)
+							}
+						},
+						enabled = canSave
+					) {
+						Icon(
+							imageVector = Icons.Default.Check,
+							contentDescription = null
+						)
+						Text(
+							text = if (isEdit) "Update" else "Save",
+							modifier = Modifier.padding(start = 6.dp)
+						)
+					}
+				}
 			}
 		}
-	)
+	}
 }
 
 @Composable
