@@ -28,7 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -145,85 +144,78 @@ fun SyncJobRow(
 				)
 			}
 			Spacer(modifier = Modifier.height(12.dp))
-			Surface(
-				shape = MaterialTheme.shapes.medium,
-				color = MaterialTheme.colorScheme.surfaceVariant
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.spacedBy(10.dp),
+				verticalAlignment = Alignment.CenterVertically
 			) {
-				Row(
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(horizontal = 8.dp, vertical = 6.dp),
-					horizontalArrangement = Arrangement.spacedBy(10.dp),
-					verticalAlignment = Alignment.CenterVertically
+				FilledTonalButton(
+					onClick = { onToggleActive(job, !job.isActive) },
+					modifier = Modifier.weight(1f),
+					colors = ButtonDefaults.filledTonalButtonColors(
+						containerColor = MaterialTheme.colorScheme.secondaryContainer,
+						contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+					)
 				) {
-					FilledTonalButton(
-						onClick = { onToggleActive(job, !job.isActive) },
-						modifier = Modifier.weight(1f),
-						colors = ButtonDefaults.filledTonalButtonColors(
-							containerColor = MaterialTheme.colorScheme.secondaryContainer,
-							contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-						)
-					) {
-						val icon = if (job.isActive) Icons.Default.Pause else Icons.Default.PlayArrow
-						val label = if (job.isActive) "Pause" else "Resume"
-						Icon(imageVector = icon, contentDescription = null)
-						Text(text = label, modifier = Modifier.padding(start = 6.dp))
-					}
-					FilledTonalButton(
-						onClick = {
-							pulseTrigger += 1
-							onManualSync(job)
-						},
-						enabled = !isSyncing,
-						modifier = Modifier.weight(1f),
-						colors = ButtonDefaults.filledTonalButtonColors(
-							containerColor = MaterialTheme.colorScheme.primaryContainer,
-							contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-							disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
-							disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-						)
-					) {
+					val icon = if (job.isActive) Icons.Default.Pause else Icons.Default.PlayArrow
+					val label = if (job.isActive) "Pause" else "Resume"
+					Icon(imageVector = icon, contentDescription = null)
+					Text(text = label, modifier = Modifier.padding(start = 6.dp))
+				}
+				FilledTonalButton(
+					onClick = {
+						pulseTrigger += 1
+						onManualSync(job)
+					},
+					enabled = !isSyncing,
+					modifier = Modifier.weight(1f),
+					colors = ButtonDefaults.filledTonalButtonColors(
+						containerColor = MaterialTheme.colorScheme.primaryContainer,
+						contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+						disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
+						disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+					)
+				) {
+					Icon(
+						imageVector = Icons.Default.Sync,
+						contentDescription = null
+					)
+					Text(
+						text = "Sync",
+						modifier = Modifier.padding(start = 6.dp)
+					)
+				}
+				Box {
+					IconButton(onClick = { menuExpanded = true }) {
 						Icon(
-							imageVector = Icons.Default.Sync,
-							contentDescription = null
-						)
-						Text(
-							text = "Sync",
-							modifier = Modifier.padding(start = 6.dp)
+							imageVector = Icons.Default.MoreVert,
+							contentDescription = "Job actions"
 						)
 					}
-					Box {
-						IconButton(onClick = { menuExpanded = true }) {
-							Icon(
-								imageVector = Icons.Default.MoreVert,
-								contentDescription = "Job actions"
-							)
-						}
-						DropdownMenu(
-							expanded = menuExpanded,
-							onDismissRequest = { menuExpanded = false }
-						) {
-							DropdownMenuItem(
-								text = { Text("Edit") },
-								leadingIcon = {
-									Icon(Icons.Default.Edit, contentDescription = null)
-								},
-								onClick = {
-									menuExpanded = false
-									onEditJob(job)
-								}
-							)
-							DropdownMenuItem(
-								text = { Text("Delete") },
-								leadingIcon = {
-									Icon(Icons.Default.Delete, contentDescription = null)
-								},
-								onClick = {
-									menuExpanded = false
-									showDeleteConfirm = true
-								}
-							)
-						}
+					DropdownMenu(
+						expanded = menuExpanded,
+						onDismissRequest = { menuExpanded = false }
+					) {
+						DropdownMenuItem(
+							text = { Text("Edit") },
+							leadingIcon = {
+								Icon(Icons.Default.Edit, contentDescription = null)
+							},
+							onClick = {
+								menuExpanded = false
+								onEditJob(job)
+							}
+						)
+						DropdownMenuItem(
+							text = { Text("Delete") },
+							leadingIcon = {
+								Icon(Icons.Default.Delete, contentDescription = null)
+							},
+							onClick = {
+								menuExpanded = false
+								showDeleteConfirm = true
+							}
+						)
 					}
 				}
 			}
