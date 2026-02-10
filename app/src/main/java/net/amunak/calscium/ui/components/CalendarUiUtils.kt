@@ -13,3 +13,7 @@ fun groupCalendars(calendars: List<CalendarInfo>): Map<String, List<CalendarInfo
 		if (type != null) "$name · $type" else name
 	}
 }
+
+fun sanitizeCalendarName(name: String): String {
+	return name.replace(Regex("[\\r\\n]+"), " ").replace(Regex("\\s+"), " ").trim()
+}

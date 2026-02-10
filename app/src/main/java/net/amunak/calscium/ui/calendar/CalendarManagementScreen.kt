@@ -53,6 +53,7 @@ import androidx.compose.foundation.verticalScroll
 import net.amunak.calscium.calendar.CalendarInfo
 import net.amunak.calscium.ui.components.CalendarLabel
 import net.amunak.calscium.ui.components.groupCalendars
+import net.amunak.calscium.ui.components.sanitizeCalendarName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -175,10 +176,12 @@ fun CalendarDetailScreen(
 ) {
 	val row = state.selectedCalendar ?: return
 	val calendar = row.calendar
-	val calendarTitle = sanitizeCalendarDisplayName(calendar.displayName)
-	val calendarById = remember(state.calendars) {
-		state.calendars.associate { it.calendar.id to it.calendar }
-	}
+	val calendarTitle = sanitizeCalendarName(calendar.displayName)
+	val sourceCalendars = remember(row) { row.incomingCalendars }
+	val targetCalendars = remember(row) { row.outgoingCalendars }
+	val accessLevel = calendar.accessLevel ?: CalendarContract.Calendars.CAL_ACCESS_READ
+	val canWriteEvents = accessLevel >= CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR
+	val canManageCalendar = accessLevel >= CalendarContract.Calendars.CAL_ACCESS_OWNER
 
 	var showRenameDialog by remember { mutableStateOf(false) }
 	var showColorDialog by remember { mutableStateOf(false) }
@@ -210,12 +213,8 @@ fun CalendarDetailScreen(
 			) {
 				CalendarMetaSection(
 					row = row,
-					sourceNames = row.incomingJobs.mapNotNull { job ->
-						calendarById[job.sourceCalendarId]?.displayName
-					},
-					targetNames = row.outgoingJobs.mapNotNull { job ->
-						calendarById[job.targetCalendarId]?.displayName
-					}
+					sourceCalendars = sourceCalendars,
+					targetCalendars = targetCalendars
 				)
 
 				ElevatedCard(
@@ -231,26 +230,39 @@ fun CalendarDetailScreen(
 						verticalArrangement = Arrangement.spacedBy(10.dp)
 					) {
 						Text("Actions", style = MaterialTheme.typography.titleSmall)
-						ActionRow(
-							icon = Icons.Default.Edit,
-							label = "Rename calendar",
-							onClick = { showRenameDialog = true }
-						)
-						ActionRow(
-							icon = Icons.Default.Palette,
-							label = "Change color",
-							onClick = { showColorDialog = true }
-						)
-						ActionRow(
-							icon = Icons.Default.Warning,
-							label = "Purge all events",
-							onClick = { showPurgeDialog = true }
-						)
-						ActionRow(
-							icon = Icons.Default.Delete,
-							label = "Delete calendar",
-							onClick = { showDeleteDialog = true }
-						)
+						if (canManageCalendar) {
+							ActionRow(
+								icon = Icons.Default.Edit,
+								label = "Rename calendar",
+								onClick = { showRenameDialog = true }
+							)
+							ActionRow(
+								icon = Icons.Default.Palette,
+								label = "Change color",
+								onClick = { showColorDialog = true }
+							)
+						}
+						if (canWriteEvents) {
+							ActionRow(
+								icon = Icons.Default.Warning,
+								label = "Purge all events",
+								onClick = { showPurgeDialog = true }
+							)
+						}
+						if (canManageCalendar) {
+							ActionRow(
+								icon = Icons.Default.Delete,
+								label = "Delete calendar",
+								onClick = { showDeleteDialog = true }
+							)
+						}
+						if (!canManageCalendar && !canWriteEvents) {
+							Text(
+								text = "No actions available for this calendar.",
+								style = MaterialTheme.typography.bodySmall,
+								color = MaterialTheme.colorScheme.onSurfaceVariant
+							)
+						}
 					}
 				}
 			}
@@ -259,7 +271,7 @@ fun CalendarDetailScreen(
 
 	if (showRenameDialog) {
 		RenameCalendarDialog(
-			initialName = calendar.displayName,
+			initialName = sanitizeCalendarName(calendar.displayName),
 			onDismiss = { showRenameDialog = false },
 			onSave = { newName ->
 				onUpdateName(calendar, newName)
@@ -310,6 +322,8 @@ private fun CalendarRowCard(
 	row: CalendarRowUi,
 	onClick: () -> Unit
 ) {
+	val incomingCalendar = row.incomingCalendars.firstOrNull()
+	val outgoingCalendars = row.outgoingCalendars
 	ElevatedCard(
 		modifier = Modifier
 			.fillMaxWidth()
@@ -333,26 +347,53 @@ private fun CalendarRowCard(
 				style = MaterialTheme.typography.bodySmall,
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)
-			if (row.incomingJobs.isNotEmpty() && row.syncedCount > 0) {
+			if (row.incomingCalendars.isNotEmpty() && row.syncedCount > 0) {
 				Text(
 					text = "Synced entries: ${row.syncedCount}",
 					style = MaterialTheme.typography.bodySmall,
 					color = MaterialTheme.colorScheme.onSurfaceVariant
 				)
 			}
-			if (row.incomingJobs.isNotEmpty()) {
-				Text(
-					text = "Synced (input)",
-					style = MaterialTheme.typography.bodySmall,
-					color = MaterialTheme.colorScheme.onSurfaceVariant
-				)
+			if (incomingCalendar != null) {
+				Row(verticalAlignment = Alignment.CenterVertically) {
+					Text(
+						text = "Synced (input):",
+						style = MaterialTheme.typography.bodySmall,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+						modifier = Modifier.padding(end = 6.dp)
+					)
+					CalendarLabel(
+						name = incomingCalendar.displayName,
+						color = incomingCalendar.color,
+						textStyle = MaterialTheme.typography.bodySmall,
+						textColor = MaterialTheme.colorScheme.onSurfaceVariant
+					)
+				}
 			}
-			if (row.outgoingJobs.isNotEmpty()) {
-				Text(
-					text = "Synced (output)",
-					style = MaterialTheme.typography.bodySmall,
-					color = MaterialTheme.colorScheme.onSurfaceVariant
-				)
+			if (outgoingCalendars.isNotEmpty()) {
+				val target = outgoingCalendars.first()
+				val extraCount = outgoingCalendars.size - 1
+				Row(verticalAlignment = Alignment.CenterVertically) {
+					Text(
+						text = "Synced (output):",
+						style = MaterialTheme.typography.bodySmall,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+						modifier = Modifier.padding(end = 6.dp)
+					)
+					CalendarLabel(
+						name = target.displayName,
+						color = target.color,
+						textStyle = MaterialTheme.typography.bodySmall,
+						textColor = MaterialTheme.colorScheme.onSurfaceVariant
+					)
+					if (extraCount > 0) {
+						Text(
+							text = " +$extraCount",
+							style = MaterialTheme.typography.bodySmall,
+							color = MaterialTheme.colorScheme.onSurfaceVariant
+						)
+					}
+				}
 			}
 		}
 	}
@@ -361,8 +402,8 @@ private fun CalendarRowCard(
 @Composable
 private fun CalendarMetaSection(
 	row: CalendarRowUi,
-	sourceNames: List<String>,
-	targetNames: List<String>
+	sourceCalendars: List<CalendarInfo>,
+	targetCalendars: List<CalendarInfo>
 ) {
 	val calendar = row.calendar
 	val typeLabel = calendarTypeLabel(calendar)
@@ -381,7 +422,7 @@ private fun CalendarMetaSection(
 			color = MaterialTheme.colorScheme.onSurfaceVariant
 		)
 		Text(
-			text = if (row.incomingJobs.isNotEmpty() && row.syncedCount > 0) {
+			text = if (row.incomingCalendars.isNotEmpty() && row.syncedCount > 0) {
 				"Events: ${row.eventCount} · Synced: ${row.syncedCount}"
 			} else {
 				"Events: ${row.eventCount}"
@@ -389,53 +430,39 @@ private fun CalendarMetaSection(
 			style = MaterialTheme.typography.bodySmall,
 			color = MaterialTheme.colorScheme.onSurfaceVariant
 		)
-		if (row.incomingJobs.isNotEmpty()) {
-			val sources = sourceNames.distinct().sorted()
-			val sourceLabel = if (sources.isNotEmpty()) {
-				sources.joinToString()
-			} else {
-				"Unknown"
+		val source = sourceCalendars.firstOrNull()
+		if (source != null) {
+			Row(verticalAlignment = Alignment.CenterVertically) {
+				Text(
+					text = "Synced (input):",
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+					modifier = Modifier.padding(end = 6.dp)
+				)
+				CalendarLabel(
+					name = source.displayName,
+					color = source.color,
+					textStyle = MaterialTheme.typography.bodySmall,
+					textColor = MaterialTheme.colorScheme.onSurfaceVariant
+				)
 			}
-			Text(
-				text = "Sources: $sourceLabel",
-				style = MaterialTheme.typography.bodySmall,
-				color = MaterialTheme.colorScheme.onSurfaceVariant
-			)
-			Text(
-				text = "Synced (input)",
-				style = MaterialTheme.typography.bodySmall,
-				color = MaterialTheme.colorScheme.onSurfaceVariant
-			)
-		} else {
-			Text(
-				text = "Not synced (input).",
-				style = MaterialTheme.typography.bodySmall,
-				color = MaterialTheme.colorScheme.onSurfaceVariant
-			)
 		}
-		if (row.outgoingJobs.isNotEmpty()) {
-			val targets = targetNames.distinct().sorted()
-			val targetLabel = if (targets.isNotEmpty()) {
-				targets.joinToString()
-			} else {
-				"Unknown"
+		if (targetCalendars.isNotEmpty()) {
+			Text(
+				text = "Synced (output):",
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+			Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+				targetCalendars.distinctBy { it.id }.forEach { target ->
+					CalendarLabel(
+						name = target.displayName,
+						color = target.color,
+						textStyle = MaterialTheme.typography.bodySmall,
+						textColor = MaterialTheme.colorScheme.onSurfaceVariant
+					)
+				}
 			}
-			Text(
-				text = "Targets: $targetLabel",
-				style = MaterialTheme.typography.bodySmall,
-				color = MaterialTheme.colorScheme.onSurfaceVariant
-			)
-			Text(
-				text = "Synced (output)",
-				style = MaterialTheme.typography.bodySmall,
-				color = MaterialTheme.colorScheme.onSurfaceVariant
-			)
-		} else {
-			Text(
-				text = "Not synced (output).",
-				style = MaterialTheme.typography.bodySmall,
-				color = MaterialTheme.colorScheme.onSurfaceVariant
-			)
 		}
 		AccountDetailsSection(calendar = calendar)
 	}
@@ -692,9 +719,6 @@ private fun accountLabel(calendar: CalendarInfo): String {
 	return if (type != null) "$name · $type" else name
 }
 
-private fun sanitizeCalendarDisplayName(name: String): String {
-	return name.replace(Regex("[\\r\\n]+"), " ").replace(Regex("\\s+"), " ").trim()
-}
 
 private data class ColorSection(
 	val label: String,

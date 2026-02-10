@@ -12,16 +12,16 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.amunak.calscium.calendar.CalendarInfo
 import net.amunak.calscium.data.DatabaseProvider
-import net.amunak.calscium.data.SyncJob
 import net.amunak.calscium.data.repository.CalendarRepository
 import net.amunak.calscium.data.repository.SyncJobRepository
+import net.amunak.calscium.ui.components.sanitizeCalendarName
 
 data class CalendarRowUi(
 	val calendar: CalendarInfo,
 	val eventCount: Int,
 	val syncedCount: Int,
-	val incomingJobs: List<SyncJob>,
-	val outgoingJobs: List<SyncJob>
+	val incomingCalendars: List<CalendarInfo>,
+	val outgoingCalendars: List<CalendarInfo>
 )
 
 data class CalendarManagementUiState(
@@ -44,10 +44,13 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 			_uiState.update { it.copy(isLoading = true, errorMessage = null) }
 			try {
 				val calendars = calendarRepository.getCalendars(getApplication(), onlyVisible = false)
+				val calendarById = calendars.associateBy { it.id }
 				val jobs = syncJobRepository.getAll()
 				val rows = calendars.map { calendar ->
 					val incoming = jobs.filter { it.targetCalendarId == calendar.id }
+						.mapNotNull { job -> calendarById[job.sourceCalendarId] }
 					val outgoing = jobs.filter { it.sourceCalendarId == calendar.id }
+						.mapNotNull { job -> calendarById[job.targetCalendarId] }
 					CalendarRowUi(
 						calendar = calendar,
 						eventCount = calendarRepository.countEvents(
@@ -55,8 +58,8 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 							calendar.id
 						),
 						syncedCount = mappingDao.countSyncedTargets(calendar.id),
-						incomingJobs = incoming,
-						outgoingJobs = outgoing
+						incomingCalendars = incoming,
+						outgoingCalendars = outgoing
 					)
 				}
 				_uiState.update { state ->
@@ -151,10 +154,6 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 			}
 			refreshCalendars()
 		}
-	}
-
-	private fun sanitizeCalendarName(name: String): String {
-		return name.replace(Regex("[\\r\\n]+"), " ").replace(Regex("\\s+"), " ").trim()
 	}
 
 	companion object {

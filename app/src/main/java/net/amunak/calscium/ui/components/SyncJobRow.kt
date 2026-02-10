@@ -52,6 +52,7 @@ import net.amunak.calscium.ui.formatters.formatLastSync
 import net.amunak.calscium.ui.formatters.formatSyncCounts
 import net.amunak.calscium.ui.formatters.formatFrequency
 import net.amunak.calscium.ui.theme.CalsciumTheme
+import net.amunak.calscium.ui.components.sanitizeCalendarName
 
 @Composable
 fun SyncJobRow(
@@ -83,6 +84,8 @@ fun SyncJobRow(
 		stop = MaterialTheme.colorScheme.primaryContainer,
 		fraction = pulse.value * 0.35f
 	)
+	val displaySourceName = sanitizeCalendarName(sourceName)
+	val displayTargetName = sanitizeCalendarName(targetName)
 	ElevatedCard(
 		modifier = Modifier.fillMaxWidth(),
 		colors = CardDefaults.elevatedCardColors(
@@ -98,7 +101,7 @@ fun SyncJobRow(
 				Row(verticalAlignment = Alignment.CenterVertically) {
 					CalendarDot(color = sourceColor)
 					Text(
-						text = sourceName,
+						text = displaySourceName,
 						style = MaterialTheme.typography.titleMedium
 					)
 					Icon(
@@ -111,7 +114,7 @@ fun SyncJobRow(
 					)
 					CalendarDot(color = targetColor)
 					Text(
-						text = targetName,
+						text = displayTargetName,
 						style = MaterialTheme.typography.titleMedium
 					)
 				}

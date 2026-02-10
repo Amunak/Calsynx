@@ -25,7 +25,7 @@ fun CalendarLabel(
 	textStyle: TextStyle = MaterialTheme.typography.bodyMedium,
 	maxLines: Int = 1
 ) {
-	val displayName = name.replace(Regex("[\\r\\n]+"), " ").replace(Regex("\\s+"), " ").trim()
+	val displayName = sanitizeCalendarName(name)
 	Row(
 		modifier = modifier,
 		verticalAlignment = Alignment.CenterVertically

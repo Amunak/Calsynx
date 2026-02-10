@@ -40,6 +40,7 @@ import androidx.compose.material3.IconButton
 import net.amunak.calscium.data.SyncJob
 import net.amunak.calscium.ui.components.CreateJobDialog
 import net.amunak.calscium.ui.components.SyncJobRow
+import net.amunak.calscium.ui.components.sanitizeCalendarName
 import net.amunak.calscium.ui.theme.CalsciumTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -186,11 +187,15 @@ fun SyncJobScreen(
 				) {
 					items(uiState.jobs, key = { it.id }) { job ->
 						val sourceName =
-							calendarById[job.sourceCalendarId]?.displayName
-								?: "Unknown (${job.sourceCalendarId})"
+							sanitizeCalendarName(
+								calendarById[job.sourceCalendarId]?.displayName
+									?: "Unknown (${job.sourceCalendarId})"
+							)
 						val targetName =
-							calendarById[job.targetCalendarId]?.displayName
-								?: "Unknown (${job.targetCalendarId})"
+							sanitizeCalendarName(
+								calendarById[job.targetCalendarId]?.displayName
+									?: "Unknown (${job.targetCalendarId})"
+							)
 						SyncJobRow(
 							job = job,
 							sourceName = sourceName,
