@@ -10,7 +10,12 @@ The scope is intentional: one-way, source -> target, with no cloud service or ac
     *   `id`: Unique identifier.
     *   `sourceCalendarId`: ID from `CalendarContract.Calendars`.
     *   `targetCalendarId`: ID from `CalendarContract.Calendars`.
+    *   `windowPastDays` / `windowFutureDays`: Sync window configuration.
+    *   `frequencyMinutes`: Intended sync cadence (manual until WorkManager).
     *   `lastSyncTimestamp`: Last successful run, used for incremental sync.
+    *   `lastSyncCreated` / `lastSyncUpdated` / `lastSyncDeleted`: Last run counts.
+    *   `lastSyncSourceCount` / `lastSyncTargetCount`: Event totals in window.
+    *   `lastSyncError`: Last error message (if any).
     *   `isActive`: Enable/disable a job.
 *   **Room Database**: Persist `SyncJob` configurations locally.
 
