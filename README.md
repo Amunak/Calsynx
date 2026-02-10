@@ -35,7 +35,7 @@ The scope is intentional: one-way, source -> target, with no cloud service or ac
 *   **Schedule**: A few times a day; can add manual "Sync now" in UI.
 
 ### 4. User Interface (Jetpack Compose)
-*   **Main Screen**: List `SyncJob`s with status and last sync time.
+*   **Main Screen**: List `SyncJob`s with status, last sync time, counts, and errors.
 *   **Edit/Create Job Screen**:
     *   Source calendar selector.
     *   Target calendar selector.
