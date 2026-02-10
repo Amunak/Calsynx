@@ -2,6 +2,7 @@ package net.amunak.calscium.domain
 
 import kotlinx.coroutines.flow.Flow
 import net.amunak.calscium.data.SyncJob
+import net.amunak.calscium.data.EventMappingDao
 import net.amunak.calscium.data.repository.SyncJobRepository
 import net.amunak.calscium.data.sync.CalendarSyncer
 import net.amunak.calscium.data.sync.SyncResult
@@ -25,9 +26,13 @@ class UpdateSyncJobUseCase(
 }
 
 class DeleteSyncJobUseCase(
-	private val repository: SyncJobRepository
+	private val repository: SyncJobRepository,
+	private val mappingDao: EventMappingDao
 ) {
-	suspend operator fun invoke(job: SyncJob) = repository.delete(job)
+	suspend operator fun invoke(job: SyncJob) {
+		mappingDao.deleteByJob(job.sourceCalendarId, job.targetCalendarId)
+		repository.delete(job)
+	}
 }
 
 class UpdateLastSyncUseCase(

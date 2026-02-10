@@ -44,7 +44,10 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 	private val observeSyncJobs = ObserveSyncJobsUseCase(syncJobRepository)
 	private val createSyncJob = CreateSyncJobUseCase(syncJobRepository)
 	private val updateSyncJob = UpdateSyncJobUseCase(syncJobRepository)
-	private val deleteSyncJob = DeleteSyncJobUseCase(syncJobRepository)
+	private val deleteSyncJob = DeleteSyncJobUseCase(
+		syncJobRepository,
+		DatabaseProvider.get(app).eventMappingDao()
+	)
 	private val updateSyncStats = UpdateSyncStatsUseCase(syncJobRepository)
 	private val updateSyncError = UpdateSyncErrorUseCase(syncJobRepository)
 	private val runManualSync = RunManualSyncUseCase(
