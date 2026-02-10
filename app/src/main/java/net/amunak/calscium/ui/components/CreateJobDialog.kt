@@ -10,10 +10,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.Icon
@@ -85,8 +89,15 @@ fun CreateJobDialog(
 	) {
 		Surface(
 			shape = MaterialTheme.shapes.large,
-			color = MaterialTheme.colorScheme.surface
+			color = MaterialTheme.colorScheme.surfaceContainerLow
 		) {
+			// Match dialog component colors with the rest of the app theme.
+			val textFieldColors = OutlinedTextFieldDefaults.colors(
+				focusedBorderColor = MaterialTheme.colorScheme.primary,
+				unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+				focusedLabelColor = MaterialTheme.colorScheme.primary,
+				cursorColor = MaterialTheme.colorScheme.primary
+			)
 			Column(
 				modifier = Modifier.padding(20.dp),
 				verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -156,13 +167,15 @@ fun CreateJobDialog(
 					NumberPickerRow(
 						label = "Past days",
 						value = pastDays,
-						onValueChange = { pastDays = it.coerceIn(0, 365) }
+						onValueChange = { pastDays = it.coerceIn(0, 365) },
+						textFieldColors = textFieldColors
 					)
 
 					NumberPickerRow(
 						label = "Future days",
 						value = futureDays,
-						onValueChange = { futureDays = it.coerceIn(0, 365) }
+						onValueChange = { futureDays = it.coerceIn(0, 365) },
+						textFieldColors = textFieldColors
 					)
 
 					OptionPicker(
@@ -186,7 +199,13 @@ fun CreateJobDialog(
 					horizontalArrangement = Arrangement.SpaceBetween,
 					verticalAlignment = Alignment.CenterVertically
 				) {
-					TextButton(onClick = onDismiss) {
+					FilledTonalButton(
+						onClick = onDismiss,
+						colors = ButtonDefaults.filledTonalButtonColors(
+							containerColor = MaterialTheme.colorScheme.secondaryContainer,
+							contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+						)
+					) {
 						Icon(
 							imageVector = Icons.Default.Close,
 							contentDescription = null
@@ -215,7 +234,13 @@ fun CreateJobDialog(
 								)
 							}
 						},
-						enabled = canSave
+						enabled = canSave,
+						colors = ButtonDefaults.buttonColors(
+							containerColor = MaterialTheme.colorScheme.primaryContainer,
+							contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+							disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
+							disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+						)
 					) {
 						Icon(
 							imageVector = Icons.Default.Check,
@@ -342,7 +367,8 @@ private fun <T> OptionPicker(
 private fun NumberPickerRow(
 	label: String,
 	value: Int,
-	onValueChange: (Int) -> Unit
+	onValueChange: (Int) -> Unit,
+	textFieldColors: TextFieldColors
 ) {
 	var textValue by remember(value) { mutableStateOf(value.toString()) }
 	Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -370,7 +396,8 @@ private fun NumberPickerRow(
 				},
 				keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
 				modifier = Modifier.weight(1f),
-				suffix = { Text("days") }
+				suffix = { Text("days") },
+				colors = textFieldColors
 			)
 			IconButton(onClick = { onValueChange(value + 1) }) {
 				Icon(Icons.Default.Add, contentDescription = "Increase")
