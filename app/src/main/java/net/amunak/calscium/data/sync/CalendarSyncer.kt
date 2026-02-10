@@ -27,7 +27,7 @@ class CalendarSyncer(
 		}
 
 		val sourceIds = sourceEvents.mapTo(LinkedHashSet()) { it.id }
-		val targetMap = queryTargetEvents(job.targetCalendarId, sourceIds)
+		val targetMap = queryTargetEvents(job.targetCalendarId, job.sourceCalendarId, sourceIds)
 
 		var created = 0
 		var updated = 0
@@ -35,17 +35,17 @@ class CalendarSyncer(
 		sourceEvents.forEach { source ->
 			val existingTargetId = targetMap[source.id]
 			if (existingTargetId == null) {
-				if (insertTargetEvent(job.targetCalendarId, source)) {
+				if (insertTargetEvent(job.targetCalendarId, job.sourceCalendarId, source)) {
 					created += 1
 				}
 			} else {
-				if (updateTargetEvent(existingTargetId, source)) {
+				if (updateTargetEvent(existingTargetId, job.sourceCalendarId, source)) {
 					updated += 1
 				}
 			}
 		}
 
-		val deleted = deleteOrphans(job.targetCalendarId, sourceIds)
+		val deleted = deleteOrphans(job.targetCalendarId, job.sourceCalendarId, sourceIds)
 		return SyncResult(created = created, updated = updated, deleted = deleted)
 	}
 
@@ -122,6 +122,7 @@ class CalendarSyncer(
 
 	private fun queryTargetEvents(
 		targetCalendarId: Long,
+		sourceCalendarId: Long,
 		sourceIds: Set<Long>
 	): Map<Long, Long> {
 		if (sourceIds.isEmpty()) return emptyMap()
@@ -137,11 +138,13 @@ class CalendarSyncer(
 			val placeholders = chunk.joinToString(",") { "?" }
 			val selection = buildString {
 				append("${CalendarContract.Events.CALENDAR_ID} = ?")
+				append(" AND ${CalendarContract.Events.SYNC_DATA2} = ?")
 				append(" AND ${CalendarContract.Events.SYNC_DATA1} IN ($placeholders)")
 				append(" AND ${CalendarContract.Events.DELETED} = 0")
 			}
-			val args = ArrayList<String>(chunk.size + 1).apply {
+			val args = ArrayList<String>(chunk.size + 2).apply {
 				add(targetCalendarId.toString())
+				add(sourceCalendarId.toString())
 				chunk.forEach { add(it.toString()) }
 			}
 			val cursor = resolver.query(
@@ -168,31 +171,44 @@ class CalendarSyncer(
 		return result
 	}
 
-	private fun insertTargetEvent(targetCalendarId: Long, source: SourceEvent): Boolean {
-		val values = toContentValues(targetCalendarId, source)
+	private fun insertTargetEvent(
+		targetCalendarId: Long,
+		sourceCalendarId: Long,
+		source: SourceEvent
+	): Boolean {
+		val values = toContentValues(targetCalendarId, sourceCalendarId, source)
 		val uri = resolver.insert(CalendarContract.Events.CONTENT_URI, values)
 		return uri != null
 	}
 
-	private fun updateTargetEvent(targetEventId: Long, source: SourceEvent): Boolean {
-		val values = toContentValues(null, source)
+	private fun updateTargetEvent(
+		targetEventId: Long,
+		sourceCalendarId: Long,
+		source: SourceEvent
+	): Boolean {
+		val values = toContentValues(null, sourceCalendarId, source)
 		val uri = CalendarContract.Events.CONTENT_URI.buildUpon()
 			.appendPath(targetEventId.toString())
 			.build()
 		return resolver.update(uri, values, null, null) > 0
 	}
 
-	private fun deleteOrphans(targetCalendarId: Long, sourceIds: Set<Long>): Int {
+	private fun deleteOrphans(
+		targetCalendarId: Long,
+		sourceCalendarId: Long,
+		sourceIds: Set<Long>
+	): Int {
 		val projection = arrayOf(
 			CalendarContract.Events._ID,
 			CalendarContract.Events.SYNC_DATA1
 		)
 		val selection = buildString {
 			append("${CalendarContract.Events.CALENDAR_ID} = ?")
+			append(" AND ${CalendarContract.Events.SYNC_DATA2} = ?")
 			append(" AND ${CalendarContract.Events.SYNC_DATA1} IS NOT NULL")
 			append(" AND ${CalendarContract.Events.DELETED} = 0")
 		}
-		val args = arrayOf(targetCalendarId.toString())
+		val args = arrayOf(targetCalendarId.toString(), sourceCalendarId.toString())
 		val cursor = resolver.query(
 			CalendarContract.Events.CONTENT_URI,
 			projection,
@@ -226,13 +242,16 @@ class CalendarSyncer(
 
 	private fun toContentValues(
 		targetCalendarId: Long?,
+		sourceCalendarId: Long,
 		source: SourceEvent
 	): ContentValues {
 		return ContentValues().apply {
 			if (targetCalendarId != null) {
 				put(CalendarContract.Events.CALENDAR_ID, targetCalendarId)
 				put(CalendarContract.Events.SYNC_DATA1, source.id.toString())
+				put(CalendarContract.Events.SYNC_DATA2, sourceCalendarId.toString())
 			}
+			put(CalendarContract.Events.SYNC_DATA2, sourceCalendarId.toString())
 			put(CalendarContract.Events.TITLE, source.title)
 			put(CalendarContract.Events.DTSTART, source.startMillis)
 			source.endMillis?.let { put(CalendarContract.Events.DTEND, it) }

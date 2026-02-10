@@ -19,8 +19,9 @@ The scope is intentional: one-way, source -> target, with no cloud service or ac
 *   **Event Syncing (One-Way: Source -> Target)**:
     *   Query `CalendarContract.Events` (or `CalendarContract.Instances` for a time window)
         scoped to `sourceCalendarId` and a sync window.
-    *   **Identifier Mapping**: Use a custom metadata field (e.g. `SYNC_DATA1`) to store
-        the source event ID on target events. This allows reliable updates/deletes.
+    *   **Identifier Mapping**: Use custom metadata fields (e.g. `SYNC_DATA1` for the source
+        event ID and `SYNC_DATA2` for the source calendar ID) on target events. This allows
+        reliable updates/deletes without cross-job collisions.
     *   **Updates**: Upsert target events by matching the stored source ID.
     *   **Deletions**: If a source event is deleted, delete the mapped target event.
     *   **Properties**: Copy core fields (title, start/end, all-day, time zone, rrule,
