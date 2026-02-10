@@ -28,7 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.animation.core.Animatable
@@ -61,6 +60,7 @@ fun SyncJobRow(
 	targetName: String,
 	sourceColor: Int?,
 	targetColor: Int?,
+	isMissingCalendar: Boolean,
 	isSyncing: Boolean,
 	onToggleActive: (SyncJob, Boolean) -> Unit,
 	onDeleteJob: (SyncJob) -> Unit,
@@ -79,8 +79,13 @@ fun SyncJobRow(
 		pulse.animateTo(1f, animationSpec = tween(durationMillis = 180))
 		pulse.animateTo(0f, animationSpec = tween(durationMillis = 240))
 	}
+	val baseColor = when {
+		isMissingCalendar -> MaterialTheme.colorScheme.errorContainer
+		!job.isActive -> MaterialTheme.colorScheme.surfaceVariant
+		else -> MaterialTheme.colorScheme.surface
+	}
 	val cardColor = lerp(
-		start = MaterialTheme.colorScheme.surface,
+		start = baseColor,
 		stop = MaterialTheme.colorScheme.primaryContainer,
 		fraction = pulse.value * 0.35f
 	)
@@ -147,78 +152,90 @@ fun SyncJobRow(
 				)
 			}
 			Spacer(modifier = Modifier.height(12.dp))
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.spacedBy(10.dp),
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				FilledTonalButton(
-					onClick = { onToggleActive(job, !job.isActive) },
-					modifier = Modifier.weight(1f),
-					colors = ButtonDefaults.filledTonalButtonColors(
-						containerColor = MaterialTheme.colorScheme.secondaryContainer,
-						contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-					)
+			if (isMissingCalendar) {
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.End
 				) {
-					val icon = if (job.isActive) Icons.Default.Pause else Icons.Default.PlayArrow
-					val label = if (job.isActive) "Pause" else "Resume"
-					Icon(imageVector = icon, contentDescription = null)
-					Text(text = label, modifier = Modifier.padding(start = 6.dp))
+					OutlinedButton(onClick = { showDeleteConfirm = true }) {
+						Icon(imageVector = Icons.Default.Delete, contentDescription = null)
+						Text(text = "Delete", modifier = Modifier.padding(start = 6.dp))
+					}
 				}
-				FilledTonalButton(
-					onClick = {
-						pulseTrigger += 1
-						onManualSync(job)
-					},
-					enabled = !isSyncing,
-					modifier = Modifier.weight(1f),
-					colors = ButtonDefaults.filledTonalButtonColors(
-						containerColor = MaterialTheme.colorScheme.primaryContainer,
-						contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-						disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
-						disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-					)
+			} else {
+				Row(
+					modifier = Modifier.fillMaxWidth(),
+					horizontalArrangement = Arrangement.spacedBy(10.dp),
+					verticalAlignment = Alignment.CenterVertically
 				) {
-					Icon(
-						imageVector = Icons.Default.Sync,
-						contentDescription = null
-					)
-					Text(
-						text = "Sync",
-						modifier = Modifier.padding(start = 6.dp)
-					)
-				}
-				Box {
-					IconButton(onClick = { menuExpanded = true }) {
+					FilledTonalButton(
+						onClick = { onToggleActive(job, !job.isActive) },
+						modifier = Modifier.weight(1f),
+						colors = ButtonDefaults.filledTonalButtonColors(
+							containerColor = MaterialTheme.colorScheme.secondaryContainer,
+							contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+						)
+					) {
+						val icon = if (job.isActive) Icons.Default.Pause else Icons.Default.PlayArrow
+						val label = if (job.isActive) "Pause" else "Resume"
+						Icon(imageVector = icon, contentDescription = null)
+						Text(text = label, modifier = Modifier.padding(start = 6.dp))
+					}
+					FilledTonalButton(
+						onClick = {
+							pulseTrigger += 1
+							onManualSync(job)
+						},
+						enabled = !isSyncing,
+						modifier = Modifier.weight(1f),
+						colors = ButtonDefaults.filledTonalButtonColors(
+							containerColor = MaterialTheme.colorScheme.primaryContainer,
+							contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+							disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
+							disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+						)
+					) {
 						Icon(
-							imageVector = Icons.Default.MoreVert,
-							contentDescription = "Job actions"
+							imageVector = Icons.Default.Sync,
+							contentDescription = null
+						)
+						Text(
+							text = "Sync",
+							modifier = Modifier.padding(start = 6.dp)
 						)
 					}
-					DropdownMenu(
-						expanded = menuExpanded,
-						onDismissRequest = { menuExpanded = false }
-					) {
-						DropdownMenuItem(
-							text = { Text("Edit") },
-							leadingIcon = {
-								Icon(Icons.Default.Edit, contentDescription = null)
-							},
-							onClick = {
-								menuExpanded = false
-								onEditJob(job)
-							}
-						)
-						DropdownMenuItem(
-							text = { Text("Delete") },
-							leadingIcon = {
-								Icon(Icons.Default.Delete, contentDescription = null)
-							},
-							onClick = {
-								menuExpanded = false
-								showDeleteConfirm = true
-							}
-						)
+					Box {
+						IconButton(onClick = { menuExpanded = true }) {
+							Icon(
+								imageVector = Icons.Default.MoreVert,
+								contentDescription = "Job actions"
+							)
+						}
+						DropdownMenu(
+							expanded = menuExpanded,
+							onDismissRequest = { menuExpanded = false }
+						) {
+							DropdownMenuItem(
+								text = { Text("Edit") },
+								leadingIcon = {
+									Icon(Icons.Default.Edit, contentDescription = null)
+								},
+								onClick = {
+									menuExpanded = false
+									onEditJob(job)
+								}
+							)
+							DropdownMenuItem(
+								text = { Text("Delete") },
+								leadingIcon = {
+									Icon(Icons.Default.Delete, contentDescription = null)
+								},
+								onClick = {
+									menuExpanded = false
+									showDeleteConfirm = true
+								}
+							)
+						}
 					}
 				}
 			}
@@ -297,6 +314,7 @@ private fun SyncJobRowPreview() {
 			targetName = "Personal",
 			sourceColor = 0xFF3F51B5.toInt(),
 			targetColor = 0xFFFF9800.toInt(),
+			isMissingCalendar = false,
 			isSyncing = false,
 			onToggleActive = { _, _ -> },
 			onDeleteJob = {},

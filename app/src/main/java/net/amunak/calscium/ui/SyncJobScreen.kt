@@ -202,6 +202,8 @@ fun SyncJobScreen(
 							targetName = targetName,
 							sourceColor = calendarById[job.sourceCalendarId]?.color,
 							targetColor = calendarById[job.targetCalendarId]?.color,
+							isMissingCalendar = calendarById[job.sourceCalendarId] == null
+								|| calendarById[job.targetCalendarId] == null,
 							isSyncing = uiState.syncingJobIds.contains(job.id),
 							onToggleActive = onToggleActive,
 							onDeleteJob = onDeleteJob,
