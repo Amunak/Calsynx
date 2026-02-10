@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
@@ -23,6 +22,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
@@ -65,9 +66,18 @@ fun SyncJobRow(
 ) {
 	var menuExpanded by remember { mutableStateOf(false) }
 	var showDeleteConfirm by remember { mutableStateOf(false) }
+	val cardColor by animateColorAsState(
+		targetValue = if (isSyncing) {
+			MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+		} else {
+			MaterialTheme.colorScheme.surface
+		},
+		label = "sync_card_color"
+	)
 
 	ElevatedCard(
-		modifier = Modifier.fillMaxWidth()
+		modifier = Modifier.fillMaxWidth(),
+		colors = CardDefaults.elevatedCardColors(containerColor = cardColor)
 	) {
 		Column(
 			modifier = Modifier
@@ -133,74 +143,73 @@ fun SyncJobRow(
 					modifier = Modifier
 						.fillMaxWidth()
 						.padding(horizontal = 8.dp, vertical = 6.dp),
-					horizontalArrangement = Arrangement.SpaceBetween,
+					horizontalArrangement = Arrangement.spacedBy(10.dp),
 					verticalAlignment = Alignment.CenterVertically
 				) {
 					FilledTonalButton(
 						onClick = { onToggleActive(job, !job.isActive) },
+						modifier = Modifier.weight(1f),
 						colors = ButtonDefaults.filledTonalButtonColors(
 							containerColor = MaterialTheme.colorScheme.secondaryContainer,
 							contentColor = MaterialTheme.colorScheme.onSecondaryContainer
 						)
 					) {
 						val icon = if (job.isActive) Icons.Default.Pause else Icons.Default.PlayArrow
-						val label = if (job.isActive) "Pause sync" else "Resume sync"
+						val label = if (job.isActive) "Pause" else "Resume"
 						Icon(imageVector = icon, contentDescription = null)
 						Text(text = label, modifier = Modifier.padding(start = 6.dp))
 					}
-					Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-						FilledTonalButton(
-							onClick = { onManualSync(job) },
-							enabled = !isSyncing,
-							modifier = Modifier.widthIn(min = 110.dp),
-							colors = ButtonDefaults.filledTonalButtonColors(
-								containerColor = MaterialTheme.colorScheme.primaryContainer,
-								contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-								disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
-								disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-							)
-						) {
+					FilledTonalButton(
+						onClick = { onManualSync(job) },
+						enabled = !isSyncing,
+						modifier = Modifier.weight(1f),
+						colors = ButtonDefaults.filledTonalButtonColors(
+							containerColor = MaterialTheme.colorScheme.primaryContainer,
+							contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+							disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
+							disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+						)
+					) {
+						Icon(
+							imageVector = Icons.Default.Sync,
+							contentDescription = null
+						)
+						Text(
+							text = "Sync",
+							modifier = Modifier.padding(start = 6.dp)
+						)
+					}
+					Box {
+						IconButton(onClick = { menuExpanded = true }) {
 							Icon(
-								imageVector = Icons.Default.Sync,
-								contentDescription = null
-							)
-							Text(
-								text = if (isSyncing) "Syncing" else "Sync now",
-								modifier = Modifier.padding(start = 6.dp)
+								imageVector = Icons.Default.MoreVert,
+								contentDescription = "Job actions"
 							)
 						}
-						Box {
-							IconButton(onClick = { menuExpanded = true }) {
-								Icon(
-									imageVector = Icons.Default.MoreVert,
-									contentDescription = "Job actions"
-								)
-							}
-							DropdownMenu(
-								expanded = menuExpanded,
-								onDismissRequest = { menuExpanded = false }
-							) {
-								DropdownMenuItem(
-									text = { Text("Edit") },
-									leadingIcon = {
-										Icon(Icons.Default.Edit, contentDescription = null)
-									},
-									onClick = {
-										menuExpanded = false
-										onEditJob(job)
-									}
-								)
-								DropdownMenuItem(
-									text = { Text("Delete") },
-									leadingIcon = {
-										Icon(Icons.Default.Delete, contentDescription = null)
-									},
-									onClick = {
-										menuExpanded = false
-										showDeleteConfirm = true
-									}
-								)
-							}
+						DropdownMenu(
+							expanded = menuExpanded,
+							onDismissRequest = { menuExpanded = false }
+						) {
+							DropdownMenuItem(
+								text = { Text("Edit") },
+								leadingIcon = {
+									Icon(Icons.Default.Edit, contentDescription = null)
+								},
+								onClick = {
+									menuExpanded = false
+									onEditJob(job)
+								}
+							)
+							DropdownMenuItem(
+								text = { Text("Delete") },
+								leadingIcon = {
+									Icon(Icons.Default.Delete, contentDescription = null)
+								},
+								onClick = {
+									menuExpanded = false
+									showDeleteConfirm = true
+								}
+							)
 						}
 					}
 				}
