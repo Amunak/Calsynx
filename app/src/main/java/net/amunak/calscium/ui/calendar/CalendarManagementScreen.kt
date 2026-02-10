@@ -168,7 +168,7 @@ fun CalendarDetailScreen(
 	val calendarTitle = sanitizeCalendarName(calendar.displayName)
 	val sourceCalendars = remember(row) { row.incomingCalendars }
 	val targetCalendars = remember(row) { row.outgoingCalendars }
-	val accessLevel = calendar.accessLevel ?: CalendarContract.Calendars.CAL_ACCESS_READ
+	val accessLevel = calendar.accessLevel ?: CalendarContract.Calendars.CAL_ACCESS_EDITOR
 	val canEditCalendar = accessLevel >= CalendarContract.Calendars.CAL_ACCESS_EDITOR
 	val canWriteEvents = accessLevel >= CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR
 	val canDeleteCalendar = accessLevel >= CalendarContract.Calendars.CAL_ACCESS_OWNER
