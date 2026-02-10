@@ -46,6 +46,10 @@ The scope is intentional: one-way, source -> target, with no cloud service or ac
     *   Target calendar selector.
     *   Toggle active and delete option.
     *   Manual "Sync now" trigger per job.
+*   **Calendar Management**:
+    *   Calendar list grouped by account with color dots and event counts.
+    *   Detail view for rename, recolor, purge, and delete actions.
+    *   Create a local on-device calendar via the FAB.
 
 ### 5. Permissions
 *   Request `READ_CALENDAR` and `WRITE_CALENDAR` at runtime before syncing.
@@ -56,4 +60,5 @@ The scope is intentional: one-way, source -> target, with no cloud service or ac
 - [x] Implement Calendar Provider helper to list calendars.
 - [x] Build UI for listing and adding Sync Jobs.
 - [x] Implement the core Sync Logic (manual sync).
+- [x] Add calendar management (list, create, rename, recolor, purge, delete).
 - [ ] Integrate WorkManager for background execution.
