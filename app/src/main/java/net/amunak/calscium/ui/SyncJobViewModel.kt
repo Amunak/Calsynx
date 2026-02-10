@@ -12,9 +12,15 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.amunak.calscium.calendar.CalendarInfo
-import net.amunak.calscium.calendar.CalendarProvider
 import net.amunak.calscium.data.DatabaseProvider
 import net.amunak.calscium.data.SyncJob
+import net.amunak.calscium.data.repository.CalendarRepository
+import net.amunak.calscium.data.repository.SyncJobRepository
+import net.amunak.calscium.domain.CreateSyncJobUseCase
+import net.amunak.calscium.domain.DeleteSyncJobUseCase
+import net.amunak.calscium.domain.ObserveSyncJobsUseCase
+import net.amunak.calscium.domain.UpdateLastSyncUseCase
+import net.amunak.calscium.domain.UpdateSyncJobUseCase
 
 data class SyncJobUiState(
 	val jobs: List<SyncJob> = emptyList(),
@@ -25,7 +31,13 @@ data class SyncJobUiState(
 )
 
 class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
-	private val syncJobDao = DatabaseProvider.get(app).syncJobDao()
+	private val syncJobRepository = SyncJobRepository(DatabaseProvider.get(app).syncJobDao())
+	private val calendarRepository = CalendarRepository()
+	private val observeSyncJobs = ObserveSyncJobsUseCase(syncJobRepository)
+	private val createSyncJob = CreateSyncJobUseCase(syncJobRepository)
+	private val updateSyncJob = UpdateSyncJobUseCase(syncJobRepository)
+	private val deleteSyncJob = DeleteSyncJobUseCase(syncJobRepository)
+	private val updateLastSync = UpdateLastSyncUseCase(syncJobRepository)
 
 	private val calendars = MutableStateFlow<List<CalendarInfo>>(emptyList())
 	private val hasCalendarPermission = MutableStateFlow(false)
@@ -33,7 +45,7 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 	private val errorMessage = MutableStateFlow<String?>(null)
 
 	val uiState: StateFlow<SyncJobUiState> = combine(
-		syncJobDao.getAllFlow(),
+		observeSyncJobs(),
 		calendars,
 		hasCalendarPermission,
 		isRefreshing,
@@ -63,7 +75,7 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 			isRefreshing.value = true
 			errorMessage.value = null
 			try {
-				calendars.value = CalendarProvider.getCalendars(app)
+				calendars.value = calendarRepository.getCalendars(app)
 			} catch (e: SecurityException) {
 				calendars.value = emptyList()
 				errorMessage.value = "Calendar permission denied."
@@ -77,7 +89,7 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 
 	fun createJob(sourceId: Long, targetId: Long) {
 		viewModelScope.launch(Dispatchers.IO) {
-			syncJobDao.upsert(
+			createSyncJob(
 				SyncJob(
 					sourceCalendarId = sourceId,
 					targetCalendarId = targetId
@@ -88,13 +100,19 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 
 	fun setJobActive(job: SyncJob, isActive: Boolean) {
 		viewModelScope.launch(Dispatchers.IO) {
-			syncJobDao.upsert(job.copy(isActive = isActive))
+			updateSyncJob(job.copy(isActive = isActive))
 		}
 	}
 
 	fun deleteJob(job: SyncJob) {
 		viewModelScope.launch(Dispatchers.IO) {
-			syncJobDao.delete(job)
+			deleteSyncJob(job)
+		}
+	}
+
+	fun runManualSync(job: SyncJob) {
+		viewModelScope.launch(Dispatchers.IO) {
+			updateLastSync(job, System.currentTimeMillis())
 		}
 	}
 }
