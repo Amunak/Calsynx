@@ -1,19 +1,15 @@
 package net.amunak.calscium.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenu
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,7 +23,6 @@ import net.amunak.calscium.calendar.CalendarInfo
 import net.amunak.calscium.ui.PreviewData
 import net.amunak.calscium.ui.theme.CalsciumTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateJobDialog(
 	calendars: List<CalendarInfo>,
@@ -49,69 +44,29 @@ fun CreateJobDialog(
 				if (calendars.isEmpty()) {
 					Text("No calendars available.")
 				} else {
-					ExposedDropdownMenuBox(
+					CalendarPicker(
+						label = "Source calendar",
+						calendars = calendars,
+						selected = source,
 						expanded = sourceExpanded,
-						onExpandedChange = { sourceExpanded = it }
-					) {
-						OutlinedTextField(
-							value = source?.displayName ?: "",
-							onValueChange = {},
-							label = { Text("Source calendar") },
-							readOnly = true,
-							trailingIcon = {
-								ExposedDropdownMenuDefaults.TrailingIcon(expanded = sourceExpanded)
-							},
-							modifier = Modifier
-								.menuAnchor(MenuAnchorType.PrimaryNotEditable)
-								.fillMaxWidth()
-						)
-						ExposedDropdownMenu(
-							expanded = sourceExpanded,
-							onDismissRequest = { sourceExpanded = false }
-						) {
-							calendars.forEach { calendar ->
-								DropdownMenuItem(
-									text = { Text(calendar.displayName) },
-									onClick = {
-										source = calendar
-										sourceExpanded = false
-									}
-								)
-							}
+						onExpandedChange = { sourceExpanded = it },
+						onSelected = { calendar ->
+							source = calendar
+							sourceExpanded = false
 						}
-					}
+					)
 
-					ExposedDropdownMenuBox(
+					CalendarPicker(
+						label = "Target calendar",
+						calendars = calendars,
+						selected = target,
 						expanded = targetExpanded,
-						onExpandedChange = { targetExpanded = it }
-					) {
-						OutlinedTextField(
-							value = target?.displayName ?: "",
-							onValueChange = {},
-							label = { Text("Target calendar") },
-							readOnly = true,
-							trailingIcon = {
-								ExposedDropdownMenuDefaults.TrailingIcon(expanded = targetExpanded)
-							},
-							modifier = Modifier
-								.menuAnchor(MenuAnchorType.PrimaryNotEditable)
-								.fillMaxWidth()
-						)
-						ExposedDropdownMenu(
-							expanded = targetExpanded,
-							onDismissRequest = { targetExpanded = false }
-						) {
-							calendars.forEach { calendar ->
-								DropdownMenuItem(
-									text = { Text(calendar.displayName) },
-									onClick = {
-										target = calendar
-										targetExpanded = false
-									}
-								)
-							}
+						onExpandedChange = { targetExpanded = it },
+						onSelected = { calendar ->
+							target = calendar
+							targetExpanded = false
 						}
-					}
+					)
 
 					if (source != null && target != null && source?.id == target?.id) {
 						Text(
@@ -137,6 +92,42 @@ fun CreateJobDialog(
 			}
 		}
 	)
+}
+
+@Composable
+private fun CalendarPicker(
+	label: String,
+	calendars: List<CalendarInfo>,
+	selected: CalendarInfo?,
+	expanded: Boolean,
+	onExpandedChange: (Boolean) -> Unit,
+	onSelected: (CalendarInfo) -> Unit
+) {
+	Column {
+		Text(
+			text = label,
+			style = MaterialTheme.typography.labelMedium
+		)
+		Box {
+			OutlinedButton(
+				onClick = { onExpandedChange(true) },
+				modifier = Modifier.fillMaxWidth()
+			) {
+				Text(selected?.displayName ?: "Select")
+			}
+			DropdownMenu(
+				expanded = expanded,
+				onDismissRequest = { onExpandedChange(false) }
+			) {
+				calendars.forEach { calendar ->
+					DropdownMenuItem(
+						text = { Text(calendar.displayName) },
+						onClick = { onSelected(calendar) }
+					)
+				}
+			}
+		}
+	}
 }
 
 @Preview(showBackground = true)
