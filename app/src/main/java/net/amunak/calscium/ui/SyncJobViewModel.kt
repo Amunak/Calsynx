@@ -16,9 +16,11 @@ import net.amunak.calscium.data.DatabaseProvider
 import net.amunak.calscium.data.SyncJob
 import net.amunak.calscium.data.repository.CalendarRepository
 import net.amunak.calscium.data.repository.SyncJobRepository
+import net.amunak.calscium.data.sync.CalendarSyncer
 import net.amunak.calscium.domain.CreateSyncJobUseCase
 import net.amunak.calscium.domain.DeleteSyncJobUseCase
 import net.amunak.calscium.domain.ObserveSyncJobsUseCase
+import net.amunak.calscium.domain.RunManualSyncUseCase
 import net.amunak.calscium.domain.UpdateLastSyncUseCase
 import net.amunak.calscium.domain.UpdateSyncJobUseCase
 
@@ -27,21 +29,28 @@ data class SyncJobUiState(
 	val calendars: List<CalendarInfo> = emptyList(),
 	val hasCalendarPermission: Boolean = false,
 	val isRefreshing: Boolean = false,
+	val syncingJobIds: Set<Long> = emptySet(),
 	val errorMessage: String? = null
 )
 
 class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 	private val syncJobRepository = SyncJobRepository(DatabaseProvider.get(app).syncJobDao())
 	private val calendarRepository = CalendarRepository()
+	private val calendarSyncer = CalendarSyncer(app.contentResolver)
 	private val observeSyncJobs = ObserveSyncJobsUseCase(syncJobRepository)
 	private val createSyncJob = CreateSyncJobUseCase(syncJobRepository)
 	private val updateSyncJob = UpdateSyncJobUseCase(syncJobRepository)
 	private val deleteSyncJob = DeleteSyncJobUseCase(syncJobRepository)
 	private val updateLastSync = UpdateLastSyncUseCase(syncJobRepository)
+	private val runManualSync = RunManualSyncUseCase(
+		calendarSyncer,
+		updateLastSync
+	)
 
 	private val calendars = MutableStateFlow<List<CalendarInfo>>(emptyList())
 	private val hasCalendarPermission = MutableStateFlow(false)
 	private val isRefreshing = MutableStateFlow(false)
+	private val syncingJobIds = MutableStateFlow<Set<Long>>(emptySet())
 	private val errorMessage = MutableStateFlow<String?>(null)
 
 	val uiState: StateFlow<SyncJobUiState> = combine(
@@ -49,13 +58,15 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 		calendars,
 		hasCalendarPermission,
 		isRefreshing,
+		syncingJobIds,
 		errorMessage
-	) { jobs, calendars, hasPermission, refreshing, error ->
+	) { jobs, calendars, hasPermission, refreshing, syncingIds, error ->
 		SyncJobUiState(
 			jobs = jobs,
 			calendars = calendars,
 			hasCalendarPermission = hasPermission,
 			isRefreshing = refreshing,
+			syncingJobIds = syncingIds,
 			errorMessage = error
 		)
 	}.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SyncJobUiState())
@@ -112,7 +123,17 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 
 	fun runManualSync(job: SyncJob) {
 		viewModelScope.launch(Dispatchers.IO) {
-			updateLastSync(job, System.currentTimeMillis())
+			syncingJobIds.value = syncingJobIds.value + job.id
+			errorMessage.value = null
+			try {
+				runManualSync.invoke(job)
+			} catch (e: SecurityException) {
+				errorMessage.value = "Calendar permission denied."
+			} catch (e: RuntimeException) {
+				errorMessage.value = "Sync failed."
+			} finally {
+				syncingJobIds.value = syncingJobIds.value - job.id
+			}
 		}
 	}
 }
