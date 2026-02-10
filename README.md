@@ -27,6 +27,7 @@ The scope is intentional: one-way, source -> target, with no cloud service or ac
         location, description) while avoiding attendee/organizer changes.
     *   **Sync Window**: Forward-looking by default; optionally include a short past window
         to catch recent edits.
+    *   **Manual Sync**: Triggered per job from the UI while background scheduling is pending.
 
 ### 3. Background Processing (WorkManager)
 *   **SyncWorker**: Periodic worker that runs active `SyncJob`s.
@@ -48,5 +49,5 @@ The scope is intentional: one-way, source -> target, with no cloud service or ac
 - [x] Setup Room database for Sync Jobs.
 - [x] Implement Calendar Provider helper to list calendars.
 - [x] Build UI for listing and adding Sync Jobs.
-- [ ] Implement the core Sync Logic.
+- [x] Implement the core Sync Logic (manual sync).
 - [ ] Integrate WorkManager for background execution.
