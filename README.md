@@ -19,9 +19,9 @@ The scope is intentional: one-way, source -> target, with no cloud service or ac
 *   **Event Syncing (One-Way: Source -> Target)**:
     *   Query `CalendarContract.Events` (or `CalendarContract.Instances` for a time window)
         scoped to `sourceCalendarId` and a sync window.
-    *   **Identifier Mapping**: Store mapping in `CalendarContract.ExtendedProperties` with a
-        custom key (e.g. `calscium_source_key` containing `sourceCalendarId:sourceEventId`).
-        This allows reliable updates/deletes without requiring sync-adapter privileges.
+    *   **Identifier Mapping**: Store mappings in the local Room database
+        (`event_mappings`) keyed by source/target event and calendar IDs. This avoids
+        sync-adapter-only CalendarProvider fields.
     *   **Updates**: Upsert target events by matching the stored source ID.
     *   **Deletions**: If a source event is deleted, delete the mapped target event.
     *   **Properties**: Copy core fields (title, start/end, all-day, time zone, rrule,
