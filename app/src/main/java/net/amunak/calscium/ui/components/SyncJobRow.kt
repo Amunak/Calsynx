@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
@@ -22,11 +23,11 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -83,7 +84,9 @@ fun SyncJobRow(
 						imageVector = Icons.AutoMirrored.Filled.ArrowForward,
 						contentDescription = null,
 						tint = MaterialTheme.colorScheme.onSurfaceVariant,
-						modifier = Modifier.padding(horizontal = 6.dp)
+						modifier = Modifier
+							.padding(horizontal = 6.dp)
+							.size(16.dp)
 					)
 					CalendarDot(color = targetColor)
 					Text(
@@ -121,73 +124,88 @@ fun SyncJobRow(
 				)
 			}
 			Spacer(modifier = Modifier.height(12.dp))
-			HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-			Spacer(modifier = Modifier.height(12.dp))
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween,
-				verticalAlignment = Alignment.CenterVertically
+			Surface(
+				shape = MaterialTheme.shapes.medium,
+				color = MaterialTheme.colorScheme.surfaceVariant
 			) {
-				TextButton(onClick = { onToggleActive(job, !job.isActive) }) {
-					val icon = if (job.isActive) Icons.Default.Pause else Icons.Default.PlayArrow
-					val label = if (job.isActive) "Pause sync" else "Resume sync"
-					Icon(imageVector = icon, contentDescription = null)
-					Text(text = label, modifier = Modifier.padding(start = 6.dp))
-				}
-				Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-					FilledTonalButton(
-						onClick = { onManualSync(job) },
-						enabled = !isSyncing
-					) {
-						Icon(
-							imageVector = Icons.Default.Sync,
-							contentDescription = null
-						)
-						Text(
-							text = if (isSyncing) "Syncing..." else "Sync now",
-							modifier = Modifier.padding(start = 6.dp)
-						)
+				Row(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(horizontal = 8.dp, vertical = 6.dp),
+					horizontalArrangement = Arrangement.SpaceBetween,
+					verticalAlignment = Alignment.CenterVertically
+				) {
+					TextButton(onClick = { onToggleActive(job, !job.isActive) }) {
+						val icon = if (job.isActive) Icons.Default.Pause else Icons.Default.PlayArrow
+						val label = if (job.isActive) "Pause sync" else "Resume sync"
+						Icon(imageVector = icon, contentDescription = null)
+						Text(text = label, modifier = Modifier.padding(start = 6.dp))
 					}
-					IconButton(onClick = { menuExpanded = true }) {
-						Icon(
-							imageVector = Icons.Default.MoreVert,
-							contentDescription = "Job actions"
-						)
-					}
-					DropdownMenu(
-						expanded = menuExpanded,
-						onDismissRequest = { menuExpanded = false }
-					) {
-						DropdownMenuItem(
-							text = { Text("Edit") },
-							leadingIcon = {
-								Icon(Icons.Default.Edit, contentDescription = null)
-							},
-							onClick = {
-								menuExpanded = false
-								onEditJob(job)
-							}
-						)
-						DropdownMenuItem(
-							text = { Text("Delete") },
-							leadingIcon = {
-								Icon(Icons.Default.Delete, contentDescription = null)
-							},
-							onClick = {
-								menuExpanded = false
-								showDeleteConfirm = true
-							}
-						)
+					Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+						FilledTonalButton(
+							onClick = { onManualSync(job) },
+							enabled = !isSyncing,
+							modifier = Modifier.widthIn(min = 110.dp)
+						) {
+							Icon(
+								imageVector = Icons.Default.Sync,
+								contentDescription = null
+							)
+							Text(
+								text = if (isSyncing) "Syncing" else "Sync now",
+								modifier = Modifier.padding(start = 6.dp)
+							)
+						}
+						IconButton(onClick = { menuExpanded = true }) {
+							Icon(
+								imageVector = Icons.Default.MoreVert,
+								contentDescription = "Job actions"
+							)
+						}
+						DropdownMenu(
+							expanded = menuExpanded,
+							onDismissRequest = { menuExpanded = false }
+						) {
+							DropdownMenuItem(
+								text = { Text("Edit") },
+								leadingIcon = {
+									Icon(Icons.Default.Edit, contentDescription = null)
+								},
+								onClick = {
+									menuExpanded = false
+									onEditJob(job)
+								}
+							)
+							DropdownMenuItem(
+								text = { Text("Delete") },
+								leadingIcon = {
+									Icon(Icons.Default.Delete, contentDescription = null)
+								},
+								onClick = {
+									menuExpanded = false
+									showDeleteConfirm = true
+								}
+							)
+						}
 					}
 				}
 			}
 			Spacer(modifier = Modifier.height(8.dp))
-			Text(
-				text = formatFrequency(job.frequencyMinutes) +
-					" · Window: ${job.windowPastDays}d back, ${job.windowFutureDays}d ahead",
-				style = MaterialTheme.typography.bodySmall,
-				color = MaterialTheme.colorScheme.onSurfaceVariant
-			)
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.SpaceBetween
+			) {
+				Text(
+					text = formatFrequency(job.frequencyMinutes),
+					style = MaterialTheme.typography.labelSmall,
+					color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+				)
+				Text(
+					text = "${job.windowPastDays}d back · ${job.windowFutureDays}d ahead",
+					style = MaterialTheme.typography.labelSmall,
+					color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+				)
+			}
 		}
 	}
 
