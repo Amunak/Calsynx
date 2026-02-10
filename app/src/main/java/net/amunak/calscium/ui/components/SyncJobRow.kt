@@ -18,12 +18,11 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -73,84 +72,35 @@ fun SyncJobRow(
 				.fillMaxWidth()
 				.padding(16.dp)
 		) {
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				verticalAlignment = Alignment.CenterVertically
-			) {
-				Column(modifier = Modifier.weight(1f)) {
-					Row(verticalAlignment = Alignment.CenterVertically) {
-						CalendarDot(color = sourceColor)
-						Text(
-							text = sourceName,
-							style = MaterialTheme.typography.titleMedium
-						)
-						Icon(
-							imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-							contentDescription = null,
-							tint = MaterialTheme.colorScheme.onSurfaceVariant,
-							modifier = Modifier.padding(horizontal = 6.dp)
-						)
-						CalendarDot(color = targetColor)
-						Text(
-							text = targetName,
-							style = MaterialTheme.typography.titleMedium
-						)
-					}
-					Spacer(modifier = Modifier.height(4.dp))
+			Column {
+				Row(verticalAlignment = Alignment.CenterVertically) {
+					CalendarDot(color = sourceColor)
 					Text(
-						text = "Last sync: " + formatLastSync(job.lastSyncTimestamp)
-							.removePrefix("Last sync: "),
-						style = MaterialTheme.typography.bodySmall,
-						color = MaterialTheme.colorScheme.onSurfaceVariant
+						text = sourceName,
+						style = MaterialTheme.typography.titleMedium
 					)
-				}
-				FilledTonalButton(
-					onClick = { onManualSync(job) },
-					enabled = !isSyncing
-				) {
 					Icon(
-						imageVector = Icons.Default.Sync,
-						contentDescription = null
+						imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+						contentDescription = null,
+						tint = MaterialTheme.colorScheme.onSurfaceVariant,
+						modifier = Modifier.padding(horizontal = 6.dp)
 					)
+					CalendarDot(color = targetColor)
 					Text(
-						text = if (isSyncing) "Syncing..." else "Sync now",
-						modifier = Modifier.padding(start = 6.dp)
+						text = targetName,
+						style = MaterialTheme.typography.titleMedium
 					)
 				}
-				IconButton(onClick = { menuExpanded = true }) {
-					Icon(
-						imageVector = Icons.Default.MoreVert,
-						contentDescription = "Job actions"
-					)
-				}
-				DropdownMenu(
-					expanded = menuExpanded,
-					onDismissRequest = { menuExpanded = false }
-				) {
-					DropdownMenuItem(
-						text = { Text("Edit") },
-						leadingIcon = {
-							Icon(Icons.Default.Edit, contentDescription = null)
-						},
-						onClick = {
-							menuExpanded = false
-							onEditJob(job)
-						}
-					)
-					DropdownMenuItem(
-						text = { Text("Delete") },
-						leadingIcon = {
-							Icon(Icons.Default.Delete, contentDescription = null)
-						},
-						onClick = {
-							menuExpanded = false
-							showDeleteConfirm = true
-						}
-					)
-				}
+				Spacer(modifier = Modifier.height(6.dp))
+				Text(
+					text = "Last sync: " + formatLastSync(job.lastSyncTimestamp)
+						.removePrefix("Last sync: "),
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.onSurfaceVariant
+				)
 			}
 
-			Spacer(modifier = Modifier.height(10.dp))
+			Spacer(modifier = Modifier.height(12.dp))
 			Text(
 				text = formatSyncCounts(
 					created = job.lastSyncCreated,
@@ -171,6 +121,8 @@ fun SyncJobRow(
 				)
 			}
 			Spacer(modifier = Modifier.height(12.dp))
+			HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+			Spacer(modifier = Modifier.height(12.dp))
 			Row(
 				modifier = Modifier.fillMaxWidth(),
 				horizontalArrangement = Arrangement.SpaceBetween,
@@ -183,24 +135,59 @@ fun SyncJobRow(
 					Text(text = label, modifier = Modifier.padding(start = 6.dp))
 				}
 				Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-					AssistChip(
-						onClick = {},
-						label = { Text(formatFrequency(job.frequencyMinutes)) },
-						colors = AssistChipDefaults.assistChipColors(
-							labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+					FilledTonalButton(
+						onClick = { onManualSync(job) },
+						enabled = !isSyncing
+					) {
+						Icon(
+							imageVector = Icons.Default.Sync,
+							contentDescription = null
 						)
-					)
-					AssistChip(
-						onClick = {},
-						label = {
-							Text("${job.windowPastDays}d back · ${job.windowFutureDays}d ahead")
-						},
-						colors = AssistChipDefaults.assistChipColors(
-							labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+						Text(
+							text = if (isSyncing) "Syncing..." else "Sync now",
+							modifier = Modifier.padding(start = 6.dp)
 						)
-					)
+					}
+					IconButton(onClick = { menuExpanded = true }) {
+						Icon(
+							imageVector = Icons.Default.MoreVert,
+							contentDescription = "Job actions"
+						)
+					}
+					DropdownMenu(
+						expanded = menuExpanded,
+						onDismissRequest = { menuExpanded = false }
+					) {
+						DropdownMenuItem(
+							text = { Text("Edit") },
+							leadingIcon = {
+								Icon(Icons.Default.Edit, contentDescription = null)
+							},
+							onClick = {
+								menuExpanded = false
+								onEditJob(job)
+							}
+						)
+						DropdownMenuItem(
+							text = { Text("Delete") },
+							leadingIcon = {
+								Icon(Icons.Default.Delete, contentDescription = null)
+							},
+							onClick = {
+								menuExpanded = false
+								showDeleteConfirm = true
+							}
+						)
+					}
 				}
 			}
+			Spacer(modifier = Modifier.height(8.dp))
+			Text(
+				text = formatFrequency(job.frequencyMinutes) +
+					" · Window: ${job.windowPastDays}d back, ${job.windowFutureDays}d ahead",
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
 		}
 	}
 

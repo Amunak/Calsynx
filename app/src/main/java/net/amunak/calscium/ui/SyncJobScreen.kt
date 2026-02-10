@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.Surface
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
@@ -111,27 +112,33 @@ fun SyncJobScreen(
 				style = MaterialTheme.typography.titleMedium
 			)
 			Spacer(modifier = Modifier.height(4.dp))
-			ElevatedCard(
-				modifier = Modifier.fillMaxWidth()
+			Surface(
+				modifier = Modifier.fillMaxWidth(),
+				shape = MaterialTheme.shapes.large,
+				tonalElevation = 2.dp,
+				color = MaterialTheme.colorScheme.primaryContainer
 			) {
 				Row(
 					modifier = Modifier
 						.fillMaxWidth()
-						.padding(12.dp),
+						.padding(14.dp),
 					verticalAlignment = Alignment.CenterVertically
 				) {
 					Icon(
 						imageVector = Icons.Default.Sync,
-						contentDescription = null
+						contentDescription = null,
+						tint = MaterialTheme.colorScheme.onPrimaryContainer
 					)
 					Column(modifier = Modifier.padding(start = 8.dp)) {
 						Text(
 							text = "Manual sync only",
-							style = MaterialTheme.typography.titleSmall
+							style = MaterialTheme.typography.titleSmall,
+							color = MaterialTheme.colorScheme.onPrimaryContainer
 						)
 						Text(
 							text = "Background scheduling will be added later.",
-							style = MaterialTheme.typography.bodySmall
+							style = MaterialTheme.typography.bodySmall,
+							color = MaterialTheme.colorScheme.onPrimaryContainer
 						)
 					}
 				}
