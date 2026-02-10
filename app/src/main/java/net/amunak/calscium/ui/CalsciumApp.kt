@@ -11,8 +11,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.amunak.calscium.data.SyncJob
-import net.amunak.calscium.ui.components.SyncFrequencyOption
-import net.amunak.calscium.ui.components.SyncWindowOption
 import net.amunak.calscium.ui.theme.CalsciumTheme
 
 @Composable
@@ -43,6 +41,7 @@ fun CalsciumAppRoute() {
 		},
 		onRefreshCalendars = viewModel::refreshCalendars,
 		onCreateJob = viewModel::createJob,
+		onUpdateJob = viewModel::updateJobOptions,
 		onToggleActive = viewModel::setJobActive,
 		onDeleteJob = viewModel::deleteJob,
 		onManualSync = viewModel::runManualSync
@@ -54,7 +53,8 @@ fun CalsciumApp(
 	uiState: SyncJobUiState,
 	onRequestPermissions: () -> Unit,
 	onRefreshCalendars: () -> Unit,
-	onCreateJob: (Long, Long, SyncWindowOption, SyncFrequencyOption) -> Unit,
+	onCreateJob: (Long, Long, Int, Int, Int) -> Unit,
+	onUpdateJob: (SyncJob, Int, Int, Int) -> Unit,
 	onToggleActive: (SyncJob, Boolean) -> Unit,
 	onDeleteJob: (SyncJob) -> Unit,
 	onManualSync: (SyncJob) -> Unit
@@ -64,6 +64,7 @@ fun CalsciumApp(
 		onRequestPermissions = onRequestPermissions,
 		onRefreshCalendars = onRefreshCalendars,
 		onCreateJob = onCreateJob,
+		onUpdateJob = onUpdateJob,
 		onToggleActive = onToggleActive,
 		onDeleteJob = onDeleteJob,
 		onManualSync = onManualSync
@@ -82,7 +83,8 @@ private fun CalsciumAppPreview() {
 			),
 			onRequestPermissions = {},
 			onRefreshCalendars = {},
-			onCreateJob = { _, _, _, _ -> },
+			onCreateJob = { _, _, _, _, _ -> },
+			onUpdateJob = { _, _, _, _ -> },
 			onToggleActive = { _, _ -> },
 			onDeleteJob = {},
 			onManualSync = {}
