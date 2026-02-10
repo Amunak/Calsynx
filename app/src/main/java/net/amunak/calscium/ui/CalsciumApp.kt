@@ -1,8 +1,15 @@
 package net.amunak.calscium.ui
 
 import android.Manifest
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -99,41 +106,70 @@ fun CalsciumApp(
 	onDeleteCalendar: (net.amunak.calscium.calendar.CalendarInfo) -> Unit,
 	onCreateCalendar: (String, Int) -> Unit
 ) {
-	when (currentScreen) {
-		AppScreen.SyncJobs -> {
-			SyncJobScreen(
-				uiState = uiState,
-				onRequestPermissions = onRequestPermissions,
-				onRefreshCalendars = onRefreshCalendars,
-				onCreateJob = onCreateJob,
-				onUpdateJob = onUpdateJob,
-				onToggleActive = onToggleActive,
-				onDeleteJob = onDeleteJob,
-				onManualSync = onManualSync,
-				onOpenCalendarManagement = { onNavigate(AppScreen.CalendarManagement) }
-			)
+	val screenOrder = listOf(
+		AppScreen.SyncJobs,
+		AppScreen.CalendarManagement,
+		AppScreen.CalendarDetail
+	)
+
+	BackHandler(enabled = currentScreen != AppScreen.SyncJobs) {
+		when (currentScreen) {
+			AppScreen.CalendarDetail -> {
+				onClearCalendarSelection()
+				onNavigate(AppScreen.CalendarManagement)
+			}
+			AppScreen.CalendarManagement -> onNavigate(AppScreen.SyncJobs)
+			AppScreen.SyncJobs -> Unit
 		}
-		AppScreen.CalendarManagement -> {
-			CalendarManagementScreen(
-				state = calendarState,
-				onBack = { onNavigate(AppScreen.SyncJobs) },
-				onRefresh = onRefreshCalendarsManagement,
-				onSelectCalendar = onSelectCalendar,
-				onCreateCalendar = onCreateCalendar
-			)
+	}
+
+	AnimatedContent(
+		targetState = currentScreen,
+		label = "App navigation",
+		transitionSpec = {
+			val targetIndex = screenOrder.indexOf(targetState)
+			val initialIndex = screenOrder.indexOf(initialState)
+			val direction = if (targetIndex >= initialIndex) 1 else -1
+			slideInHorizontally { it * direction } + fadeIn() togetherWith
+				slideOutHorizontally { -it * direction } + fadeOut()
 		}
-		AppScreen.CalendarDetail -> {
-			CalendarDetailScreen(
-				state = calendarState,
-				onBack = {
-					onClearCalendarSelection()
-					onNavigate(AppScreen.CalendarManagement)
-				},
-				onUpdateName = onUpdateCalendarName,
-				onUpdateColor = onUpdateCalendarColor,
-				onPurge = onPurgeCalendar,
-				onDelete = onDeleteCalendar
-			)
+	) { screen ->
+		when (screen) {
+			AppScreen.SyncJobs -> {
+				SyncJobScreen(
+					uiState = uiState,
+					onRequestPermissions = onRequestPermissions,
+					onRefreshCalendars = onRefreshCalendars,
+					onCreateJob = onCreateJob,
+					onUpdateJob = onUpdateJob,
+					onToggleActive = onToggleActive,
+					onDeleteJob = onDeleteJob,
+					onManualSync = onManualSync,
+					onOpenCalendarManagement = { onNavigate(AppScreen.CalendarManagement) }
+				)
+			}
+			AppScreen.CalendarManagement -> {
+				CalendarManagementScreen(
+					state = calendarState,
+					onBack = { onNavigate(AppScreen.SyncJobs) },
+					onRefresh = onRefreshCalendarsManagement,
+					onSelectCalendar = onSelectCalendar,
+					onCreateCalendar = onCreateCalendar
+				)
+			}
+			AppScreen.CalendarDetail -> {
+				CalendarDetailScreen(
+					state = calendarState,
+					onBack = {
+						onClearCalendarSelection()
+						onNavigate(AppScreen.CalendarManagement)
+					},
+					onUpdateName = onUpdateCalendarName,
+					onUpdateColor = onUpdateCalendarColor,
+					onPurge = onPurgeCalendar,
+					onDelete = onDeleteCalendar
+				)
+			}
 		}
 	}
 }
