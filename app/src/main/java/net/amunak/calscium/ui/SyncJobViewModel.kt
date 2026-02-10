@@ -37,7 +37,10 @@ data class SyncJobUiState(
 class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 	private val syncJobRepository = SyncJobRepository(DatabaseProvider.get(app).syncJobDao())
 	private val calendarRepository = CalendarRepository()
-	private val calendarSyncer = CalendarSyncer(app.contentResolver)
+	private val calendarSyncer = CalendarSyncer(
+		app.contentResolver,
+		DatabaseProvider.get(app).eventMappingDao()
+	)
 	private val observeSyncJobs = ObserveSyncJobsUseCase(syncJobRepository)
 	private val createSyncJob = CreateSyncJobUseCase(syncJobRepository)
 	private val updateSyncJob = UpdateSyncJobUseCase(syncJobRepository)

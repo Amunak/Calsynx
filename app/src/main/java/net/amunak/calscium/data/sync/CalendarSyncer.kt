@@ -2,8 +2,10 @@ package net.amunak.calscium.data.sync
 
 import android.content.ContentResolver
 import android.content.ContentValues
-import android.util.Log
 import android.provider.CalendarContract
+import android.util.Log
+import net.amunak.calscium.data.EventMapping
+import net.amunak.calscium.data.EventMappingDao
 import net.amunak.calscium.data.SyncJob
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -15,40 +17,51 @@ data class SyncResult(
 )
 
 class CalendarSyncer(
-	private val resolver: ContentResolver
+	private val resolver: ContentResolver,
+	private val mappingDao: EventMappingDao
 ) {
-	private val propertyName = "calscium_source_key"
-
-	fun sync(
+	suspend fun sync(
 		job: SyncJob,
 		window: SyncWindow = SyncWindow.default()
 	): SyncResult {
 		val sourceEvents = querySourceEvents(job.sourceCalendarId, window)
 		if (sourceEvents.isEmpty()) {
-			val deleted = deleteOrphans(job.targetCalendarId, job.sourceCalendarId, emptySet<Long>())
+			val mappings = mappingDao.getForJob(job.sourceCalendarId, job.targetCalendarId)
+			val deleted = deleteOrphans(job, mappings, emptySet<Long>())
 			return SyncResult(created = 0, updated = 0, deleted = deleted)
 		}
 
 		val sourceIds = sourceEvents.mapTo(LinkedHashSet()) { it.id }
-		val targetMap = queryTargetEvents(job.targetCalendarId, job.sourceCalendarId, sourceIds)
+		val mappings = mappingDao.getForJob(job.sourceCalendarId, job.targetCalendarId)
+		val targetExists = fetchExistingTargetIds(mappings.map { it.targetEventId })
+		val mappingBySource = mappings.associateBy { it.sourceEventId }.toMutableMap()
+		val missingTargets = mappings.filter { !targetExists.contains(it.targetEventId) }
+		if (missingTargets.isNotEmpty()) {
+			mappingDao.deleteByIds(missingTargets.map { it.id })
+			missingTargets.forEach { mappingBySource.remove(it.sourceEventId) }
+			Log.w(TAG, "Removed ${missingTargets.size} mappings with missing target events.")
+		}
 
 		var created = 0
 		var updated = 0
 
 		sourceEvents.forEach { source ->
-			val existingTargetId = targetMap[source.id]
+			val existingMapping = mappingBySource[source.id]
+			val existingTargetId = existingMapping?.targetEventId
 			if (existingTargetId == null) {
-				if (insertTargetEvent(job.targetCalendarId, job.sourceCalendarId, source)) {
+				val targetId = insertTargetEvent(job.targetCalendarId, source)
+				if (targetId != null) {
+					upsertMapping(job, source.id, targetId, existingMapping?.id)
 					created += 1
 				}
 			} else {
-				if (updateTargetEvent(existingTargetId, job.sourceCalendarId, source)) {
+				if (updateTargetEvent(existingTargetId, source)) {
 					updated += 1
 				}
 			}
 		}
 
-		val deleted = deleteOrphans(job.targetCalendarId, job.sourceCalendarId, sourceIds)
+		val deleted = deleteOrphans(job, mappingBySource.values, sourceIds)
 		return SyncResult(created = created, updated = updated, deleted = deleted)
 	}
 
@@ -123,134 +136,50 @@ class CalendarSyncer(
 		}
 	}
 
-	private fun queryTargetEvents(
-		targetCalendarId: Long,
-		sourceCalendarId: Long,
-		sourceIds: Set<Long>
-	): Map<Long, Long> {
-		if (sourceIds.isEmpty()) return emptyMap()
-
-		val chunks = sourceIds.chunked(500)
-		val targetMap = HashMap<Long, Long>(sourceIds.size)
-
-		chunks.forEach { chunk ->
-			val sourceKeys = chunk.map { buildSourceKey(sourceCalendarId, it) }
-			val placeholders = sourceKeys.joinToString(",") { "?" }
-			val selection = buildString {
-				append("${CalendarContract.ExtendedProperties.NAME} = ?")
-				append(" AND ${CalendarContract.ExtendedProperties.VALUE} IN ($placeholders)")
-			}
-			val args = ArrayList<String>(sourceKeys.size + 1).apply {
-				add(propertyName)
-				sourceKeys.forEach { add(it) }
-			}
-			val cursor = resolver.query(
-				CalendarContract.ExtendedProperties.CONTENT_URI,
-				arrayOf(
-					CalendarContract.ExtendedProperties.EVENT_ID,
-					CalendarContract.ExtendedProperties.VALUE
-				),
-				selection,
-				args.toTypedArray(),
-				null
-			) ?: return@forEach
-
-			val eventIds = ArrayList<Long>()
-			val rows = ArrayList<Pair<Long, String>>()
-			cursor.use {
-				val eventIdIndex =
-					it.getColumnIndexOrThrow(CalendarContract.ExtendedProperties.EVENT_ID)
-				val valueIndex =
-					it.getColumnIndexOrThrow(CalendarContract.ExtendedProperties.VALUE)
-				while (it.moveToNext()) {
-					val eventId = it.getLong(eventIdIndex)
-					val value = it.getString(valueIndex) ?: continue
-					eventIds.add(eventId)
-					rows.add(eventId to value)
-				}
-			}
-
-			val validEventIds = filterEventsByCalendar(eventIds, targetCalendarId)
-			rows.forEach { (eventId, value) ->
-				if (!validEventIds.contains(eventId)) return@forEach
-				val sourceId = parseSourceId(sourceCalendarId, value) ?: return@forEach
-				targetMap[sourceId] = eventId
-			}
-		}
-
-		return targetMap
-	}
-
 	private fun insertTargetEvent(
 		targetCalendarId: Long,
-		sourceCalendarId: Long,
 		source: SourceEvent
-	): Boolean {
-		val values = toContentValues(targetCalendarId, sourceCalendarId, source)
-		val uri = resolver.insert(CalendarContract.Events.CONTENT_URI, values) ?: return false
+	): Long? {
+		val values = toContentValues(targetCalendarId, source)
+		val uri = resolver.insert(CalendarContract.Events.CONTENT_URI, values)
+		if (uri == null) {
+			Log.w(TAG, "Insert returned null uri for target calendar $targetCalendarId")
+			return null
+		}
 		val eventId = uri.lastPathSegment?.toLongOrNull()
 		if (eventId == null) {
 			Log.w(TAG, "Insert returned invalid event uri: $uri")
-			return false
+			return null
 		}
-		return upsertSourceKey(eventId, buildSourceKey(sourceCalendarId, source.id))
+		return eventId
 	}
 
 	private fun updateTargetEvent(
 		targetEventId: Long,
-		sourceCalendarId: Long,
 		source: SourceEvent
 	): Boolean {
-		val values = toContentValues(null, sourceCalendarId, source)
+		val values = toContentValues(null, source)
 		val uri = CalendarContract.Events.CONTENT_URI.buildUpon()
 			.appendPath(targetEventId.toString())
 			.build()
 		val updated = resolver.update(uri, values, null, null) > 0
-		if (!updated) return false
-		return upsertSourceKey(targetEventId, buildSourceKey(sourceCalendarId, source.id))
+		if (!updated) {
+			Log.w(TAG, "Failed to update target event $targetEventId")
+		}
+		return updated
 	}
 
-	private fun deleteOrphans(
-		targetCalendarId: Long,
-		sourceCalendarId: Long,
+	private suspend fun deleteOrphans(
+		job: SyncJob,
+		mappings: Collection<EventMapping>,
 		sourceIds: Set<Long>
 	): Int {
-		val selection = buildString {
-			append("${CalendarContract.ExtendedProperties.NAME} = ?")
-			append(" AND ${CalendarContract.ExtendedProperties.VALUE} LIKE ?")
-		}
-		val args = arrayOf(propertyName, "${sourceCalendarId}:%")
-		val cursor = resolver.query(
-			CalendarContract.ExtendedProperties.CONTENT_URI,
-			arrayOf(
-				CalendarContract.ExtendedProperties.EVENT_ID,
-				CalendarContract.ExtendedProperties.VALUE
-			),
-			selection,
-			args,
-			null
-		) ?: return 0
-
 		val toDelete = ArrayList<Long>()
-		val eventIds = ArrayList<Long>()
-		val rows = ArrayList<Pair<Long, String>>()
-		cursor.use {
-			val idIndex = it.getColumnIndexOrThrow(CalendarContract.ExtendedProperties.EVENT_ID)
-			val valueIndex = it.getColumnIndexOrThrow(CalendarContract.ExtendedProperties.VALUE)
-			while (it.moveToNext()) {
-				val eventId = it.getLong(idIndex)
-				val value = it.getString(valueIndex) ?: continue
-				eventIds.add(eventId)
-				rows.add(eventId to value)
-			}
-		}
-
-		val validEventIds = filterEventsByCalendar(eventIds, targetCalendarId)
-		rows.forEach { (eventId, value) ->
-			if (!validEventIds.contains(eventId)) return@forEach
-			val sourceId = parseSourceId(sourceCalendarId, value) ?: return@forEach
-			if (!sourceIds.contains(sourceId)) {
-				toDelete.add(eventId)
+		val mappingIds = ArrayList<Long>()
+		mappings.forEach { mapping ->
+			if (!sourceIds.contains(mapping.sourceEventId)) {
+				toDelete.add(mapping.targetEventId)
+				mappingIds.add(mapping.id)
 			}
 		}
 
@@ -259,14 +188,20 @@ class CalendarSyncer(
 			val uri = CalendarContract.Events.CONTENT_URI.buildUpon()
 				.appendPath(targetId.toString())
 				.build()
-			deleted += resolver.delete(uri, null, null)
+			val result = resolver.delete(uri, null, null)
+			if (result == 0) {
+				Log.w(TAG, "Failed to delete target event $targetId")
+			}
+			deleted += result
+		}
+		if (mappingIds.isNotEmpty()) {
+			mappingDao.deleteByIds(mappingIds)
 		}
 		return deleted
 	}
 
 	private fun toContentValues(
 		targetCalendarId: Long?,
-		sourceCalendarId: Long,
 		source: SourceEvent
 	): ContentValues {
 		return ContentValues().apply {
@@ -285,93 +220,44 @@ class CalendarSyncer(
 		}
 	}
 
-	private fun upsertSourceKey(eventId: Long, sourceKey: String): Boolean {
-		val selection = buildString {
-			append("${CalendarContract.ExtendedProperties.EVENT_ID} = ?")
-			append(" AND ${CalendarContract.ExtendedProperties.NAME} = ?")
-		}
-		val args = arrayOf(eventId.toString(), propertyName)
-		val cursor = resolver.query(
-			CalendarContract.ExtendedProperties.CONTENT_URI,
-			arrayOf(CalendarContract.ExtendedProperties._ID),
-			selection,
-			args,
-			null
+	private suspend fun upsertMapping(
+		job: SyncJob,
+		sourceEventId: Long,
+		targetEventId: Long,
+		existingId: Long?
+	) {
+		mappingDao.upsert(
+			EventMapping(
+				id = existingId ?: 0L,
+				sourceEventId = sourceEventId,
+				targetEventId = targetEventId,
+				sourceCalendarId = job.sourceCalendarId,
+				targetCalendarId = job.targetCalendarId
+			)
 		)
-		val existingId = cursor?.use {
-			if (it.moveToFirst()) it.getLong(0) else null
-		}
-
-		val values = ContentValues().apply {
-			put(CalendarContract.ExtendedProperties.EVENT_ID, eventId)
-			put(CalendarContract.ExtendedProperties.NAME, propertyName)
-			put(CalendarContract.ExtendedProperties.VALUE, sourceKey)
-		}
-
-		return if (existingId == null) {
-			val uri = resolver.insert(CalendarContract.ExtendedProperties.CONTENT_URI, values)
-			if (uri == null) {
-				Log.w(TAG, "Failed to insert extended property for event $eventId")
-				false
-			} else {
-				true
-			}
-		} else {
-			val updated = resolver.update(
-				CalendarContract.ExtendedProperties.CONTENT_URI,
-				values,
-				"${CalendarContract.ExtendedProperties._ID} = ?",
-				arrayOf(existingId.toString())
-			) > 0
-			if (!updated) {
-				Log.w(TAG, "Failed to update extended property for event $eventId")
-			}
-			updated
-		}
 	}
 
-	private fun buildSourceKey(sourceCalendarId: Long, sourceEventId: Long): String {
-		return "$sourceCalendarId:$sourceEventId"
-	}
-
-	private fun parseSourceId(sourceCalendarId: Long, value: String): Long? {
-		val prefix = "$sourceCalendarId:"
-		if (!value.startsWith(prefix)) return null
-		return value.removePrefix(prefix).toLongOrNull()
-	}
-
-	private fun filterEventsByCalendar(
-		eventIds: List<Long>,
-		targetCalendarId: Long
-	): Set<Long> {
-		if (eventIds.isEmpty()) return emptySet()
-		val validIds = HashSet<Long>(eventIds.size)
-		eventIds.chunked(500).forEach { chunk ->
+	private fun fetchExistingTargetIds(targetIds: List<Long>): Set<Long> {
+		if (targetIds.isEmpty()) return emptySet()
+		val existing = HashSet<Long>(targetIds.size)
+		targetIds.chunked(500).forEach { chunk ->
 			val placeholders = chunk.joinToString(",") { "?" }
-			val selection = buildString {
-				append("${CalendarContract.Events._ID} IN ($placeholders)")
-				append(" AND ${CalendarContract.Events.CALENDAR_ID} = ?")
-				append(" AND ${CalendarContract.Events.DELETED} = 0")
-			}
-			val args = ArrayList<String>(chunk.size + 1).apply {
-				chunk.forEach { add(it.toString()) }
-				add(targetCalendarId.toString())
-			}
+			val selection = "${CalendarContract.Events._ID} IN ($placeholders)"
 			val cursor = resolver.query(
 				CalendarContract.Events.CONTENT_URI,
 				arrayOf(CalendarContract.Events._ID),
 				selection,
-				args.toTypedArray(),
+				chunk.map { it.toString() }.toTypedArray(),
 				null
 			) ?: return@forEach
 			cursor.use {
 				val idIndex = it.getColumnIndexOrThrow(CalendarContract.Events._ID)
 				while (it.moveToNext()) {
-					validIds.add(it.getLong(idIndex))
+					existing.add(it.getLong(idIndex))
 				}
 			}
 		}
-		return validIds
+		return existing
 	}
 
 	companion object {
