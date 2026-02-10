@@ -37,7 +37,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
@@ -66,18 +65,11 @@ fun SyncJobRow(
 ) {
 	var menuExpanded by remember { mutableStateOf(false) }
 	var showDeleteConfirm by remember { mutableStateOf(false) }
-	val cardColor by animateColorAsState(
-		targetValue = if (isSyncing) {
-			MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-		} else {
-			MaterialTheme.colorScheme.surface
-		},
-		label = "sync_card_color"
-	)
-
 	ElevatedCard(
 		modifier = Modifier.fillMaxWidth(),
-		colors = CardDefaults.elevatedCardColors(containerColor = cardColor)
+		colors = CardDefaults.elevatedCardColors(
+			containerColor = MaterialTheme.colorScheme.surface
+		)
 	) {
 		Column(
 			modifier = Modifier
@@ -107,8 +99,7 @@ fun SyncJobRow(
 				}
 				Spacer(modifier = Modifier.height(6.dp))
 				Text(
-					text = "Last sync: " + formatLastSync(job.lastSyncTimestamp)
-						.removePrefix("Last sync: "),
+					text = formatLastSync(job.lastSyncTimestamp, isSyncing),
 					style = MaterialTheme.typography.bodySmall,
 					color = MaterialTheme.colorScheme.onSurfaceVariant
 				)

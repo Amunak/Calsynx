@@ -7,7 +7,8 @@ import java.time.format.DateTimeFormatter
 private val lastSyncFormatter: DateTimeFormatter =
 	DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 
-fun formatLastSync(timestamp: Long?): String {
+fun formatLastSync(timestamp: Long?, isSyncing: Boolean): String {
+	if (isSyncing) return "Last sync: syncing..."
 	if (timestamp == null) return "Last sync: never"
 	val localDateTime = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault())
 	return "Last sync: " + lastSyncFormatter.format(localDateTime)
