@@ -4,6 +4,7 @@
 - Use the planning tool for multi-step work; update the plan as steps are completed.
 - Track progress in small, logical increments.
 - Commit changes regularly in focused, granular commits.
+- Maintain a running log of decisions and rejected ideas.
 
 ## Build/Run Expectations
 - When asked to verify, run the relevant build/test commands and report results.
