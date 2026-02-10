@@ -28,6 +28,7 @@ data class CalendarManagementUiState(
 	val calendars: List<CalendarRowUi> = emptyList(),
 	val selectedCalendar: CalendarRowUi? = null,
 	val errorMessage: String? = null,
+	val toastMessage: String? = null,
 	val isLoading: Boolean = false
 )
 
@@ -87,14 +88,20 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 
 	fun updateCalendarName(calendar: CalendarInfo, newName: String) {
 		viewModelScope.launch(Dispatchers.IO) {
-			val cleanName = sanitizeCalendarName(newName)
-			val updated = calendarRepository.updateCalendarName(
-				getApplication<Application>().contentResolver,
-				calendar,
-				cleanName
-			)
-			if (!updated) {
-				Log.w(TAG, "Calendar name update failed for ${calendar.id}")
+			try {
+				val cleanName = sanitizeCalendarName(newName)
+				val updated = calendarRepository.updateCalendarName(
+					getApplication<Application>().contentResolver,
+					calendar,
+					cleanName
+				)
+				if (!updated) {
+					Log.w(TAG, "Calendar name update failed for ${calendar.id}")
+					postToast("Unable to rename calendar.")
+				}
+			} catch (e: RuntimeException) {
+				Log.e(TAG, "Calendar name update failed", e)
+				postToast("Unable to rename calendar.")
 			}
 			refreshCalendars()
 		}
@@ -102,13 +109,19 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 
 	fun updateCalendarColor(calendar: CalendarInfo, color: Int) {
 		viewModelScope.launch(Dispatchers.IO) {
-			val updated = calendarRepository.updateCalendarColor(
-				getApplication<Application>().contentResolver,
-				calendar,
-				color
-			)
-			if (!updated) {
-				Log.w(TAG, "Calendar color update failed for ${calendar.id}")
+			try {
+				val updated = calendarRepository.updateCalendarColor(
+					getApplication<Application>().contentResolver,
+					calendar,
+					color
+				)
+				if (!updated) {
+					Log.w(TAG, "Calendar color update failed for ${calendar.id}")
+					postToast("Unable to change calendar color.")
+				}
+			} catch (e: RuntimeException) {
+				Log.e(TAG, "Calendar color update failed", e)
+				postToast("Unable to change calendar color.")
 			}
 			refreshCalendars()
 		}
@@ -116,23 +129,34 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 
 	fun purgeCalendar(calendar: CalendarInfo) {
 		viewModelScope.launch(Dispatchers.IO) {
-			val deleted = calendarRepository.purgeEvents(
-				getApplication<Application>().contentResolver,
-				calendar.id
-			)
-			Log.i(TAG, "Purged $deleted events for calendar ${calendar.id}")
+			try {
+				val deleted = calendarRepository.purgeEvents(
+					getApplication<Application>().contentResolver,
+					calendar.id
+				)
+				Log.i(TAG, "Purged $deleted events for calendar ${calendar.id}")
+			} catch (e: RuntimeException) {
+				Log.e(TAG, "Calendar purge failed", e)
+				postToast("Unable to purge calendar events.")
+			}
 			refreshCalendars()
 		}
 	}
 
 	fun deleteCalendar(calendar: CalendarInfo) {
 		viewModelScope.launch(Dispatchers.IO) {
-			val deleted = calendarRepository.deleteCalendar(
-				getApplication<Application>().contentResolver,
-				calendar
-			)
-			if (!deleted) {
-				Log.w(TAG, "Calendar delete failed for ${calendar.id}")
+			try {
+				val deleted = calendarRepository.deleteCalendar(
+					getApplication<Application>().contentResolver,
+					calendar
+				)
+				if (!deleted) {
+					Log.w(TAG, "Calendar delete failed for ${calendar.id}")
+					postToast("Unable to delete calendar.")
+				}
+			} catch (e: RuntimeException) {
+				Log.e(TAG, "Calendar delete failed", e)
+				postToast("Unable to delete calendar.")
 			}
 			refreshCalendars()
 		}
@@ -142,18 +166,31 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 		viewModelScope.launch(Dispatchers.IO) {
 			val cleanName = sanitizeCalendarName(displayName)
 			val accountName = calendarRepository.resolveLocalAccountName(getApplication())
-			val uri = calendarRepository.createLocalCalendar(
-				getApplication<Application>().contentResolver,
-				cleanName,
-				color,
-				accountName
-			)
-			if (uri == null) {
-				Log.w(TAG, "Calendar creation failed for $displayName")
-				_uiState.update { it.copy(errorMessage = "Unable to create calendar.") }
+			try {
+				val uri = calendarRepository.createLocalCalendar(
+					getApplication<Application>().contentResolver,
+					cleanName,
+					color,
+					accountName
+				)
+				if (uri == null) {
+					Log.w(TAG, "Calendar creation failed for $displayName")
+					postToast("Unable to create calendar.")
+				}
+			} catch (e: RuntimeException) {
+				Log.e(TAG, "Calendar creation failed", e)
+				postToast("Unable to create calendar.")
 			}
 			refreshCalendars()
 		}
+	}
+
+	fun clearToast() {
+		_uiState.update { it.copy(toastMessage = null) }
+	}
+
+	private fun postToast(message: String) {
+		_uiState.update { it.copy(toastMessage = message) }
 	}
 
 	companion object {

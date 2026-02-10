@@ -21,6 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.amunak.calscium.data.SyncJob
+import net.amunak.calscium.ui.components.ToastMessage
 import net.amunak.calscium.ui.calendar.CalendarManagementScreen
 import net.amunak.calscium.ui.calendar.CalendarManagementViewModel
 import net.amunak.calscium.ui.calendar.CalendarDetailScreen
@@ -80,7 +81,8 @@ fun CalsciumAppRoute() {
 		onUpdateCalendarColor = calendarViewModel::updateCalendarColor,
 		onPurgeCalendar = calendarViewModel::purgeCalendar,
 		onDeleteCalendar = calendarViewModel::deleteCalendar,
-		onCreateCalendar = calendarViewModel::createCalendar
+		onCreateCalendar = calendarViewModel::createCalendar,
+		onCalendarToastShown = calendarViewModel::clearToast
 	)
 }
 
@@ -104,8 +106,13 @@ fun CalsciumApp(
 	onUpdateCalendarColor: (net.amunak.calscium.calendar.CalendarInfo, Int) -> Unit,
 	onPurgeCalendar: (net.amunak.calscium.calendar.CalendarInfo) -> Unit,
 	onDeleteCalendar: (net.amunak.calscium.calendar.CalendarInfo) -> Unit,
-	onCreateCalendar: (String, Int) -> Unit
+	onCreateCalendar: (String, Int) -> Unit,
+	onCalendarToastShown: () -> Unit
 ) {
+	ToastMessage(
+		message = calendarState.toastMessage,
+		onShown = onCalendarToastShown
+	)
 	val screenOrder = listOf(
 		AppScreen.SyncJobs,
 		AppScreen.CalendarManagement,
@@ -201,7 +208,8 @@ private fun CalsciumAppPreview() {
 			onUpdateCalendarColor = { _, _ -> },
 			onPurgeCalendar = {},
 			onDeleteCalendar = {},
-			onCreateCalendar = { _, _ -> }
+			onCreateCalendar = { _, _ -> },
+			onCalendarToastShown = {}
 		)
 	}
 }
