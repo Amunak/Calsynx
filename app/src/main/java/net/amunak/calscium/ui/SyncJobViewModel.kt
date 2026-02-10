@@ -1,6 +1,7 @@
 package net.amunak.calscium.ui
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -53,21 +54,33 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 	private val syncingJobIds = MutableStateFlow<Set<Long>>(emptySet())
 	private val errorMessage = MutableStateFlow<String?>(null)
 
-	val uiState: StateFlow<SyncJobUiState> = combine(
-		observeSyncJobs(),
+	private val auxState = combine(
 		calendars,
 		hasCalendarPermission,
 		isRefreshing,
 		syncingJobIds,
 		errorMessage
-	) { jobs, calendars, hasPermission, refreshing, syncingIds, error ->
-		SyncJobUiState(
-			jobs = jobs,
+	) { calendars, hasPermission, refreshing, syncingIds, error ->
+		AuxState(
 			calendars = calendars,
 			hasCalendarPermission = hasPermission,
 			isRefreshing = refreshing,
 			syncingJobIds = syncingIds,
 			errorMessage = error
+		)
+	}
+
+	val uiState: StateFlow<SyncJobUiState> = combine(
+		observeSyncJobs(),
+		auxState
+	) { jobs, aux ->
+		SyncJobUiState(
+			jobs = jobs,
+			calendars = aux.calendars,
+			hasCalendarPermission = aux.hasCalendarPermission,
+			isRefreshing = aux.isRefreshing,
+			syncingJobIds = aux.syncingJobIds,
+			errorMessage = aux.errorMessage
 		)
 	}.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SyncJobUiState())
 
@@ -88,9 +101,11 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 			try {
 				calendars.value = calendarRepository.getCalendars(app)
 			} catch (e: SecurityException) {
+				Log.e(TAG, "Calendar permission denied while refreshing calendars", e)
 				calendars.value = emptyList()
 				errorMessage.value = "Calendar permission denied."
 			} catch (e: RuntimeException) {
+				Log.e(TAG, "Failed to load calendars", e)
 				errorMessage.value = "Failed to load calendars."
 			} finally {
 				isRefreshing.value = false
@@ -128,12 +143,26 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 			try {
 				runManualSync.invoke(job)
 			} catch (e: SecurityException) {
+				Log.e(TAG, "Calendar permission denied during manual sync", e)
 				errorMessage.value = "Calendar permission denied."
 			} catch (e: RuntimeException) {
+				Log.e(TAG, "Manual sync failed", e)
 				errorMessage.value = "Sync failed."
 			} finally {
 				syncingJobIds.value = syncingJobIds.value - job.id
 			}
 		}
 	}
+
+	companion object {
+		private const val TAG = "SyncJobViewModel"
+	}
 }
+
+private data class AuxState(
+	val calendars: List<CalendarInfo>,
+	val hasCalendarPermission: Boolean,
+	val isRefreshing: Boolean,
+	val syncingJobIds: Set<Long>,
+	val errorMessage: String?
+)

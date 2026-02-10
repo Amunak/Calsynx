@@ -2,6 +2,7 @@ package net.amunak.calscium.data.sync
 
 import android.content.ContentResolver
 import android.content.ContentValues
+import android.util.Log
 import android.provider.CalendarContract
 import net.amunak.calscium.data.SyncJob
 import java.time.Instant
@@ -16,13 +17,15 @@ data class SyncResult(
 class CalendarSyncer(
 	private val resolver: ContentResolver
 ) {
+	private val propertyName = "calscium_source_key"
+
 	fun sync(
 		job: SyncJob,
 		window: SyncWindow = SyncWindow.default()
 	): SyncResult {
 		val sourceEvents = querySourceEvents(job.sourceCalendarId, window)
 		if (sourceEvents.isEmpty()) {
-			val deleted = deleteOrphans(job.targetCalendarId, emptySet())
+			val deleted = deleteOrphans(job.targetCalendarId, job.sourceCalendarId, emptySet<Long>())
 			return SyncResult(created = 0, updated = 0, deleted = deleted)
 		}
 
@@ -127,48 +130,55 @@ class CalendarSyncer(
 	): Map<Long, Long> {
 		if (sourceIds.isEmpty()) return emptyMap()
 
-		val projection = arrayOf(
-			CalendarContract.Events._ID,
-			CalendarContract.Events.SYNC_DATA1
-		)
-
-		val result = HashMap<Long, Long>(sourceIds.size)
 		val chunks = sourceIds.chunked(500)
+		val targetMap = HashMap<Long, Long>(sourceIds.size)
+
 		chunks.forEach { chunk ->
-			val placeholders = chunk.joinToString(",") { "?" }
+			val sourceKeys = chunk.map { buildSourceKey(sourceCalendarId, it) }
+			val placeholders = sourceKeys.joinToString(",") { "?" }
 			val selection = buildString {
-				append("${CalendarContract.Events.CALENDAR_ID} = ?")
-				append(" AND ${CalendarContract.Events.SYNC_DATA2} = ?")
-				append(" AND ${CalendarContract.Events.SYNC_DATA1} IN ($placeholders)")
-				append(" AND ${CalendarContract.Events.DELETED} = 0")
+				append("${CalendarContract.ExtendedProperties.NAME} = ?")
+				append(" AND ${CalendarContract.ExtendedProperties.VALUE} IN ($placeholders)")
 			}
-			val args = ArrayList<String>(chunk.size + 2).apply {
-				add(targetCalendarId.toString())
-				add(sourceCalendarId.toString())
-				chunk.forEach { add(it.toString()) }
+			val args = ArrayList<String>(sourceKeys.size + 1).apply {
+				add(propertyName)
+				sourceKeys.forEach { add(it) }
 			}
 			val cursor = resolver.query(
-				CalendarContract.Events.CONTENT_URI,
-				projection,
+				CalendarContract.ExtendedProperties.CONTENT_URI,
+				arrayOf(
+					CalendarContract.ExtendedProperties.EVENT_ID,
+					CalendarContract.ExtendedProperties.VALUE
+				),
 				selection,
 				args.toTypedArray(),
 				null
 			) ?: return@forEach
 
+			val eventIds = ArrayList<Long>()
+			val rows = ArrayList<Pair<Long, String>>()
 			cursor.use {
-				val idIndex = it.getColumnIndexOrThrow(CalendarContract.Events._ID)
-				val syncIndex = it.getColumnIndexOrThrow(CalendarContract.Events.SYNC_DATA1)
+				val eventIdIndex =
+					it.getColumnIndexOrThrow(CalendarContract.ExtendedProperties.EVENT_ID)
+				val valueIndex =
+					it.getColumnIndexOrThrow(CalendarContract.ExtendedProperties.VALUE)
 				while (it.moveToNext()) {
-					val targetId = it.getLong(idIndex)
-					val sourceId = it.getString(syncIndex)?.toLongOrNull()
-					if (sourceId != null) {
-						result[sourceId] = targetId
-					}
+					val eventId = it.getLong(eventIdIndex)
+					val value = it.getString(valueIndex) ?: continue
+					eventIds.add(eventId)
+					rows.add(eventId to value)
 				}
+			}
+
+			val validEventIds = filterEventsByCalendar(eventIds, targetCalendarId)
+			rows.forEach { (eventId, value) ->
+				if (!validEventIds.contains(eventId)) return@forEach
+				val sourceId = parseSourceId(sourceCalendarId, value) ?: return@forEach
+				targetMap[sourceId] = eventId
 			}
 		}
 
-		return result
+		return targetMap
 	}
 
 	private fun insertTargetEvent(
@@ -177,8 +187,13 @@ class CalendarSyncer(
 		source: SourceEvent
 	): Boolean {
 		val values = toContentValues(targetCalendarId, sourceCalendarId, source)
-		val uri = resolver.insert(CalendarContract.Events.CONTENT_URI, values)
-		return uri != null
+		val uri = resolver.insert(CalendarContract.Events.CONTENT_URI, values) ?: return false
+		val eventId = uri.lastPathSegment?.toLongOrNull()
+		if (eventId == null) {
+			Log.w(TAG, "Insert returned invalid event uri: $uri")
+			return false
+		}
+		return upsertSourceKey(eventId, buildSourceKey(sourceCalendarId, source.id))
 	}
 
 	private fun updateTargetEvent(
@@ -190,7 +205,9 @@ class CalendarSyncer(
 		val uri = CalendarContract.Events.CONTENT_URI.buildUpon()
 			.appendPath(targetEventId.toString())
 			.build()
-		return resolver.update(uri, values, null, null) > 0
+		val updated = resolver.update(uri, values, null, null) > 0
+		if (!updated) return false
+		return upsertSourceKey(targetEventId, buildSourceKey(sourceCalendarId, source.id))
 	}
 
 	private fun deleteOrphans(
@@ -198,35 +215,42 @@ class CalendarSyncer(
 		sourceCalendarId: Long,
 		sourceIds: Set<Long>
 	): Int {
-		val projection = arrayOf(
-			CalendarContract.Events._ID,
-			CalendarContract.Events.SYNC_DATA1
-		)
 		val selection = buildString {
-			append("${CalendarContract.Events.CALENDAR_ID} = ?")
-			append(" AND ${CalendarContract.Events.SYNC_DATA2} = ?")
-			append(" AND ${CalendarContract.Events.SYNC_DATA1} IS NOT NULL")
-			append(" AND ${CalendarContract.Events.DELETED} = 0")
+			append("${CalendarContract.ExtendedProperties.NAME} = ?")
+			append(" AND ${CalendarContract.ExtendedProperties.VALUE} LIKE ?")
 		}
-		val args = arrayOf(targetCalendarId.toString(), sourceCalendarId.toString())
+		val args = arrayOf(propertyName, "${sourceCalendarId}:%")
 		val cursor = resolver.query(
-			CalendarContract.Events.CONTENT_URI,
-			projection,
+			CalendarContract.ExtendedProperties.CONTENT_URI,
+			arrayOf(
+				CalendarContract.ExtendedProperties.EVENT_ID,
+				CalendarContract.ExtendedProperties.VALUE
+			),
 			selection,
 			args,
 			null
 		) ?: return 0
 
 		val toDelete = ArrayList<Long>()
+		val eventIds = ArrayList<Long>()
+		val rows = ArrayList<Pair<Long, String>>()
 		cursor.use {
-			val idIndex = it.getColumnIndexOrThrow(CalendarContract.Events._ID)
-			val syncIndex = it.getColumnIndexOrThrow(CalendarContract.Events.SYNC_DATA1)
+			val idIndex = it.getColumnIndexOrThrow(CalendarContract.ExtendedProperties.EVENT_ID)
+			val valueIndex = it.getColumnIndexOrThrow(CalendarContract.ExtendedProperties.VALUE)
 			while (it.moveToNext()) {
-				val targetId = it.getLong(idIndex)
-				val sourceId = it.getString(syncIndex)?.toLongOrNull()
-				if (sourceId != null && !sourceIds.contains(sourceId)) {
-					toDelete.add(targetId)
-				}
+				val eventId = it.getLong(idIndex)
+				val value = it.getString(valueIndex) ?: continue
+				eventIds.add(eventId)
+				rows.add(eventId to value)
+			}
+		}
+
+		val validEventIds = filterEventsByCalendar(eventIds, targetCalendarId)
+		rows.forEach { (eventId, value) ->
+			if (!validEventIds.contains(eventId)) return@forEach
+			val sourceId = parseSourceId(sourceCalendarId, value) ?: return@forEach
+			if (!sourceIds.contains(sourceId)) {
+				toDelete.add(eventId)
 			}
 		}
 
@@ -248,10 +272,7 @@ class CalendarSyncer(
 		return ContentValues().apply {
 			if (targetCalendarId != null) {
 				put(CalendarContract.Events.CALENDAR_ID, targetCalendarId)
-				put(CalendarContract.Events.SYNC_DATA1, source.id.toString())
-				put(CalendarContract.Events.SYNC_DATA2, sourceCalendarId.toString())
 			}
-			put(CalendarContract.Events.SYNC_DATA2, sourceCalendarId.toString())
 			put(CalendarContract.Events.TITLE, source.title)
 			put(CalendarContract.Events.DTSTART, source.startMillis)
 			source.endMillis?.let { put(CalendarContract.Events.DTEND, it) }
@@ -262,6 +283,99 @@ class CalendarSyncer(
 			put(CalendarContract.Events.EVENT_LOCATION, source.location)
 			put(CalendarContract.Events.DESCRIPTION, source.description)
 		}
+	}
+
+	private fun upsertSourceKey(eventId: Long, sourceKey: String): Boolean {
+		val selection = buildString {
+			append("${CalendarContract.ExtendedProperties.EVENT_ID} = ?")
+			append(" AND ${CalendarContract.ExtendedProperties.NAME} = ?")
+		}
+		val args = arrayOf(eventId.toString(), propertyName)
+		val cursor = resolver.query(
+			CalendarContract.ExtendedProperties.CONTENT_URI,
+			arrayOf(CalendarContract.ExtendedProperties._ID),
+			selection,
+			args,
+			null
+		)
+		val existingId = cursor?.use {
+			if (it.moveToFirst()) it.getLong(0) else null
+		}
+
+		val values = ContentValues().apply {
+			put(CalendarContract.ExtendedProperties.EVENT_ID, eventId)
+			put(CalendarContract.ExtendedProperties.NAME, propertyName)
+			put(CalendarContract.ExtendedProperties.VALUE, sourceKey)
+		}
+
+		return if (existingId == null) {
+			val uri = resolver.insert(CalendarContract.ExtendedProperties.CONTENT_URI, values)
+			if (uri == null) {
+				Log.w(TAG, "Failed to insert extended property for event $eventId")
+				false
+			} else {
+				true
+			}
+		} else {
+			val updated = resolver.update(
+				CalendarContract.ExtendedProperties.CONTENT_URI,
+				values,
+				"${CalendarContract.ExtendedProperties._ID} = ?",
+				arrayOf(existingId.toString())
+			) > 0
+			if (!updated) {
+				Log.w(TAG, "Failed to update extended property for event $eventId")
+			}
+			updated
+		}
+	}
+
+	private fun buildSourceKey(sourceCalendarId: Long, sourceEventId: Long): String {
+		return "$sourceCalendarId:$sourceEventId"
+	}
+
+	private fun parseSourceId(sourceCalendarId: Long, value: String): Long? {
+		val prefix = "$sourceCalendarId:"
+		if (!value.startsWith(prefix)) return null
+		return value.removePrefix(prefix).toLongOrNull()
+	}
+
+	private fun filterEventsByCalendar(
+		eventIds: List<Long>,
+		targetCalendarId: Long
+	): Set<Long> {
+		if (eventIds.isEmpty()) return emptySet()
+		val validIds = HashSet<Long>(eventIds.size)
+		eventIds.chunked(500).forEach { chunk ->
+			val placeholders = chunk.joinToString(",") { "?" }
+			val selection = buildString {
+				append("${CalendarContract.Events._ID} IN ($placeholders)")
+				append(" AND ${CalendarContract.Events.CALENDAR_ID} = ?")
+				append(" AND ${CalendarContract.Events.DELETED} = 0")
+			}
+			val args = ArrayList<String>(chunk.size + 1).apply {
+				chunk.forEach { add(it.toString()) }
+				add(targetCalendarId.toString())
+			}
+			val cursor = resolver.query(
+				CalendarContract.Events.CONTENT_URI,
+				arrayOf(CalendarContract.Events._ID),
+				selection,
+				args.toTypedArray(),
+				null
+			) ?: return@forEach
+			cursor.use {
+				val idIndex = it.getColumnIndexOrThrow(CalendarContract.Events._ID)
+				while (it.moveToNext()) {
+					validIds.add(it.getLong(idIndex))
+				}
+			}
+		}
+		return validIds
+	}
+
+	companion object {
+		private const val TAG = "CalendarSyncer"
 	}
 }
 
