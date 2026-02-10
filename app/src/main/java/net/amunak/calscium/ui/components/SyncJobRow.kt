@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
@@ -84,8 +85,13 @@ fun SyncJobRow(
 		!job.isActive -> MaterialTheme.colorScheme.surfaceVariant
 		else -> MaterialTheme.colorScheme.surface
 	}
+	val animatedBaseColor by animateColorAsState(
+		targetValue = baseColor,
+		animationSpec = tween(durationMillis = 220),
+		label = "Sync job base color"
+	)
 	val cardColor = lerp(
-		start = baseColor,
+		start = animatedBaseColor,
 		stop = MaterialTheme.colorScheme.primaryContainer,
 		fraction = pulse.value * 0.35f
 	)
@@ -157,7 +163,13 @@ fun SyncJobRow(
 					modifier = Modifier.fillMaxWidth(),
 					horizontalArrangement = Arrangement.End
 				) {
-					OutlinedButton(onClick = { showDeleteConfirm = true }) {
+					FilledTonalButton(
+						onClick = { showDeleteConfirm = true },
+						colors = ButtonDefaults.filledTonalButtonColors(
+							containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+							contentColor = MaterialTheme.colorScheme.onSurface
+						)
+					) {
 						Icon(imageVector = Icons.Default.Delete, contentDescription = null)
 						Text(text = "Delete", modifier = Modifier.padding(start = 6.dp))
 					}
