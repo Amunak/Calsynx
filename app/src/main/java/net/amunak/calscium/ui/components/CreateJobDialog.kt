@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.SyncAlt
 import net.amunak.calscium.calendar.CalendarInfo
 import net.amunak.calscium.ui.PreviewData
 import net.amunak.calscium.ui.theme.CalsciumTheme
@@ -83,37 +84,53 @@ fun CreateJobDialog(
 
 	AlertDialog(
 		onDismissRequest = onDismiss,
-		title = { Text("Create sync job") },
+		title = {
+			Text(if (isEdit) "Edit sync job" else "Create sync job")
+		},
 		text = {
 			Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 				if (calendars.isEmpty()) {
 					Text("No calendars available.")
 				} else {
-					CalendarPicker(
-						label = "Source calendar",
-						calendars = calendars,
-						selected = source,
-						expanded = sourceExpanded,
-						onExpandedChange = { sourceExpanded = it },
-						enabled = !isEdit,
-						onSelected = { calendar ->
-							source = calendar
-							sourceExpanded = false
+					if (isEdit) {
+						Row(verticalAlignment = Alignment.CenterVertically) {
+							Icon(
+								imageVector = Icons.Default.SyncAlt,
+								contentDescription = null
+							)
+							Text(
+								text = "${source?.displayName ?: ""} → ${target?.displayName ?: ""}",
+								style = MaterialTheme.typography.bodyMedium,
+								modifier = Modifier.padding(start = 6.dp)
+							)
 						}
-					)
+					} else {
+						CalendarPicker(
+							label = "Source calendar",
+							calendars = calendars,
+							selected = source,
+							expanded = sourceExpanded,
+							onExpandedChange = { sourceExpanded = it },
+							enabled = true,
+							onSelected = { calendar ->
+								source = calendar
+								sourceExpanded = false
+							}
+						)
 
-					CalendarPicker(
-						label = "Target calendar",
-						calendars = calendars,
-						selected = target,
-						expanded = targetExpanded,
-						onExpandedChange = { targetExpanded = it },
-						enabled = !isEdit,
-						onSelected = { calendar ->
-							target = calendar
-							targetExpanded = false
-						}
-					)
+						CalendarPicker(
+							label = "Target calendar",
+							calendars = calendars,
+							selected = target,
+							expanded = targetExpanded,
+							onExpandedChange = { targetExpanded = it },
+							enabled = true,
+							onSelected = { calendar ->
+								target = calendar
+								targetExpanded = false
+							}
+						)
+					}
 
 					HorizontalDivider()
 
@@ -136,13 +153,7 @@ fun CreateJobDialog(
 						onSelected = { frequencySelection = it }
 					)
 
-					if (source != null && target != null && source?.id == target?.id) {
-						Text(
-							text = "Source and target must be different.",
-							color = MaterialTheme.colorScheme.error,
-							style = MaterialTheme.typography.bodySmall
-						)
-					} else if (validationError != null) {
+					if (validationError != null && !isEdit) {
 						Text(
 							text = validationError,
 							color = MaterialTheme.colorScheme.error,

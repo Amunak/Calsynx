@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
@@ -17,9 +18,12 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -78,26 +82,29 @@ fun SyncJobRow(
 						CalendarDot(color = sourceColor)
 						Text(
 							text = sourceName,
-							style = MaterialTheme.typography.titleSmall
+							style = MaterialTheme.typography.titleMedium
 						)
-						Text(
-							text = "  →  ",
-							style = MaterialTheme.typography.titleSmall,
-							color = MaterialTheme.colorScheme.onSurfaceVariant
+						Icon(
+							imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+							contentDescription = null,
+							tint = MaterialTheme.colorScheme.onSurfaceVariant,
+							modifier = Modifier.padding(horizontal = 6.dp)
 						)
 						CalendarDot(color = targetColor)
 						Text(
 							text = targetName,
-							style = MaterialTheme.typography.titleSmall
+							style = MaterialTheme.typography.titleMedium
 						)
 					}
 					Spacer(modifier = Modifier.height(4.dp))
 					Text(
-						text = formatLastSync(job.lastSyncTimestamp),
-						style = MaterialTheme.typography.bodySmall
+						text = "Last sync: " + formatLastSync(job.lastSyncTimestamp)
+							.removePrefix("Last sync: "),
+						style = MaterialTheme.typography.bodySmall,
+						color = MaterialTheme.colorScheme.onSurfaceVariant
 					)
 				}
-				OutlinedButton(
+				FilledTonalButton(
 					onClick = { onManualSync(job) },
 					enabled = !isSyncing
 				) {
@@ -143,7 +150,7 @@ fun SyncJobRow(
 				}
 			}
 
-			Spacer(modifier = Modifier.height(8.dp))
+			Spacer(modifier = Modifier.height(10.dp))
 			Text(
 				text = formatSyncCounts(
 					created = job.lastSyncCreated,
@@ -152,7 +159,8 @@ fun SyncJobRow(
 					sourceCount = job.lastSyncSourceCount,
 					targetCount = job.lastSyncTargetCount
 				),
-				style = MaterialTheme.typography.bodySmall
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)
 			job.lastSyncError?.let { error ->
 				Spacer(modifier = Modifier.height(4.dp))
@@ -174,16 +182,25 @@ fun SyncJobRow(
 					Icon(imageVector = icon, contentDescription = null)
 					Text(text = label, modifier = Modifier.padding(start = 6.dp))
 				}
-				Text(
-					text = formatFrequency(job.frequencyMinutes),
-					style = MaterialTheme.typography.bodySmall
-				)
+				Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+					AssistChip(
+						onClick = {},
+						label = { Text(formatFrequency(job.frequencyMinutes)) },
+						colors = AssistChipDefaults.assistChipColors(
+							labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+						)
+					)
+					AssistChip(
+						onClick = {},
+						label = {
+							Text("${job.windowPastDays}d back · ${job.windowFutureDays}d ahead")
+						},
+						colors = AssistChipDefaults.assistChipColors(
+							labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+						)
+					)
+				}
 			}
-			Spacer(modifier = Modifier.height(4.dp))
-			Text(
-				text = "Window: ${job.windowPastDays}d back, ${job.windowFutureDays}d ahead",
-				style = MaterialTheme.typography.bodySmall
-			)
 		}
 	}
 
