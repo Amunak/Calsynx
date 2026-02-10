@@ -84,7 +84,7 @@ fun CreateJobDialog(
 		onDismissRequest = onDismiss
 	) {
 		Surface(
-			shape = MaterialTheme.shapes.extraLarge,
+			shape = MaterialTheme.shapes.large,
 			color = MaterialTheme.colorScheme.surface
 		) {
 			Column(
@@ -98,6 +98,7 @@ fun CreateJobDialog(
 				if (calendars.isEmpty()) {
 					Text("No calendars available.")
 				} else {
+					// Keep edit and create dialogs visually consistent.
 					if (isEdit) {
 						Row(
 							modifier = Modifier.fillMaxWidth(),
@@ -106,7 +107,8 @@ fun CreateJobDialog(
 							CalendarLabel(
 								name = source?.displayName ?: "",
 								color = source?.color,
-								textColor = MaterialTheme.colorScheme.onSurfaceVariant
+								textColor = MaterialTheme.colorScheme.onSurfaceVariant,
+								textStyle = MaterialTheme.typography.bodyMedium
 							)
 							Icon(
 								imageVector = Icons.AutoMirrored.Filled.ArrowForward,
@@ -119,7 +121,8 @@ fun CreateJobDialog(
 							CalendarLabel(
 								name = target?.displayName ?: "",
 								color = target?.color,
-								textColor = MaterialTheme.colorScheme.onSurfaceVariant
+								textColor = MaterialTheme.colorScheme.onSurfaceVariant,
+								textStyle = MaterialTheme.typography.bodyMedium
 							)
 						}
 					} else {
