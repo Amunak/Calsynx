@@ -14,7 +14,7 @@ object DatabaseProvider {
 				AppDatabase::class.java,
 				"calscium.db"
 			)
-				.fallbackToDestructiveMigration()
+				.fallbackToDestructiveMigration(dropAllTables = true)
 				.build()
 				.also { instance = it }
 		}
