@@ -32,7 +32,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.unit.dp
@@ -65,10 +69,25 @@ fun SyncJobRow(
 ) {
 	var menuExpanded by remember { mutableStateOf(false) }
 	var showDeleteConfirm by remember { mutableStateOf(false) }
+	val pulse = remember { Animatable(0f) }
+	var pulseTrigger by remember { mutableStateOf(0) }
+
+	// Pulse on click so short syncs still show feedback.
+	LaunchedEffect(pulseTrigger) {
+		if (pulseTrigger == 0) return@LaunchedEffect
+		pulse.snapTo(0f)
+		pulse.animateTo(1f, animationSpec = tween(durationMillis = 180))
+		pulse.animateTo(0f, animationSpec = tween(durationMillis = 240))
+	}
+	val cardColor = lerp(
+		start = MaterialTheme.colorScheme.surface,
+		stop = MaterialTheme.colorScheme.primaryContainer,
+		fraction = pulse.value * 0.35f
+	)
 	ElevatedCard(
 		modifier = Modifier.fillMaxWidth(),
 		colors = CardDefaults.elevatedCardColors(
-			containerColor = MaterialTheme.colorScheme.surface
+			containerColor = cardColor
 		)
 	) {
 		Column(
@@ -151,7 +170,10 @@ fun SyncJobRow(
 						Text(text = label, modifier = Modifier.padding(start = 6.dp))
 					}
 					FilledTonalButton(
-						onClick = { onManualSync(job) },
+						onClick = {
+							pulseTrigger += 1
+							onManualSync(job)
+						},
 						enabled = !isSyncing,
 						modifier = Modifier.weight(1f),
 						colors = ButtonDefaults.filledTonalButtonColors(
