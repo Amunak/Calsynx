@@ -38,6 +38,7 @@ The scope is intentional: one-way, source -> target, with no cloud service or ac
     *   Source calendar selector.
     *   Target calendar selector.
     *   Toggle active and delete option.
+    *   Manual "Sync now" trigger per job.
 
 ### 5. Permissions
 *   Request `READ_CALENDAR` and `WRITE_CALENDAR` at runtime before syncing.
@@ -46,6 +47,6 @@ The scope is intentional: one-way, source -> target, with no cloud service or ac
 - [x] Setup permissions in Manifest.
 - [x] Setup Room database for Sync Jobs.
 - [x] Implement Calendar Provider helper to list calendars.
-- [ ] Build UI for listing and adding Sync Jobs.
+- [x] Build UI for listing and adding Sync Jobs.
 - [ ] Implement the core Sync Logic.
 - [ ] Integrate WorkManager for background execution.

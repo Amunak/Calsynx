@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import net.amunak.calscium.ui.theme.CalsciumTheme
-import net.amunak.calscium.ui.CalsciumApp
+import net.amunak.calscium.ui.CalsciumAppRoute
 
 class MainActivity : ComponentActivity() {
 	override fun onCreate(savedInstanceState: Bundle?) {
@@ -13,7 +13,7 @@ class MainActivity : ComponentActivity() {
 		enableEdgeToEdge()
 		setContent {
 			CalsciumTheme {
-				CalsciumApp()
+				CalsciumAppRoute()
 			}
 		}
 	}
