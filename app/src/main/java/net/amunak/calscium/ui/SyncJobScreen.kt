@@ -141,6 +141,7 @@ fun SyncJobScreen(
 	if (showCreateDialog) {
 		CreateJobDialog(
 			calendars = uiState.calendars,
+			jobs = uiState.jobs,
 			onDismiss = { showCreateDialog = false },
 			onSave = { sourceId, targetId ->
 				onCreateJob(sourceId, targetId)

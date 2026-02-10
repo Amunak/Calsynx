@@ -9,6 +9,8 @@ class SyncJobRepository(
 ) {
 	fun observeJobs(): Flow<List<SyncJob>> = dao.getAllFlow()
 
+	suspend fun getAll(): List<SyncJob> = dao.getAll()
+
 	suspend fun getActive(): List<SyncJob> = dao.getActive()
 
 	suspend fun getById(id: Long): SyncJob? = dao.getById(id)

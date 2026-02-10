@@ -210,8 +210,14 @@ class CalendarSyncer(
 			}
 			put(CalendarContract.Events.TITLE, source.title)
 			put(CalendarContract.Events.DTSTART, source.startMillis)
-			source.endMillis?.let { put(CalendarContract.Events.DTEND, it) }
-				?: putNull(CalendarContract.Events.DTEND)
+			if (source.endMillis != null) {
+				put(CalendarContract.Events.DTEND, source.endMillis)
+				putNull(CalendarContract.Events.DURATION)
+			} else {
+				putNull(CalendarContract.Events.DTEND)
+				val defaultDuration = if (source.allDay) "P1D" else "PT1H"
+				put(CalendarContract.Events.DURATION, defaultDuration)
+			}
 			put(CalendarContract.Events.ALL_DAY, if (source.allDay) 1 else 0)
 			put(CalendarContract.Events.EVENT_TIMEZONE, source.timeZone)
 			put(CalendarContract.Events.RRULE, source.rrule)

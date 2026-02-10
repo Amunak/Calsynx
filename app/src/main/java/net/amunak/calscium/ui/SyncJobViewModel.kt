@@ -8,7 +8,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -118,6 +117,21 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 
 	fun createJob(sourceId: Long, targetId: Long) {
 		viewModelScope.launch(Dispatchers.IO) {
+			val jobs = syncJobRepository.getAll()
+			val targetConflict = jobs.any { it.targetCalendarId == targetId }
+			val sourceConflict = jobs.any { it.targetCalendarId == sourceId }
+			if (targetConflict || sourceConflict) {
+				Log.w(
+					TAG,
+					"Rejected sync job due to calendar conflict: source=$sourceId target=$targetId"
+				)
+				errorMessage.value = if (targetConflict) {
+					"Target calendar already used by another job."
+				} else {
+					"Source calendar is already a target in another job."
+				}
+				return@launch
+			}
 			createSyncJob(
 				SyncJob(
 					sourceCalendarId = sourceId,

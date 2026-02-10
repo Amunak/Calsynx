@@ -11,6 +11,9 @@ interface SyncJobDao {
 	@Query("SELECT * FROM sync_jobs ORDER BY id DESC")
 	fun getAllFlow(): Flow<List<SyncJob>>
 
+	@Query("SELECT * FROM sync_jobs ORDER BY id DESC")
+	suspend fun getAll(): List<SyncJob>
+
 	@Query("SELECT * FROM sync_jobs WHERE isActive = 1 ORDER BY id DESC")
 	suspend fun getActive(): List<SyncJob>
 

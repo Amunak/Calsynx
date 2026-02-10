@@ -26,6 +26,7 @@ import net.amunak.calscium.ui.theme.CalsciumTheme
 @Composable
 fun CreateJobDialog(
 	calendars: List<CalendarInfo>,
+	jobs: List<net.amunak.calscium.data.SyncJob>,
 	onDismiss: () -> Unit,
 	onSave: (Long, Long) -> Unit
 ) {
@@ -34,7 +35,10 @@ fun CreateJobDialog(
 	var sourceExpanded by remember { mutableStateOf(false) }
 	var targetExpanded by remember { mutableStateOf(false) }
 
-	val canSave = source != null && target != null && source?.id != target?.id
+	val validationError = remember(source, target, jobs) {
+		validateSelection(source, target, jobs)
+	}
+	val canSave = validationError == null
 
 	AlertDialog(
 		onDismissRequest = onDismiss,
@@ -71,6 +75,12 @@ fun CreateJobDialog(
 					if (source != null && target != null && source?.id == target?.id) {
 						Text(
 							text = "Source and target must be different.",
+							color = MaterialTheme.colorScheme.error,
+							style = MaterialTheme.typography.bodySmall
+						)
+					} else if (validationError != null) {
+						Text(
+							text = validationError,
 							color = MaterialTheme.colorScheme.error,
 							style = MaterialTheme.typography.bodySmall
 						)
@@ -130,12 +140,29 @@ private fun CalendarPicker(
 	}
 }
 
+private fun validateSelection(
+	source: CalendarInfo?,
+	target: CalendarInfo?,
+	jobs: List<net.amunak.calscium.data.SyncJob>
+): String? {
+	if (source == null || target == null) return "Select both calendars."
+	if (source.id == target.id) return "Source and target must be different."
+	if (jobs.any { it.targetCalendarId == target.id }) {
+		return "Target calendar is already used by another job."
+	}
+	if (jobs.any { it.targetCalendarId == source.id }) {
+		return "Source calendar is already a target in another job."
+	}
+	return null
+}
+
 @Preview(showBackground = true)
 @Composable
 private fun CreateJobDialogPreview() {
 	CalsciumTheme {
 		CreateJobDialog(
 			calendars = PreviewData.calendars,
+			jobs = PreviewData.jobs,
 			onDismiss = {},
 			onSave = { _, _ -> }
 		)
