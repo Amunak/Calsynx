@@ -83,12 +83,16 @@ fun SyncJobScreen(
 			}
 		}
 	) { padding ->
-		Column(
-			modifier = Modifier
-				.fillMaxSize()
-				.padding(padding)
-				.padding(16.dp)
+		Surface(
+			modifier = Modifier.fillMaxSize(),
+			color = MaterialTheme.colorScheme.surfaceContainerLowest
 		) {
+			Column(
+				modifier = Modifier
+					.fillMaxSize()
+					.padding(padding)
+					.padding(16.dp)
+			) {
 			if (!uiState.hasCalendarPermission) {
 				Text(
 					text = "Calendar access is required to list calendars and sync events.",
@@ -191,6 +195,7 @@ fun SyncJobScreen(
 						)
 					}
 				}
+			}
 			}
 		}
 	}
