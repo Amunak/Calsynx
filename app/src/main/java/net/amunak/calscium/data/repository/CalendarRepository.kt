@@ -78,26 +78,34 @@ class CalendarRepository(
 	fun createLocalCalendar(
 		resolver: ContentResolver,
 		displayName: String,
-		color: Int
+		color: Int,
+		accountName: String
 	): Uri? {
 		val values = ContentValues().apply {
-			put(CalendarContract.Calendars.ACCOUNT_NAME, LOCAL_ACCOUNT_NAME)
+			put(CalendarContract.Calendars.ACCOUNT_NAME, accountName)
 			put(CalendarContract.Calendars.ACCOUNT_TYPE, CalendarContract.ACCOUNT_TYPE_LOCAL)
 			put(CalendarContract.Calendars.NAME, displayName)
 			put(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, displayName)
 			put(CalendarContract.Calendars.CALENDAR_COLOR, color)
 			put(CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL, CalendarContract.Calendars.CAL_ACCESS_OWNER)
-			put(CalendarContract.Calendars.OWNER_ACCOUNT, LOCAL_ACCOUNT_NAME)
+			put(CalendarContract.Calendars.OWNER_ACCOUNT, accountName)
 			put(CalendarContract.Calendars.VISIBLE, 1)
 			put(CalendarContract.Calendars.SYNC_EVENTS, 1)
 			put(CalendarContract.Calendars.CALENDAR_TIME_ZONE, TimeZone.getDefault().id)
 		}
 		val uri = asSyncAdapter(
 			CalendarContract.Calendars.CONTENT_URI,
-			LOCAL_ACCOUNT_NAME,
+			accountName,
 			CalendarContract.ACCOUNT_TYPE_LOCAL
 		)
 		return resolver.insert(uri, values)
+	}
+
+	fun resolveLocalAccountName(context: Context): String {
+		val existing = calendarProvider.getCalendars(context, onlyVisible = false)
+			.firstOrNull { it.accountType == CalendarContract.ACCOUNT_TYPE_LOCAL }
+			?.accountName
+		return existing?.takeIf { it.isNotBlank() } ?: LOCAL_ACCOUNT_NAME
 	}
 
 	private fun updateCalendar(

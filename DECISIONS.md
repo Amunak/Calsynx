@@ -9,3 +9,5 @@
 - Rejected: placing calendar management controls inside the sync job dialog; keep a separate utility screen.
 - Decision: Calendar management uses a list + detail view, grouped by account and showing calendar colors.
 - Decision: Calendar creation is limited to local on-device calendars for now.
+- Decision: Local calendar creation reuses the existing on-device account label when available.
+- Decision: Color picker offers Material palette shades rather than a custom picker.

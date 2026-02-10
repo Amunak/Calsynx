@@ -48,6 +48,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import net.amunak.calscium.calendar.CalendarInfo
 import net.amunak.calscium.ui.components.CalendarLabel
 import net.amunak.calscium.ui.components.groupCalendars
@@ -173,6 +175,7 @@ fun CalendarDetailScreen(
 ) {
 	val row = state.selectedCalendar ?: return
 	val calendar = row.calendar
+	val calendarTitle = sanitizeCalendarDisplayName(calendar.displayName)
 	val calendarById = remember(state.calendars) {
 		state.calendars.associate { it.calendar.id to it.calendar }
 	}
@@ -185,7 +188,7 @@ fun CalendarDetailScreen(
 	Scaffold(
 		topBar = {
 			TopAppBar(
-				title = { Text(calendar.displayName) },
+				title = { Text(calendarTitle) },
 				navigationIcon = {
 					IconButton(onClick = onBack) {
 						Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -209,6 +212,9 @@ fun CalendarDetailScreen(
 					row = row,
 					sourceNames = row.incomingJobs.mapNotNull { job ->
 						calendarById[job.sourceCalendarId]?.displayName
+					},
+					targetNames = row.outgoingJobs.mapNotNull { job ->
+						calendarById[job.targetCalendarId]?.displayName
 					}
 				)
 
@@ -275,7 +281,7 @@ fun CalendarDetailScreen(
 	if (showPurgeDialog) {
 		ConfirmDialog(
 			title = "Purge all events?",
-			message = "This will delete all events in \"${calendar.displayName}\" and cannot be undone.",
+			message = "This will delete all events in \"${calendarTitle}\" and cannot be undone.",
 			confirmLabel = "Purge",
 			onDismiss = { showPurgeDialog = false },
 			onConfirm = {
@@ -288,7 +294,7 @@ fun CalendarDetailScreen(
 	if (showDeleteDialog) {
 		ConfirmDialog(
 			title = "Delete calendar?",
-			message = "Delete \"${calendar.displayName}\" and all its events. Any sync mappings to this calendar will be lost.",
+			message = "Delete \"${calendarTitle}\" and all its events. Any sync mappings to this calendar will be lost.",
 			confirmLabel = "Delete",
 			onDismiss = { showDeleteDialog = false },
 			onConfirm = {
@@ -323,13 +329,27 @@ private fun CalendarRowCard(
 			)
 			Spacer(modifier = Modifier.height(6.dp))
 			Text(
-				text = "${row.eventCount} events · ${row.syncedCount} synced",
+				text = "${row.eventCount} events",
 				style = MaterialTheme.typography.bodySmall,
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)
+			if (row.incomingJobs.isNotEmpty() && row.syncedCount > 0) {
+				Text(
+					text = "Synced entries: ${row.syncedCount}",
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.onSurfaceVariant
+				)
+			}
 			if (row.incomingJobs.isNotEmpty()) {
 				Text(
-					text = "Incoming syncs: ${row.incomingJobs.size}",
+					text = "Synced (input)",
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.onSurfaceVariant
+				)
+			}
+			if (row.outgoingJobs.isNotEmpty()) {
+				Text(
+					text = "Synced (output)",
 					style = MaterialTheme.typography.bodySmall,
 					color = MaterialTheme.colorScheme.onSurfaceVariant
 				)
@@ -341,7 +361,8 @@ private fun CalendarRowCard(
 @Composable
 private fun CalendarMetaSection(
 	row: CalendarRowUi,
-	sourceNames: List<String>
+	sourceNames: List<String>,
+	targetNames: List<String>
 ) {
 	val calendar = row.calendar
 	val typeLabel = calendarTypeLabel(calendar)
@@ -360,7 +381,11 @@ private fun CalendarMetaSection(
 			color = MaterialTheme.colorScheme.onSurfaceVariant
 		)
 		Text(
-			text = "Events: ${row.eventCount} · Synced: ${row.syncedCount}",
+			text = if (row.incomingJobs.isNotEmpty() && row.syncedCount > 0) {
+				"Events: ${row.eventCount} · Synced: ${row.syncedCount}"
+			} else {
+				"Events: ${row.eventCount}"
+			},
 			style = MaterialTheme.typography.bodySmall,
 			color = MaterialTheme.colorScheme.onSurfaceVariant
 		)
@@ -377,13 +402,66 @@ private fun CalendarMetaSection(
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)
 			Text(
-				text = "Synced into by: ${row.incomingJobs.size} job(s)",
+				text = "Synced (input)",
 				style = MaterialTheme.typography.bodySmall,
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)
 		} else {
 			Text(
-				text = "No jobs sync into this calendar.",
+				text = "Not synced (input).",
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+		}
+		if (row.outgoingJobs.isNotEmpty()) {
+			val targets = targetNames.distinct().sorted()
+			val targetLabel = if (targets.isNotEmpty()) {
+				targets.joinToString()
+			} else {
+				"Unknown"
+			}
+			Text(
+				text = "Targets: $targetLabel",
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+			Text(
+				text = "Synced (output)",
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+		} else {
+			Text(
+				text = "Not synced (output).",
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+		}
+		AccountDetailsSection(calendar = calendar)
+	}
+}
+
+@Composable
+private fun AccountDetailsSection(calendar: CalendarInfo) {
+	val accountLabel = accountLabel(calendar)
+	val ownerLabel = calendar.ownerAccount?.takeIf { it.isNotBlank() }
+	val accessLabel = calendar.accessLevel?.toString()
+	Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+		Text(
+			text = "Account: $accountLabel",
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.onSurfaceVariant
+		)
+		if (ownerLabel != null) {
+			Text(
+				text = "Owner: $ownerLabel",
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+		}
+		if (accessLabel != null) {
+			Text(
+				text = "Access level: $accessLabel",
 				style = MaterialTheme.typography.bodySmall,
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)
@@ -418,8 +496,9 @@ private fun CreateCalendarDialog(
 	onDismiss: () -> Unit,
 	onCreate: (String, Int) -> Unit
 ) {
+	val defaultColor = remember { defaultCalendarColorSections().first().colors.first() }
 	var name by remember { mutableStateOf(TextFieldValue("New calendar")) }
-	var selectedColor by remember { mutableStateOf(defaultCalendarColors().first()) }
+	var selectedColor by remember { mutableStateOf(defaultColor) }
 
 	AlertDialog(
 		onDismissRequest = onDismiss,
@@ -433,10 +512,15 @@ private fun CreateCalendarDialog(
 				focusedLabelColor = MaterialTheme.colorScheme.primary,
 				cursorColor = MaterialTheme.colorScheme.primary
 			)
-			Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+			Column(
+				verticalArrangement = Arrangement.spacedBy(12.dp),
+				modifier = Modifier.verticalScroll(rememberScrollState())
+			) {
 				OutlinedTextField(
 					value = name,
-					onValueChange = { name = it },
+					onValueChange = {
+						name = it.copy(text = it.text.replace(Regex("[\\r\\n]+"), " "))
+					},
 					label = { Text("Calendar name") },
 					modifier = Modifier.fillMaxWidth(),
 					colors = textFieldColors
@@ -484,7 +568,9 @@ private fun RenameCalendarDialog(
 			)
 			OutlinedTextField(
 				value = name,
-				onValueChange = { name = it },
+				onValueChange = {
+					name = it.copy(text = it.text.replace(Regex("[\\r\\n]+"), " "))
+				},
 				label = { Text("Calendar name") },
 				modifier = Modifier.fillMaxWidth(),
 				colors = textFieldColors
@@ -511,6 +597,7 @@ private fun ColorPickerDialog(
 	onDismiss: () -> Unit,
 	onSelect: (Int) -> Unit
 ) {
+	val scrollState = rememberScrollState()
 	AlertDialog(
 		onDismissRequest = onDismiss,
 		shape = MaterialTheme.shapes.large,
@@ -518,6 +605,7 @@ private fun ColorPickerDialog(
 		title = { Text("Select color") },
 		text = {
 			ColorPickerRow(
+				modifier = Modifier.verticalScroll(scrollState),
 				selectedColor = null,
 				onSelect = { onSelect(it) }
 			)
@@ -532,19 +620,32 @@ private fun ColorPickerDialog(
 
 @Composable
 private fun ColorPickerRow(
+	modifier: Modifier = Modifier,
 	selectedColor: Int?,
 	onSelect: (Int) -> Unit
 ) {
-	Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-		defaultCalendarColors().forEach { color ->
-			Surface(
-				color = Color(color),
-				shape = MaterialTheme.shapes.small,
-				modifier = Modifier
-					.size(32.dp)
-					.clickable(onClick = { onSelect(color) }),
-				tonalElevation = if (selectedColor == color) 6.dp else 0.dp
-			) {}
+	Column(
+		verticalArrangement = Arrangement.spacedBy(10.dp),
+		modifier = modifier
+	) {
+		defaultCalendarColorSections().forEach { section ->
+			Text(
+				text = section.label,
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+			Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+				section.colors.forEach { color ->
+					Surface(
+						color = Color(color),
+						shape = MaterialTheme.shapes.small,
+						modifier = Modifier
+							.size(30.dp)
+							.clickable(onClick = { onSelect(color) }),
+						tonalElevation = if (selectedColor == color) 6.dp else 0.dp
+					) {}
+				}
+			}
 		}
 	}
 }
@@ -584,15 +685,42 @@ private fun calendarTypeLabel(calendar: CalendarInfo): String {
 	}
 }
 
-private fun defaultCalendarColors(): List<Int> {
+private fun accountLabel(calendar: CalendarInfo): String {
+	if (calendar.accountType == CalendarContract.ACCOUNT_TYPE_LOCAL) return "On device"
+	val name = calendar.accountName?.takeIf { it.isNotBlank() } ?: "External"
+	val type = calendar.accountType?.takeIf { it.isNotBlank() }
+	return if (type != null) "$name · $type" else name
+}
+
+private fun sanitizeCalendarDisplayName(name: String): String {
+	return name.replace(Regex("[\\r\\n]+"), " ").replace(Regex("\\s+"), " ").trim()
+}
+
+private data class ColorSection(
+	val label: String,
+	val colors: List<Int>
+)
+
+private fun defaultCalendarColorSections(): List<ColorSection> {
 	return listOf(
-		0xFFE53935.toInt(),
-		0xFF8E24AA.toInt(),
-		0xFF3949AB.toInt(),
-		0xFF1E88E5.toInt(),
-		0xFF00897B.toInt(),
-		0xFF43A047.toInt(),
-		0xFFF4511E.toInt(),
-		0xFF6D4C41.toInt()
+		ColorSection("Red", listOf(0xFFC62828, 0xFFE53935, 0xFFEF5350, 0xFFEF9A9A).map { it.toInt() }),
+		ColorSection("Pink", listOf(0xFFAD1457, 0xFFD81B60, 0xFFEC407A, 0xFFF48FB1).map { it.toInt() }),
+		ColorSection("Purple", listOf(0xFF6A1B9A, 0xFF8E24AA, 0xFFAB47BC, 0xFFCE93D8).map { it.toInt() }),
+		ColorSection("Deep Purple", listOf(0xFF4527A0, 0xFF5E35B1, 0xFF7E57C2, 0xFFB39DDB).map { it.toInt() }),
+		ColorSection("Indigo", listOf(0xFF283593, 0xFF3949AB, 0xFF5C6BC0, 0xFF9FA8DA).map { it.toInt() }),
+		ColorSection("Blue", listOf(0xFF1565C0, 0xFF1E88E5, 0xFF42A5F5, 0xFF90CAF9).map { it.toInt() }),
+		ColorSection("Light Blue", listOf(0xFF0277BD, 0xFF039BE5, 0xFF29B6F6, 0xFF81D4FA).map { it.toInt() }),
+		ColorSection("Cyan", listOf(0xFF00838F, 0xFF00ACC1, 0xFF26C6DA, 0xFF80DEEA).map { it.toInt() }),
+		ColorSection("Teal", listOf(0xFF00695C, 0xFF00897B, 0xFF26A69A, 0xFF80CBC4).map { it.toInt() }),
+		ColorSection("Green", listOf(0xFF2E7D32, 0xFF43A047, 0xFF66BB6A, 0xFFA5D6A7).map { it.toInt() }),
+		ColorSection("Light Green", listOf(0xFF558B2F, 0xFF7CB342, 0xFF9CCC65, 0xFFC5E1A5).map { it.toInt() }),
+		ColorSection("Lime", listOf(0xFF9E9D24, 0xFFAFB42B, 0xFFD4E157, 0xFFE6EE9C).map { it.toInt() }),
+		ColorSection("Yellow", listOf(0xFFF9A825, 0xFFFBC02D, 0xFFFFD54F, 0xFFFFF59D).map { it.toInt() }),
+		ColorSection("Amber", listOf(0xFFFF8F00, 0xFFFFA000, 0xFFFFB74D, 0xFFFFE082).map { it.toInt() }),
+		ColorSection("Orange", listOf(0xFFEF6C00, 0xFFF57C00, 0xFFFF9800, 0xFFFFCC80).map { it.toInt() }),
+		ColorSection("Deep Orange", listOf(0xFFD84315, 0xFFF4511E, 0xFFFF7043, 0xFFFFAB91).map { it.toInt() }),
+		ColorSection("Brown", listOf(0xFF4E342E, 0xFF6D4C41, 0xFF8D6E63, 0xFFD7CCC8).map { it.toInt() }),
+		ColorSection("Gray", listOf(0xFF424242, 0xFF757575, 0xFFBDBDBD, 0xFFEEEEEE).map { it.toInt() }),
+		ColorSection("Blue Gray", listOf(0xFF37474F, 0xFF546E7A, 0xFF78909C, 0xFFB0BEC5).map { it.toInt() })
 	)
 }

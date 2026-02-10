@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -24,6 +25,7 @@ fun CalendarLabel(
 	textStyle: TextStyle = MaterialTheme.typography.bodyMedium,
 	maxLines: Int = 1
 ) {
+	val displayName = name.replace(Regex("[\\r\\n]+"), " ").replace(Regex("\\s+"), " ").trim()
 	Row(
 		modifier = modifier,
 		verticalAlignment = Alignment.CenterVertically
@@ -37,10 +39,11 @@ fun CalendarLabel(
 			Spacer(modifier = Modifier.size(6.dp))
 		}
 		Text(
-			text = name,
+			text = displayName,
 			color = textColor,
 			style = textStyle,
-			maxLines = maxLines
+			maxLines = maxLines,
+			overflow = TextOverflow.Ellipsis
 		)
 	}
 }

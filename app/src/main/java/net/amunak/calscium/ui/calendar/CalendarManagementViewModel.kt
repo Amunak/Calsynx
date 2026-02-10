@@ -20,7 +20,8 @@ data class CalendarRowUi(
 	val calendar: CalendarInfo,
 	val eventCount: Int,
 	val syncedCount: Int,
-	val incomingJobs: List<SyncJob>
+	val incomingJobs: List<SyncJob>,
+	val outgoingJobs: List<SyncJob>
 )
 
 data class CalendarManagementUiState(
@@ -45,6 +46,8 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 				val calendars = calendarRepository.getCalendars(getApplication(), onlyVisible = false)
 				val jobs = syncJobRepository.getAll()
 				val rows = calendars.map { calendar ->
+					val incoming = jobs.filter { it.targetCalendarId == calendar.id }
+					val outgoing = jobs.filter { it.sourceCalendarId == calendar.id }
 					CalendarRowUi(
 						calendar = calendar,
 						eventCount = calendarRepository.countEvents(
@@ -52,7 +55,8 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 							calendar.id
 						),
 						syncedCount = mappingDao.countSyncedTargets(calendar.id),
-						incomingJobs = jobs.filter { it.targetCalendarId == calendar.id }
+						incomingJobs = incoming,
+						outgoingJobs = outgoing
 					)
 				}
 				_uiState.update { state ->
@@ -80,10 +84,11 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 
 	fun updateCalendarName(calendar: CalendarInfo, newName: String) {
 		viewModelScope.launch(Dispatchers.IO) {
+			val cleanName = sanitizeCalendarName(newName)
 			val updated = calendarRepository.updateCalendarName(
 				getApplication<Application>().contentResolver,
 				calendar,
-				newName
+				cleanName
 			)
 			if (!updated) {
 				Log.w(TAG, "Calendar name update failed for ${calendar.id}")
@@ -132,10 +137,13 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 
 	fun createCalendar(displayName: String, color: Int) {
 		viewModelScope.launch(Dispatchers.IO) {
+			val cleanName = sanitizeCalendarName(displayName)
+			val accountName = calendarRepository.resolveLocalAccountName(getApplication())
 			val uri = calendarRepository.createLocalCalendar(
 				getApplication<Application>().contentResolver,
-				displayName,
-				color
+				cleanName,
+				color,
+				accountName
 			)
 			if (uri == null) {
 				Log.w(TAG, "Calendar creation failed for $displayName")
@@ -143,6 +151,10 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 			}
 			refreshCalendars()
 		}
+	}
+
+	private fun sanitizeCalendarName(name: String): String {
+		return name.replace(Regex("[\\r\\n]+"), " ").replace(Regex("\\s+"), " ").trim()
 	}
 
 	companion object {
