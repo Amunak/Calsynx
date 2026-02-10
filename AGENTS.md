@@ -5,6 +5,7 @@
 - Track progress in small, logical increments.
 - Commit changes regularly in focused, granular commits.
 - Maintain a running log of decisions and rejected ideas.
+- Add previews for composables and keep UI components separated into focused files.
 
 ## Build/Run Expectations
 - When asked to verify, run the relevant build/test commands and report results.
