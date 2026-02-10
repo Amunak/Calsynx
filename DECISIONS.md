@@ -11,3 +11,4 @@
 - Decision: Calendar creation is limited to local on-device calendars for now.
 - Decision: Local calendar creation reuses the existing on-device account label when available.
 - Decision: Color picker offers Material palette shades rather than a custom picker.
+- Decision: Calendar color picker uses a compact grid of expanded Material shades for faster scanning.
