@@ -6,12 +6,25 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
@@ -31,65 +44,126 @@ fun SyncJobRow(
 	onDeleteJob: (SyncJob) -> Unit,
 	onManualSync: (SyncJob) -> Unit
 ) {
-	Column(
+	var menuExpanded by remember { mutableStateOf(false) }
+	var showDeleteConfirm by remember { mutableStateOf(false) }
+
+	ElevatedCard(
 		modifier = Modifier.fillMaxWidth()
 	) {
-		Row(
-			modifier = Modifier.fillMaxWidth(),
-			verticalAlignment = Alignment.CenterVertically
+		Column(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(16.dp)
 		) {
-			Text(
-				text = "$sourceName -> $targetName",
-				style = MaterialTheme.typography.titleSmall,
-				modifier = Modifier.weight(1f)
-			)
-			OutlinedButton(
-				onClick = { onManualSync(job) },
-				enabled = !isSyncing
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				verticalAlignment = Alignment.CenterVertically
 			) {
-				Text(if (isSyncing) "Syncing..." else "Sync now")
+				Column(modifier = Modifier.weight(1f)) {
+					Text(
+						text = "$sourceName -> $targetName",
+						style = MaterialTheme.typography.titleSmall
+					)
+					Spacer(modifier = Modifier.height(4.dp))
+					Text(
+						text = formatLastSync(job.lastSyncTimestamp),
+						style = MaterialTheme.typography.bodySmall
+					)
+				}
+				OutlinedButton(
+					onClick = { onManualSync(job) },
+					enabled = !isSyncing
+				) {
+					Text(if (isSyncing) "Syncing..." else "Sync now")
+				}
+				IconButton(onClick = { menuExpanded = true }) {
+					Icon(
+						imageVector = Icons.Default.MoreVert,
+						contentDescription = "Job actions"
+					)
+				}
+				DropdownMenu(
+					expanded = menuExpanded,
+					onDismissRequest = { menuExpanded = false }
+				) {
+					DropdownMenuItem(
+						text = { Text("Delete") },
+						onClick = {
+							menuExpanded = false
+							showDeleteConfirm = true
+						}
+					)
+				}
 			}
-		}
-		Spacer(modifier = Modifier.height(4.dp))
-		Text(
-			text = formatLastSync(job.lastSyncTimestamp),
-			style = MaterialTheme.typography.bodySmall
-		)
-		Spacer(modifier = Modifier.height(4.dp))
-		Text(
-			text = formatSyncCounts(
-				created = job.lastSyncCreated,
-				updated = job.lastSyncUpdated,
-				deleted = job.lastSyncDeleted,
-				sourceCount = job.lastSyncSourceCount,
-				targetCount = job.lastSyncTargetCount
-			),
-			style = MaterialTheme.typography.bodySmall
-		)
-		job.lastSyncError?.let { error ->
+
+			Spacer(modifier = Modifier.height(8.dp))
+			Text(
+				text = formatSyncCounts(
+					created = job.lastSyncCreated,
+					updated = job.lastSyncUpdated,
+					deleted = job.lastSyncDeleted,
+					sourceCount = job.lastSyncSourceCount,
+					targetCount = job.lastSyncTargetCount
+				),
+				style = MaterialTheme.typography.bodySmall
+			)
+			job.lastSyncError?.let { error ->
+				Spacer(modifier = Modifier.height(4.dp))
+				Text(
+					text = "Last error: $error",
+					color = MaterialTheme.colorScheme.error,
+					style = MaterialTheme.typography.bodySmall
+				)
+			}
+			Spacer(modifier = Modifier.height(12.dp))
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				horizontalArrangement = Arrangement.SpaceBetween,
+				verticalAlignment = Alignment.CenterVertically
+			) {
+				Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+					Text("Active")
+					Switch(
+						checked = job.isActive,
+						onCheckedChange = { onToggleActive(job, it) }
+					)
+				}
+				Text(
+					text = "Every ${job.frequencyMinutes} min",
+					style = MaterialTheme.typography.bodySmall
+				)
+			}
 			Spacer(modifier = Modifier.height(4.dp))
 			Text(
-				text = "Last error: $error",
-				color = MaterialTheme.colorScheme.error,
+				text = "Window: ${job.windowPastDays}d back, ${job.windowFutureDays}d ahead",
 				style = MaterialTheme.typography.bodySmall
 			)
 		}
-		Spacer(modifier = Modifier.height(8.dp))
-		Row(
-			modifier = Modifier.fillMaxWidth(),
-			horizontalArrangement = Arrangement.SpaceBetween
-		) {
-			Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-				Text("Active")
-				Switch(
-					checked = job.isActive,
-					onCheckedChange = { onToggleActive(job, it) }
-				)
+	}
+
+	if (showDeleteConfirm) {
+		AlertDialog(
+			onDismissRequest = { showDeleteConfirm = false },
+			title = { Text("Delete sync job?") },
+			text = {
+				Text("This will remove the job and stop syncing between the selected calendars.")
+			},
+			confirmButton = {
+				TextButton(
+					onClick = {
+						showDeleteConfirm = false
+						onDeleteJob(job)
+					}
+				) {
+					Text("Delete")
+				}
+			},
+			dismissButton = {
+				TextButton(onClick = { showDeleteConfirm = false }) {
+					Text("Cancel")
+				}
 			}
-			TextButton(onClick = { onDeleteJob(job) }) {
-				Text("Delete")
-			}
-		}
+		)
 	}
 }
 

@@ -11,6 +11,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.amunak.calscium.data.SyncJob
+import net.amunak.calscium.ui.components.SyncFrequencyOption
+import net.amunak.calscium.ui.components.SyncWindowOption
 import net.amunak.calscium.ui.theme.CalsciumTheme
 
 @Composable
@@ -52,7 +54,7 @@ fun CalsciumApp(
 	uiState: SyncJobUiState,
 	onRequestPermissions: () -> Unit,
 	onRefreshCalendars: () -> Unit,
-	onCreateJob: (Long, Long) -> Unit,
+	onCreateJob: (Long, Long, SyncWindowOption, SyncFrequencyOption) -> Unit,
 	onToggleActive: (SyncJob, Boolean) -> Unit,
 	onDeleteJob: (SyncJob) -> Unit,
 	onManualSync: (SyncJob) -> Unit
@@ -80,7 +82,7 @@ private fun CalsciumAppPreview() {
 			),
 			onRequestPermissions = {},
 			onRefreshCalendars = {},
-			onCreateJob = { _, _ -> },
+			onCreateJob = { _, _, _, _ -> },
 			onToggleActive = { _, _ -> },
 			onDeleteJob = {},
 			onManualSync = {}

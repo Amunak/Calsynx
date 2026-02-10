@@ -24,7 +24,7 @@ class CalendarSyncer(
 ) {
 	suspend fun sync(
 		job: SyncJob,
-		window: SyncWindow = SyncWindow.default()
+		window: SyncWindow = SyncWindow.fromJob(job)
 	): SyncResult {
 		val sourceEvents = querySourceEvents(job.sourceCalendarId, window)
 		val targetCount = countEvents(job.targetCalendarId, window)
@@ -321,10 +321,12 @@ data class SyncWindow(
 	val endMillis: Long
 ) {
 	companion object {
-		fun default(): SyncWindow {
+		fun fromJob(job: SyncJob): SyncWindow {
 			val now = Instant.now()
-			val start = now.minus(7, ChronoUnit.DAYS).toEpochMilli()
-			val end = now.plus(90, ChronoUnit.DAYS).toEpochMilli()
+			val pastDays = job.windowPastDays.coerceAtLeast(0)
+			val futureDays = job.windowFutureDays.coerceAtLeast(0)
+			val start = now.minus(pastDays.toLong(), ChronoUnit.DAYS).toEpochMilli()
+			val end = now.plus(futureDays.toLong(), ChronoUnit.DAYS).toEpochMilli()
 			return SyncWindow(start, end)
 		}
 	}

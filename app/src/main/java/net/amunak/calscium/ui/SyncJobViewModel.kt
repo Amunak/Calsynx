@@ -24,6 +24,8 @@ import net.amunak.calscium.domain.RunManualSyncUseCase
 import net.amunak.calscium.domain.UpdateSyncErrorUseCase
 import net.amunak.calscium.domain.UpdateSyncStatsUseCase
 import net.amunak.calscium.domain.UpdateSyncJobUseCase
+import net.amunak.calscium.ui.components.SyncFrequencyOption
+import net.amunak.calscium.ui.components.SyncWindowOption
 
 data class SyncJobUiState(
 	val jobs: List<SyncJob> = emptyList(),
@@ -117,7 +119,12 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 		}
 	}
 
-	fun createJob(sourceId: Long, targetId: Long) {
+	fun createJob(
+		sourceId: Long,
+		targetId: Long,
+		window: SyncWindowOption,
+		frequency: SyncFrequencyOption
+	) {
 		viewModelScope.launch(Dispatchers.IO) {
 			val jobs = syncJobRepository.getAll()
 			val targetConflict = jobs.any { it.targetCalendarId == targetId }
@@ -137,7 +144,10 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 			createSyncJob(
 				SyncJob(
 					sourceCalendarId = sourceId,
-					targetCalendarId = targetId
+					targetCalendarId = targetId,
+					windowPastDays = window.pastDays,
+					windowFutureDays = window.futureDays,
+					frequencyMinutes = frequency.minutes
 				)
 			)
 		}

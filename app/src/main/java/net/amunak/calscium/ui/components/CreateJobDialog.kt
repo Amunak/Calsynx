@@ -8,9 +8,12 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,12 +31,15 @@ fun CreateJobDialog(
 	calendars: List<CalendarInfo>,
 	jobs: List<net.amunak.calscium.data.SyncJob>,
 	onDismiss: () -> Unit,
-	onSave: (Long, Long) -> Unit
+	onSave: (Long, Long, SyncWindowOption, SyncFrequencyOption) -> Unit
 ) {
 	var source by remember { mutableStateOf<CalendarInfo?>(null) }
 	var target by remember { mutableStateOf<CalendarInfo?>(null) }
 	var sourceExpanded by remember { mutableStateOf(false) }
 	var targetExpanded by remember { mutableStateOf(false) }
+
+	var windowSelection by remember { mutableStateOf(SyncWindowOption.DEFAULT) }
+	var frequencySelection by remember { mutableStateOf(SyncFrequencyOption.DEFAULT) }
 
 	val validationError = remember(source, target, jobs) {
 		validateSelection(source, target, jobs)
@@ -72,6 +78,22 @@ fun CreateJobDialog(
 						}
 					)
 
+					HorizontalDivider()
+
+					OptionPicker(
+						label = "Sync window",
+						options = SyncWindowOption.values().toList(),
+						selected = windowSelection,
+						onSelected = { windowSelection = it }
+					)
+
+					OptionPicker(
+						label = "Sync frequency",
+						options = SyncFrequencyOption.values().toList(),
+						selected = frequencySelection,
+						onSelected = { frequencySelection = it }
+					)
+
 					if (source != null && target != null && source?.id == target?.id) {
 						Text(
 							text = "Source and target must be different.",
@@ -90,14 +112,21 @@ fun CreateJobDialog(
 		},
 		confirmButton = {
 			Button(
-				onClick = { onSave(source!!.id, target!!.id) },
+				onClick = {
+					onSave(
+						source!!.id,
+						target!!.id,
+						windowSelection,
+						frequencySelection
+					)
+				},
 				enabled = canSave
 			) {
 				Text("Save")
 			}
 		},
 		dismissButton = {
-			OutlinedButton(onClick = onDismiss) {
+			TextButton(onClick = onDismiss) {
 				Text("Cancel")
 			}
 		}
@@ -140,6 +169,44 @@ private fun CalendarPicker(
 	}
 }
 
+@Composable
+private fun <T> OptionPicker(
+	label: String,
+	options: List<T>,
+	selected: T,
+	onSelected: (T) -> Unit
+) where T : Enum<T>, T : DisplayOption {
+	var expanded by remember { mutableStateOf(false) }
+	Column {
+		Text(
+			text = label,
+			style = MaterialTheme.typography.labelMedium
+		)
+		Box {
+			OutlinedButton(
+				onClick = { expanded = true },
+				modifier = Modifier.fillMaxWidth()
+			) {
+				Text(selected.displayLabel)
+			}
+			DropdownMenu(
+				expanded = expanded,
+				onDismissRequest = { expanded = false }
+			) {
+				options.forEach { option ->
+					DropdownMenuItem(
+						text = { Text(option.displayLabel) },
+						onClick = {
+							onSelected(option)
+							expanded = false
+						}
+					)
+				}
+			}
+		}
+	}
+}
+
 private fun validateSelection(
 	source: CalendarInfo?,
 	target: CalendarInfo?,
@@ -156,6 +223,38 @@ private fun validateSelection(
 	return null
 }
 
+interface DisplayOption {
+	val displayLabel: String
+}
+
+enum class SyncWindowOption(
+	val pastDays: Int,
+	val futureDays: Int,
+	override val displayLabel: String
+) : DisplayOption {
+	DEFAULT(7, 90, "Past 7d, Next 90d"),
+	SHORT(3, 30, "Past 3d, Next 30d"),
+	MEDIUM(14, 60, "Past 14d, Next 60d"),
+	LONG(30, 180, "Past 30d, Next 180d")
+}
+
+enum class SyncFrequencyOption(
+	val minutes: Int,
+	override val displayLabel: String
+) : DisplayOption {
+	MINUTES_5(5, "Every 5 minutes"),
+	MINUTES_15(15, "Every 15 minutes"),
+	MINUTES_60(60, "Hourly"),
+	HOURS_6(360, "Every 6 hours"),
+	DAILY(1440, "Daily"),
+	WEEKLY(10080, "Weekly"),
+	MONTHLY(43200, "Monthly");
+
+	companion object {
+		val DEFAULT = HOURS_6
+	}
+}
+
 @Preview(showBackground = true)
 @Composable
 private fun CreateJobDialogPreview() {
@@ -164,7 +263,7 @@ private fun CreateJobDialogPreview() {
 			calendars = PreviewData.calendars,
 			jobs = PreviewData.jobs,
 			onDismiss = {},
-			onSave = { _, _ -> }
+			onSave = { _, _, _, _ -> }
 		)
 	}
 }

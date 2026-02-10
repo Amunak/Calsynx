@@ -28,6 +28,9 @@ object PreviewData {
 			id = 1L,
 			sourceCalendarId = 1L,
 			targetCalendarId = 2L,
+			windowPastDays = 7,
+			windowFutureDays = 90,
+			frequencyMinutes = 240,
 			lastSyncTimestamp = System.currentTimeMillis() - 3_600_000L,
 			isActive = true
 		),
@@ -35,6 +38,9 @@ object PreviewData {
 			id = 2L,
 			sourceCalendarId = 2L,
 			targetCalendarId = 1L,
+			windowPastDays = 14,
+			windowFutureDays = 60,
+			frequencyMinutes = 1440,
 			lastSyncTimestamp = null,
 			isActive = false
 		)

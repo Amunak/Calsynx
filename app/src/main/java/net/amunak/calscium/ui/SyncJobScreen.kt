@@ -14,11 +14,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,7 +26,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Icon
 import net.amunak.calscium.data.SyncJob
+import net.amunak.calscium.ui.components.SyncFrequencyOption
+import net.amunak.calscium.ui.components.SyncWindowOption
 import net.amunak.calscium.ui.components.CreateJobDialog
 import net.amunak.calscium.ui.components.SyncJobRow
 import net.amunak.calscium.ui.theme.CalsciumTheme
@@ -37,7 +42,7 @@ fun SyncJobScreen(
 	uiState: SyncJobUiState,
 	onRequestPermissions: () -> Unit,
 	onRefreshCalendars: () -> Unit,
-	onCreateJob: (Long, Long) -> Unit,
+	onCreateJob: (Long, Long, SyncWindowOption, SyncFrequencyOption) -> Unit,
 	onToggleActive: (SyncJob, Boolean) -> Unit,
 	onDeleteJob: (SyncJob) -> Unit,
 	onManualSync: (SyncJob) -> Unit
@@ -45,6 +50,11 @@ fun SyncJobScreen(
 	var showCreateDialog by remember { mutableStateOf(false) }
 	val calendarById = remember(uiState.calendars) {
 		uiState.calendars.associateBy { it.id }
+	}
+	LaunchedEffect(showCreateDialog) {
+		if (showCreateDialog) {
+			onRefreshCalendars()
+		}
 	}
 
 	Scaffold(
@@ -56,7 +66,10 @@ fun SyncJobScreen(
 		floatingActionButton = {
 			if (uiState.hasCalendarPermission) {
 				FloatingActionButton(onClick = { showCreateDialog = true }) {
-					Text("+")
+					Icon(
+						imageVector = Icons.Default.Add,
+						contentDescription = "Add sync job"
+					)
 				}
 			}
 		}
@@ -79,21 +92,15 @@ fun SyncJobScreen(
 				return@Column
 			}
 
-			Row(
-				modifier = Modifier.fillMaxWidth(),
-				horizontalArrangement = Arrangement.SpaceBetween
-			) {
-				Text(
-					text = "Sync jobs",
-					style = MaterialTheme.typography.titleMedium
-				)
-				OutlinedButton(
-					onClick = onRefreshCalendars,
-					enabled = !uiState.isRefreshing
-				) {
-					Text(if (uiState.isRefreshing) "Refreshing..." else "Refresh calendars")
-				}
-			}
+			Text(
+				text = "Sync jobs",
+				style = MaterialTheme.typography.titleMedium
+			)
+			Spacer(modifier = Modifier.height(4.dp))
+			Text(
+				text = "Manual sync is available until background scheduling is enabled.",
+				style = MaterialTheme.typography.bodySmall
+			)
 
 			uiState.errorMessage?.let { message ->
 				Spacer(modifier = Modifier.height(8.dp))
@@ -143,8 +150,8 @@ fun SyncJobScreen(
 			calendars = uiState.calendars,
 			jobs = uiState.jobs,
 			onDismiss = { showCreateDialog = false },
-			onSave = { sourceId, targetId ->
-				onCreateJob(sourceId, targetId)
+			onSave = { sourceId, targetId, window, frequency ->
+				onCreateJob(sourceId, targetId, window, frequency)
 				showCreateDialog = false
 			}
 		)
@@ -163,7 +170,7 @@ private fun SyncJobScreenPreview() {
 			),
 			onRequestPermissions = {},
 			onRefreshCalendars = {},
-			onCreateJob = { _, _ -> },
+			onCreateJob = { _, _, _, _ -> },
 			onToggleActive = { _, _ -> },
 			onDeleteJob = {},
 			onManualSync = {}
