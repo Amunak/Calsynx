@@ -25,6 +25,7 @@ fun SyncJobRow(
 	job: SyncJob,
 	sourceName: String,
 	targetName: String,
+	isSyncing: Boolean,
 	onToggleActive: (SyncJob, Boolean) -> Unit,
 	onDeleteJob: (SyncJob) -> Unit,
 	onManualSync: (SyncJob) -> Unit
@@ -41,8 +42,11 @@ fun SyncJobRow(
 				style = MaterialTheme.typography.titleSmall,
 				modifier = Modifier.weight(1f)
 			)
-			OutlinedButton(onClick = { onManualSync(job) }) {
-				Text("Sync now")
+			OutlinedButton(
+				onClick = { onManualSync(job) },
+				enabled = !isSyncing
+			) {
+				Text(if (isSyncing) "Syncing..." else "Sync now")
 			}
 		}
 		Spacer(modifier = Modifier.height(4.dp))
@@ -83,6 +87,7 @@ private fun SyncJobRowPreview() {
 			),
 			sourceName = "Work",
 			targetName = "Personal",
+			isSyncing = false,
 			onToggleActive = { _, _ -> },
 			onDeleteJob = {},
 			onManualSync = {}

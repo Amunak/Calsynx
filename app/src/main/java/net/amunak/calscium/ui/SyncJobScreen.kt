@@ -127,6 +127,7 @@ fun SyncJobScreen(
 							job = job,
 							sourceName = sourceName,
 							targetName = targetName,
+							isSyncing = uiState.syncingJobIds.contains(job.id),
 							onToggleActive = onToggleActive,
 							onDeleteJob = onDeleteJob,
 							onManualSync = onManualSync
