@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import net.amunak.calscium.data.SyncJob
 import net.amunak.calscium.ui.formatters.formatLastSync
+import net.amunak.calscium.ui.formatters.formatSyncCounts
 import net.amunak.calscium.ui.theme.CalsciumTheme
 
 @Composable
@@ -54,6 +55,25 @@ fun SyncJobRow(
 			text = formatLastSync(job.lastSyncTimestamp),
 			style = MaterialTheme.typography.bodySmall
 		)
+		Spacer(modifier = Modifier.height(4.dp))
+		Text(
+			text = formatSyncCounts(
+				created = job.lastSyncCreated,
+				updated = job.lastSyncUpdated,
+				deleted = job.lastSyncDeleted,
+				sourceCount = job.lastSyncSourceCount,
+				targetCount = job.lastSyncTargetCount
+			),
+			style = MaterialTheme.typography.bodySmall
+		)
+		job.lastSyncError?.let { error ->
+			Spacer(modifier = Modifier.height(4.dp))
+			Text(
+				text = "Last error: $error",
+				color = MaterialTheme.colorScheme.error,
+				style = MaterialTheme.typography.bodySmall
+			)
+		}
 		Spacer(modifier = Modifier.height(8.dp))
 		Row(
 			modifier = Modifier.fillMaxWidth(),

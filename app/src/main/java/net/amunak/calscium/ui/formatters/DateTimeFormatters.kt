@@ -12,3 +12,13 @@ fun formatLastSync(timestamp: Long?): String {
 	val localDateTime = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault())
 	return "Last sync: " + lastSyncFormatter.format(localDateTime)
 }
+
+fun formatSyncCounts(
+	created: Int,
+	updated: Int,
+	deleted: Int,
+	sourceCount: Int,
+	targetCount: Int
+): String {
+	return "Created $created, Updated $updated, Deleted $deleted · Source $sourceCount, Target $targetCount"
+}

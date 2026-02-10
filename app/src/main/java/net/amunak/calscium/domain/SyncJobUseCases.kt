@@ -38,13 +38,39 @@ class UpdateLastSyncUseCase(
 	}
 }
 
+class UpdateSyncStatsUseCase(
+	private val repository: SyncJobRepository
+) {
+	suspend operator fun invoke(job: SyncJob, result: SyncResult): Long {
+		return repository.upsert(
+			job.copy(
+				lastSyncTimestamp = System.currentTimeMillis(),
+				lastSyncCreated = result.created,
+				lastSyncUpdated = result.updated,
+				lastSyncDeleted = result.deleted,
+				lastSyncSourceCount = result.sourceCount,
+				lastSyncTargetCount = result.targetCount,
+				lastSyncError = null
+			)
+		)
+	}
+}
+
+class UpdateSyncErrorUseCase(
+	private val repository: SyncJobRepository
+) {
+	suspend operator fun invoke(job: SyncJob, message: String): Long {
+		return repository.upsert(job.copy(lastSyncError = message))
+	}
+}
+
 class RunManualSyncUseCase(
 	private val syncer: CalendarSyncer,
-	private val updateLastSync: UpdateLastSyncUseCase
+	private val updateSyncStats: UpdateSyncStatsUseCase
 ) {
 	suspend operator fun invoke(job: SyncJob): SyncResult {
 		val result = syncer.sync(job)
-		updateLastSync(job, System.currentTimeMillis())
+		updateSyncStats(job, result)
 		return result
 	}
 }

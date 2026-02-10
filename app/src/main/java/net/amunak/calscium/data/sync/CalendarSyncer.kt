@@ -13,7 +13,9 @@ import java.time.temporal.ChronoUnit
 data class SyncResult(
 	val created: Int,
 	val updated: Int,
-	val deleted: Int
+	val deleted: Int,
+	val sourceCount: Int,
+	val targetCount: Int
 )
 
 class CalendarSyncer(
@@ -25,10 +27,17 @@ class CalendarSyncer(
 		window: SyncWindow = SyncWindow.default()
 	): SyncResult {
 		val sourceEvents = querySourceEvents(job.sourceCalendarId, window)
+		val targetCount = countEvents(job.targetCalendarId, window)
 		if (sourceEvents.isEmpty()) {
 			val mappings = mappingDao.getForJob(job.sourceCalendarId, job.targetCalendarId)
 			val deleted = deleteOrphans(job, mappings, emptySet<Long>())
-			return SyncResult(created = 0, updated = 0, deleted = deleted)
+			return SyncResult(
+				created = 0,
+				updated = 0,
+				deleted = deleted,
+				sourceCount = 0,
+				targetCount = targetCount
+			)
 		}
 
 		val sourceIds = sourceEvents.mapTo(LinkedHashSet()) { it.id }
@@ -62,7 +71,13 @@ class CalendarSyncer(
 		}
 
 		val deleted = deleteOrphans(job, mappingBySource.values, sourceIds)
-		return SyncResult(created = created, updated = updated, deleted = deleted)
+		return SyncResult(
+			created = created,
+			updated = updated,
+			deleted = deleted,
+			sourceCount = sourceEvents.size,
+			targetCount = targetCount
+		)
 	}
 
 	private fun querySourceEvents(
@@ -134,6 +149,36 @@ class CalendarSyncer(
 			}
 			events
 		}
+	}
+
+	private fun countEvents(
+		calendarId: Long,
+		window: SyncWindow
+	): Int {
+		val projection = arrayOf(CalendarContract.Events._ID)
+		val selection = buildString {
+			append("${CalendarContract.Events.CALENDAR_ID} = ?")
+			append(" AND ${CalendarContract.Events.DELETED} = 0")
+			append(" AND (")
+			append("${CalendarContract.Events.RRULE} IS NOT NULL")
+			append(" OR (")
+			append("${CalendarContract.Events.DTSTART} <= ?")
+			append(" AND (${CalendarContract.Events.DTEND} IS NULL OR ${CalendarContract.Events.DTEND} >= ?)")
+			append("))")
+		}
+		val selectionArgs = arrayOf(
+			calendarId.toString(),
+			window.endMillis.toString(),
+			window.startMillis.toString()
+		)
+		val cursor = resolver.query(
+			CalendarContract.Events.CONTENT_URI,
+			projection,
+			selection,
+			selectionArgs,
+			null
+		) ?: return 0
+		return cursor.use { it.count }
 	}
 
 	private fun insertTargetEvent(

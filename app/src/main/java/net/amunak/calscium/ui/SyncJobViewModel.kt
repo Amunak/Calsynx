@@ -21,7 +21,8 @@ import net.amunak.calscium.domain.CreateSyncJobUseCase
 import net.amunak.calscium.domain.DeleteSyncJobUseCase
 import net.amunak.calscium.domain.ObserveSyncJobsUseCase
 import net.amunak.calscium.domain.RunManualSyncUseCase
-import net.amunak.calscium.domain.UpdateLastSyncUseCase
+import net.amunak.calscium.domain.UpdateSyncErrorUseCase
+import net.amunak.calscium.domain.UpdateSyncStatsUseCase
 import net.amunak.calscium.domain.UpdateSyncJobUseCase
 
 data class SyncJobUiState(
@@ -44,10 +45,11 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 	private val createSyncJob = CreateSyncJobUseCase(syncJobRepository)
 	private val updateSyncJob = UpdateSyncJobUseCase(syncJobRepository)
 	private val deleteSyncJob = DeleteSyncJobUseCase(syncJobRepository)
-	private val updateLastSync = UpdateLastSyncUseCase(syncJobRepository)
+	private val updateSyncStats = UpdateSyncStatsUseCase(syncJobRepository)
+	private val updateSyncError = UpdateSyncErrorUseCase(syncJobRepository)
 	private val runManualSync = RunManualSyncUseCase(
 		calendarSyncer,
-		updateLastSync
+		updateSyncStats
 	)
 
 	private val calendars = MutableStateFlow<List<CalendarInfo>>(emptyList())
@@ -161,9 +163,11 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 				runManualSync.invoke(job)
 			} catch (e: SecurityException) {
 				Log.e(TAG, "Calendar permission denied during manual sync", e)
+				updateSyncError(job, "Calendar permission denied.")
 				errorMessage.value = "Calendar permission denied."
 			} catch (e: RuntimeException) {
 				Log.e(TAG, "Manual sync failed", e)
+				updateSyncError(job, "Sync failed.")
 				errorMessage.value = "Sync failed."
 			} finally {
 				syncingJobIds.value = syncingJobIds.value - job.id
