@@ -23,4 +23,7 @@ interface EventMappingDao {
 
 	@Query("DELETE FROM event_mappings WHERE id IN (:ids)")
 	suspend fun deleteByIds(ids: List<Long>)
+
+	@Query("SELECT COUNT(*) FROM event_mappings WHERE targetCalendarId = :calendarId")
+	suspend fun countSyncedTargets(calendarId: Long): Int
 }

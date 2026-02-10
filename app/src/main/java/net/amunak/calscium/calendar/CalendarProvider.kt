@@ -10,7 +10,10 @@ data class CalendarInfo(
 	val accountName: String?,
 	val accountType: String?,
 	val ownerAccount: String?,
-	val color: Int?
+	val color: Int?,
+	val accessLevel: Int?,
+	val isVisible: Boolean,
+	val isSynced: Boolean
 )
 
 object CalendarProvider {
@@ -20,7 +23,10 @@ object CalendarProvider {
 		CalendarContract.Calendars.ACCOUNT_NAME,
 		CalendarContract.Calendars.ACCOUNT_TYPE,
 		CalendarContract.Calendars.OWNER_ACCOUNT,
-		CalendarContract.Calendars.CALENDAR_COLOR
+		CalendarContract.Calendars.CALENDAR_COLOR,
+		CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL,
+		CalendarContract.Calendars.VISIBLE,
+		CalendarContract.Calendars.SYNC_EVENTS
 	)
 
 	fun getCalendars(
@@ -52,6 +58,12 @@ object CalendarProvider {
 				cursor.getColumnIndexOrThrow(CalendarContract.Calendars.OWNER_ACCOUNT)
 			val colorIndex =
 				cursor.getColumnIndexOrThrow(CalendarContract.Calendars.CALENDAR_COLOR)
+			val accessIndex =
+				cursor.getColumnIndexOrThrow(CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL)
+			val visibleIndex =
+				cursor.getColumnIndexOrThrow(CalendarContract.Calendars.VISIBLE)
+			val syncIndex =
+				cursor.getColumnIndexOrThrow(CalendarContract.Calendars.SYNC_EVENTS)
 
 			val calendars = ArrayList<CalendarInfo>(cursor.count)
 			while (cursor.moveToNext()) {
@@ -62,7 +74,10 @@ object CalendarProvider {
 						accountName = cursor.getString(accountNameIndex),
 						accountType = cursor.getString(accountTypeIndex),
 						ownerAccount = cursor.getString(ownerIndex),
-						color = if (cursor.isNull(colorIndex)) null else cursor.getInt(colorIndex)
+						color = if (cursor.isNull(colorIndex)) null else cursor.getInt(colorIndex),
+						accessLevel = if (cursor.isNull(accessIndex)) null else cursor.getInt(accessIndex),
+						isVisible = cursor.getInt(visibleIndex) == 1,
+						isSynced = cursor.getInt(syncIndex) == 1
 					)
 				)
 			}

@@ -11,7 +11,10 @@ object PreviewData {
 			accountName = "work@example.com",
 			accountType = "com.google",
 			ownerAccount = "work@example.com",
-			color = null
+			color = null,
+			accessLevel = null,
+			isVisible = true,
+			isSynced = true
 		),
 		CalendarInfo(
 			id = 2L,
@@ -19,7 +22,10 @@ object PreviewData {
 			accountName = "me@example.com",
 			accountType = "com.google",
 			ownerAccount = "me@example.com",
-			color = null
+			color = null,
+			accessLevel = null,
+			isVisible = true,
+			isSynced = true
 		)
 	)
 
