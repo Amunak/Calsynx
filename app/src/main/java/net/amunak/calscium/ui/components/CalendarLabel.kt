@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
 fun CalendarLabel(
@@ -46,4 +47,13 @@ fun CalendarLabel(
 			overflow = TextOverflow.Ellipsis
 		)
 	}
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun CalendarLabelPreview() {
+	CalendarLabel(
+		name = "Work calendar",
+		color = 0xFF1E88E5.toInt()
+	)
 }
