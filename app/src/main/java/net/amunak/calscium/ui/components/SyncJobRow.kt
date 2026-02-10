@@ -139,8 +139,8 @@ fun SyncJobRow(
 					FilledTonalButton(
 						onClick = { onToggleActive(job, !job.isActive) },
 						colors = ButtonDefaults.filledTonalButtonColors(
-							containerColor = MaterialTheme.colorScheme.surface,
-							contentColor = MaterialTheme.colorScheme.onSurface
+							containerColor = MaterialTheme.colorScheme.secondaryContainer,
+							contentColor = MaterialTheme.colorScheme.onSecondaryContainer
 						)
 					) {
 						val icon = if (job.isActive) Icons.Default.Pause else Icons.Default.PlayArrow
@@ -148,16 +148,16 @@ fun SyncJobRow(
 						Icon(imageVector = icon, contentDescription = null)
 						Text(text = label, modifier = Modifier.padding(start = 6.dp))
 					}
-					Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+					Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
 						FilledTonalButton(
 							onClick = { onManualSync(job) },
 							enabled = !isSyncing,
 							modifier = Modifier.widthIn(min = 110.dp),
 							colors = ButtonDefaults.filledTonalButtonColors(
-								containerColor = MaterialTheme.colorScheme.surface,
-								contentColor = MaterialTheme.colorScheme.onSurface,
-								disabledContainerColor = MaterialTheme.colorScheme.surface,
-								disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+								containerColor = MaterialTheme.colorScheme.primaryContainer,
+								contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+								disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
+								disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
 							)
 						) {
 							Icon(

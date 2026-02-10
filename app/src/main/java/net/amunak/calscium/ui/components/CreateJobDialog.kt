@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import net.amunak.calscium.calendar.CalendarInfo
 import net.amunak.calscium.ui.PreviewData
 import net.amunak.calscium.ui.theme.CalsciumTheme
@@ -115,11 +116,13 @@ fun CreateJobDialog(
 									name = source?.displayName ?: "",
 									color = source?.color
 								)
-								Text(
-									text = " → ",
-									style = MaterialTheme.typography.bodyMedium,
-									color = MaterialTheme.colorScheme.onSurfaceVariant,
-									modifier = Modifier.padding(horizontal = 4.dp)
+								Icon(
+									imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+									contentDescription = null,
+									tint = MaterialTheme.colorScheme.onSurfaceVariant,
+									modifier = Modifier
+										.padding(horizontal = 6.dp)
+										.size(16.dp)
 								)
 								CalendarLabel(
 									name = target?.displayName ?: "",
