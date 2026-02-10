@@ -6,18 +6,33 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.amunak.calscium.data.SyncJob
+import net.amunak.calscium.ui.calendar.CalendarManagementScreen
+import net.amunak.calscium.ui.calendar.CalendarManagementViewModel
+import net.amunak.calscium.ui.calendar.CalendarDetailScreen
 import net.amunak.calscium.ui.theme.CalsciumTheme
+
+enum class AppScreen {
+	SyncJobs,
+	CalendarManagement,
+	CalendarDetail
+}
 
 @Composable
 fun CalsciumAppRoute() {
 	val viewModel: SyncJobViewModel = viewModel()
 	val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+	val calendarViewModel: CalendarManagementViewModel = viewModel()
+	val calendarState by calendarViewModel.uiState.collectAsStateWithLifecycle()
 	val context = LocalContext.current
+	var currentScreen by rememberSaveable { mutableStateOf(AppScreen.SyncJobs) }
 
 	val permissionLauncher = rememberLauncherForActivityResult(
 		ActivityResultContracts.RequestMultiplePermissions()
@@ -31,6 +46,9 @@ fun CalsciumAppRoute() {
 
 	CalsciumApp(
 		uiState = uiState,
+		calendarState = calendarState,
+		currentScreen = currentScreen,
+		onNavigate = { currentScreen = it },
 		onRequestPermissions = {
 			permissionLauncher.launch(
 				arrayOf(
@@ -44,31 +62,80 @@ fun CalsciumAppRoute() {
 		onUpdateJob = viewModel::updateJobOptions,
 		onToggleActive = viewModel::setJobActive,
 		onDeleteJob = viewModel::deleteJob,
-		onManualSync = viewModel::runManualSync
+		onManualSync = viewModel::runManualSync,
+		onRefreshCalendarsManagement = calendarViewModel::refreshCalendars,
+		onSelectCalendar = {
+			calendarViewModel.selectCalendar(it)
+			currentScreen = AppScreen.CalendarDetail
+		},
+		onClearCalendarSelection = calendarViewModel::clearSelection,
+		onUpdateCalendarName = calendarViewModel::updateCalendarName,
+		onUpdateCalendarColor = calendarViewModel::updateCalendarColor,
+		onPurgeCalendar = calendarViewModel::purgeCalendar,
+		onDeleteCalendar = calendarViewModel::deleteCalendar,
+		onCreateCalendar = calendarViewModel::createCalendar
 	)
 }
 
 @Composable
 fun CalsciumApp(
 	uiState: SyncJobUiState,
+	calendarState: net.amunak.calscium.ui.calendar.CalendarManagementUiState,
+	currentScreen: AppScreen,
+	onNavigate: (AppScreen) -> Unit,
 	onRequestPermissions: () -> Unit,
 	onRefreshCalendars: () -> Unit,
 	onCreateJob: (Long, Long, Int, Int, Int) -> Unit,
 	onUpdateJob: (SyncJob, Int, Int, Int) -> Unit,
 	onToggleActive: (SyncJob, Boolean) -> Unit,
 	onDeleteJob: (SyncJob) -> Unit,
-	onManualSync: (SyncJob) -> Unit
+	onManualSync: (SyncJob) -> Unit,
+	onRefreshCalendarsManagement: () -> Unit,
+	onSelectCalendar: (Long) -> Unit,
+	onClearCalendarSelection: () -> Unit,
+	onUpdateCalendarName: (net.amunak.calscium.calendar.CalendarInfo, String) -> Unit,
+	onUpdateCalendarColor: (net.amunak.calscium.calendar.CalendarInfo, Int) -> Unit,
+	onPurgeCalendar: (net.amunak.calscium.calendar.CalendarInfo) -> Unit,
+	onDeleteCalendar: (net.amunak.calscium.calendar.CalendarInfo) -> Unit,
+	onCreateCalendar: (String, Int) -> Unit
 ) {
-	SyncJobScreen(
-		uiState = uiState,
-		onRequestPermissions = onRequestPermissions,
-		onRefreshCalendars = onRefreshCalendars,
-		onCreateJob = onCreateJob,
-		onUpdateJob = onUpdateJob,
-		onToggleActive = onToggleActive,
-		onDeleteJob = onDeleteJob,
-		onManualSync = onManualSync
-	)
+	when (currentScreen) {
+		AppScreen.SyncJobs -> {
+			SyncJobScreen(
+				uiState = uiState,
+				onRequestPermissions = onRequestPermissions,
+				onRefreshCalendars = onRefreshCalendars,
+				onCreateJob = onCreateJob,
+				onUpdateJob = onUpdateJob,
+				onToggleActive = onToggleActive,
+				onDeleteJob = onDeleteJob,
+				onManualSync = onManualSync,
+				onOpenCalendarManagement = { onNavigate(AppScreen.CalendarManagement) }
+			)
+		}
+		AppScreen.CalendarManagement -> {
+			CalendarManagementScreen(
+				state = calendarState,
+				onBack = { onNavigate(AppScreen.SyncJobs) },
+				onRefresh = onRefreshCalendarsManagement,
+				onSelectCalendar = onSelectCalendar,
+				onCreateCalendar = onCreateCalendar
+			)
+		}
+		AppScreen.CalendarDetail -> {
+			CalendarDetailScreen(
+				state = calendarState,
+				onBack = {
+					onClearCalendarSelection()
+					onNavigate(AppScreen.CalendarManagement)
+				},
+				onUpdateName = onUpdateCalendarName,
+				onUpdateColor = onUpdateCalendarColor,
+				onPurge = onPurgeCalendar,
+				onDelete = onDeleteCalendar
+			)
+		}
+	}
 }
 
 @Preview(showBackground = true)
@@ -81,13 +148,24 @@ private fun CalsciumAppPreview() {
 				calendars = PreviewData.calendars,
 				hasCalendarPermission = true
 			),
+			calendarState = net.amunak.calscium.ui.calendar.CalendarManagementUiState(),
+			currentScreen = AppScreen.SyncJobs,
+			onNavigate = {},
 			onRequestPermissions = {},
 			onRefreshCalendars = {},
 			onCreateJob = { _, _, _, _, _ -> },
 			onUpdateJob = { _, _, _, _ -> },
 			onToggleActive = { _, _ -> },
 			onDeleteJob = {},
-			onManualSync = {}
+			onManualSync = {},
+			onRefreshCalendarsManagement = {},
+			onSelectCalendar = {},
+			onClearCalendarSelection = {},
+			onUpdateCalendarName = { _, _ -> },
+			onUpdateCalendarColor = { _, _ -> },
+			onPurgeCalendar = {},
+			onDeleteCalendar = {},
+			onCreateCalendar = { _, _ -> }
 		)
 	}
 }

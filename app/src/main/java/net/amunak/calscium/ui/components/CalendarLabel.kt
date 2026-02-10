@@ -21,7 +21,8 @@ fun CalendarLabel(
 	color: Int?,
 	modifier: Modifier = Modifier,
 	textColor: Color = MaterialTheme.colorScheme.onSurface,
-	textStyle: TextStyle = MaterialTheme.typography.bodyMedium
+	textStyle: TextStyle = MaterialTheme.typography.bodyMedium,
+	maxLines: Int = 1
 ) {
 	Row(
 		modifier = modifier,
@@ -39,7 +40,7 @@ fun CalendarLabel(
 			text = name,
 			color = textColor,
 			style = textStyle,
-			maxLines = 1
+			maxLines = maxLines
 		)
 	}
 }

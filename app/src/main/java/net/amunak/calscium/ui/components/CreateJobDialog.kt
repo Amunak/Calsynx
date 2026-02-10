@@ -448,13 +448,6 @@ private fun frequencyOptions(): List<FrequencyOption> {
 	)
 }
 
-private fun groupCalendars(calendars: List<CalendarInfo>): Map<String, List<CalendarInfo>> {
-	return calendars.groupBy { calendar ->
-		val name = calendar.accountName ?: "On device"
-		val type = calendar.accountType?.takeIf { it.isNotBlank() }
-		if (type != null) "$name · $type" else name
-	}
-}
 
 @Preview(showBackground = true)
 @Composable

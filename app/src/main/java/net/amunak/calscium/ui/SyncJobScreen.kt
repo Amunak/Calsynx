@@ -33,8 +33,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import net.amunak.calscium.data.SyncJob
 import net.amunak.calscium.ui.components.CreateJobDialog
 import net.amunak.calscium.ui.components.SyncJobRow
@@ -50,7 +52,8 @@ fun SyncJobScreen(
 	onUpdateJob: (SyncJob, Int, Int, Int) -> Unit,
 	onToggleActive: (SyncJob, Boolean) -> Unit,
 	onDeleteJob: (SyncJob) -> Unit,
-	onManualSync: (SyncJob) -> Unit
+	onManualSync: (SyncJob) -> Unit,
+	onOpenCalendarManagement: () -> Unit
 ) {
 	var showDialog by remember { mutableStateOf(false) }
 	var editingJob by remember { mutableStateOf<SyncJob?>(null) }
@@ -66,7 +69,17 @@ fun SyncJobScreen(
 	Scaffold(
 		topBar = {
 			TopAppBar(
-				title = { Text("Calscium") }
+				title = { Text("Calscium") },
+				actions = {
+					if (uiState.hasCalendarPermission) {
+						IconButton(onClick = onOpenCalendarManagement) {
+							Icon(
+								imageVector = Icons.Default.Settings,
+								contentDescription = "Calendar management"
+							)
+						}
+					}
+				}
 			)
 		},
 		floatingActionButton = {
@@ -234,7 +247,8 @@ private fun SyncJobScreenPreview() {
 			onUpdateJob = { _, _, _, _ -> },
 			onToggleActive = { _, _ -> },
 			onDeleteJob = {},
-			onManualSync = {}
+			onManualSync = {},
+			onOpenCalendarManagement = {}
 		)
 	}
 }
