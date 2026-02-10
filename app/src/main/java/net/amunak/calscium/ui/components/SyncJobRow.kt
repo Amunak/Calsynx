@@ -1,14 +1,21 @@
 package net.amunak.calscium.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -27,11 +34,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import net.amunak.calscium.data.SyncJob
 import net.amunak.calscium.ui.formatters.formatLastSync
 import net.amunak.calscium.ui.formatters.formatSyncCounts
+import net.amunak.calscium.ui.formatters.formatFrequency
 import net.amunak.calscium.ui.theme.CalsciumTheme
 
 @Composable
@@ -39,9 +50,12 @@ fun SyncJobRow(
 	job: SyncJob,
 	sourceName: String,
 	targetName: String,
+	sourceColor: Int?,
+	targetColor: Int?,
 	isSyncing: Boolean,
 	onToggleActive: (SyncJob, Boolean) -> Unit,
 	onDeleteJob: (SyncJob) -> Unit,
+	onEditJob: (SyncJob) -> Unit,
 	onManualSync: (SyncJob) -> Unit
 ) {
 	var menuExpanded by remember { mutableStateOf(false) }
@@ -60,10 +74,23 @@ fun SyncJobRow(
 				verticalAlignment = Alignment.CenterVertically
 			) {
 				Column(modifier = Modifier.weight(1f)) {
-					Text(
-						text = "$sourceName -> $targetName",
-						style = MaterialTheme.typography.titleSmall
-					)
+					Row(verticalAlignment = Alignment.CenterVertically) {
+						CalendarDot(color = sourceColor)
+						Text(
+							text = sourceName,
+							style = MaterialTheme.typography.titleSmall
+						)
+						Text(
+							text = "  →  ",
+							style = MaterialTheme.typography.titleSmall,
+							color = MaterialTheme.colorScheme.onSurfaceVariant
+						)
+						CalendarDot(color = targetColor)
+						Text(
+							text = targetName,
+							style = MaterialTheme.typography.titleSmall
+						)
+					}
 					Spacer(modifier = Modifier.height(4.dp))
 					Text(
 						text = formatLastSync(job.lastSyncTimestamp),
@@ -74,7 +101,14 @@ fun SyncJobRow(
 					onClick = { onManualSync(job) },
 					enabled = !isSyncing
 				) {
-					Text(if (isSyncing) "Syncing..." else "Sync now")
+					Icon(
+						imageVector = Icons.Default.Sync,
+						contentDescription = null
+					)
+					Text(
+						text = if (isSyncing) "Syncing..." else "Sync now",
+						modifier = Modifier.padding(start = 6.dp)
+					)
 				}
 				IconButton(onClick = { menuExpanded = true }) {
 					Icon(
@@ -87,7 +121,20 @@ fun SyncJobRow(
 					onDismissRequest = { menuExpanded = false }
 				) {
 					DropdownMenuItem(
+						text = { Text("Edit") },
+						leadingIcon = {
+							Icon(Icons.Default.Edit, contentDescription = null)
+						},
+						onClick = {
+							menuExpanded = false
+							onEditJob(job)
+						}
+					)
+					DropdownMenuItem(
 						text = { Text("Delete") },
+						leadingIcon = {
+							Icon(Icons.Default.Delete, contentDescription = null)
+						},
 						onClick = {
 							menuExpanded = false
 							showDeleteConfirm = true
@@ -121,15 +168,14 @@ fun SyncJobRow(
 				horizontalArrangement = Arrangement.SpaceBetween,
 				verticalAlignment = Alignment.CenterVertically
 			) {
-				Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-					Text("Active")
-					Switch(
-						checked = job.isActive,
-						onCheckedChange = { onToggleActive(job, it) }
-					)
+				TextButton(onClick = { onToggleActive(job, !job.isActive) }) {
+					val icon = if (job.isActive) Icons.Default.Pause else Icons.Default.PlayArrow
+					val label = if (job.isActive) "Pause sync" else "Resume sync"
+					Icon(imageVector = icon, contentDescription = null)
+					Text(text = label, modifier = Modifier.padding(start = 6.dp))
 				}
 				Text(
-					text = "Every ${job.frequencyMinutes} min",
+					text = formatFrequency(job.frequencyMinutes),
 					style = MaterialTheme.typography.bodySmall
 				)
 			}
@@ -146,7 +192,10 @@ fun SyncJobRow(
 			onDismissRequest = { showDeleteConfirm = false },
 			title = { Text("Delete sync job?") },
 			text = {
-				Text("This will remove the job and stop syncing between the selected calendars.")
+				Text(
+					"This will remove the job, forget previous mappings, and stop syncing " +
+						"between the selected calendars."
+				)
 			},
 			confirmButton = {
 				TextButton(
@@ -167,6 +216,17 @@ fun SyncJobRow(
 	}
 }
 
+@Composable
+private fun CalendarDot(color: Int?) {
+	if (color == null) return
+	Box(
+		modifier = Modifier
+			.padding(end = 6.dp)
+			.size(10.dp)
+			.background(Color(color), CircleShape)
+	)
+}
+
 @Preview(showBackground = true)
 @Composable
 private fun SyncJobRowPreview() {
@@ -181,9 +241,12 @@ private fun SyncJobRowPreview() {
 			),
 			sourceName = "Work",
 			targetName = "Personal",
+			sourceColor = 0xFF3F51B5.toInt(),
+			targetColor = 0xFFFF9800.toInt(),
 			isSyncing = false,
 			onToggleActive = { _, _ -> },
 			onDeleteJob = {},
+			onEditJob = {},
 			onManualSync = {}
 		)
 	}
