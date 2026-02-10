@@ -102,33 +102,26 @@ fun CreateJobDialog(
 					Text("No calendars available.")
 				} else {
 					if (isEdit) {
-						Surface(
-							shape = MaterialTheme.shapes.medium,
-							color = MaterialTheme.colorScheme.surfaceVariant
+						Row(
+							modifier = Modifier.fillMaxWidth(),
+							verticalAlignment = Alignment.CenterVertically
 						) {
-							Row(
+							CalendarLabel(
+								name = source?.displayName ?: "",
+								color = source?.color
+							)
+							Icon(
+								imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+								contentDescription = null,
+								tint = MaterialTheme.colorScheme.onSurfaceVariant,
 								modifier = Modifier
-									.fillMaxWidth()
-									.padding(horizontal = 12.dp, vertical = 8.dp),
-								verticalAlignment = Alignment.CenterVertically
-							) {
-								CalendarLabel(
-									name = source?.displayName ?: "",
-									color = source?.color
-								)
-								Icon(
-									imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-									contentDescription = null,
-									tint = MaterialTheme.colorScheme.onSurfaceVariant,
-									modifier = Modifier
-										.padding(horizontal = 6.dp)
-										.size(16.dp)
-								)
-								CalendarLabel(
-									name = target?.displayName ?: "",
-									color = target?.color
-								)
-							}
+									.padding(horizontal = 6.dp)
+									.size(16.dp)
+							)
+							CalendarLabel(
+								name = target?.displayName ?: "",
+								color = target?.color
+							)
 						}
 					} else {
 						CalendarPicker(
