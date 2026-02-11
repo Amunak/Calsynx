@@ -43,3 +43,14 @@ Release build (unsigned):
 ```bash
 ./gradlew --no-daemon :app:assembleRelease
 ```
+
+## Tests (CLI)
+Unit tests:
+```bash
+./gradlew --no-daemon test
+```
+
+Instrumented tests (requires a connected device or emulator):
+```bash
+./gradlew --no-daemon connectedAndroidTest
+```
