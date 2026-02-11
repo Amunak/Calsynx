@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.PowerManager
 import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.core.content.pm.PackageInfoCompat
@@ -94,6 +95,7 @@ class SyncLogViewModel(app: Application) : AndroidViewModel(app) {
 			appendLine("Calsynx sync logs")
 			appendLine("App version: ${getAppVersion(context)}")
 			appendLine("Exported: ${ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)}")
+			appendLine("Battery optimization exempt: ${getBatteryOptimizationStatus(context)}")
 			appendLine()
 			appendLine("Jobs:")
 			appendLine(buildJobSummary(context))
@@ -145,6 +147,16 @@ class SyncLogViewModel(app: Application) : AndroidViewModel(app) {
 			"$versionName ($versionCode)"
 		} catch (e: RuntimeException) {
 			"unknown"
+		}
+	}
+
+	private fun getBatteryOptimizationStatus(context: Context): String {
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return "n/a"
+		val powerManager = context.getSystemService(PowerManager::class.java)
+		return if (powerManager != null && powerManager.isIgnoringBatteryOptimizations(context.packageName)) {
+			"yes"
+		} else {
+			"no"
 		}
 	}
 

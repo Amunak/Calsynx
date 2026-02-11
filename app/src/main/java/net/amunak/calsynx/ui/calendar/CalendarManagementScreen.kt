@@ -2,6 +2,7 @@ package net.amunak.calsynx.ui.calendar
 
 import android.provider.CalendarContract
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -24,7 +26,6 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -44,6 +45,8 @@ import net.amunak.calsynx.calendar.CalendarInfo
 import net.amunak.calsynx.ui.PreviewData
 import net.amunak.calsynx.ui.components.groupCalendars
 import net.amunak.calsynx.ui.components.sanitizeCalendarName
+import net.amunak.calsynx.ui.components.TooltipIconButton
+import net.amunak.calsynx.ui.components.ScrollIndicator
 import androidx.compose.ui.res.stringResource
 import net.amunak.calsynx.R
 
@@ -67,7 +70,10 @@ fun CalendarManagementScreen(
 			TopAppBar(
 				title = { Text(stringResource(R.string.title_calendar_management)) },
 				navigationIcon = {
-					IconButton(onClick = onBack) {
+					TooltipIconButton(
+						tooltip = stringResource(R.string.action_back),
+						onClick = onBack
+					) {
 						Icon(
 							Icons.AutoMirrored.Filled.ArrowBack,
 							contentDescription = stringResource(R.string.action_back)
@@ -90,6 +96,7 @@ fun CalendarManagementScreen(
 			modifier = Modifier.fillMaxSize(),
 			color = MaterialTheme.colorScheme.surfaceContainerLowest
 		) {
+			val listState = rememberLazyListState()
 			Column(
 				modifier = Modifier
 					.fillMaxSize()
@@ -124,31 +131,44 @@ fun CalendarManagementScreen(
 					onDeviceLabel = stringResource(R.string.text_on_device),
 					externalLabel = stringResource(R.string.text_external)
 				)
-				LazyColumn(
-					contentPadding = PaddingValues(bottom = 96.dp),
-					verticalArrangement = Arrangement.spacedBy(12.dp)
+				Box(
+					modifier = Modifier
+						.fillMaxWidth()
+						.weight(1f)
 				) {
-					grouped.forEach { (group, calendars) ->
-						item {
-							Text(
-								text = group,
-								style = MaterialTheme.typography.titleSmall,
-								color = MaterialTheme.colorScheme.onSurfaceVariant
-							)
-						}
-						items(
-							items = calendars,
-							key = { it.id }
-						) { calendar ->
-							val row = state.calendars.firstOrNull { it.calendar.id == calendar.id }
-							if (row != null) {
-								CalendarRowCard(
-									row = row,
-									onClick = { onSelectCalendar(calendar.id) }
+					LazyColumn(
+						state = listState,
+						contentPadding = PaddingValues(bottom = 96.dp),
+						verticalArrangement = Arrangement.spacedBy(12.dp)
+					) {
+						grouped.forEach { (group, calendars) ->
+							item {
+								Text(
+									text = group,
+									style = MaterialTheme.typography.titleSmall,
+									color = MaterialTheme.colorScheme.onSurfaceVariant
 								)
+							}
+							items(
+								items = calendars,
+								key = { it.id }
+							) { calendar ->
+								val row = state.calendars.firstOrNull { it.calendar.id == calendar.id }
+								if (row != null) {
+									CalendarRowCard(
+										row = row,
+										onClick = { onSelectCalendar(calendar.id) }
+									)
+								}
 							}
 						}
 					}
+					ScrollIndicator(
+						state = listState,
+						modifier = Modifier
+							.align(Alignment.CenterEnd)
+							.padding(end = 4.dp)
+					)
 				}
 			}
 		}
@@ -196,7 +216,10 @@ fun CalendarDetailScreen(
 			TopAppBar(
 				title = { Text(calendarTitle) },
 				navigationIcon = {
-					IconButton(onClick = onBack) {
+					TooltipIconButton(
+						tooltip = stringResource(R.string.action_back),
+						onClick = onBack
+					) {
 						Icon(
 							Icons.AutoMirrored.Filled.ArrowBack,
 							contentDescription = stringResource(R.string.action_back)

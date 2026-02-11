@@ -11,14 +11,18 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.amunak.calsynx.R
@@ -45,16 +49,26 @@ fun CalsynxAppRoute() {
 	val logViewModel: net.amunak.calsynx.ui.logs.SyncLogViewModel = viewModel()
 	val logState by logViewModel.uiState.collectAsStateWithLifecycle()
 	val context = LocalContext.current
+	val lifecycleOwner = LocalLifecycleOwner.current
 	var currentScreen by rememberSaveable { mutableStateOf(AppScreen.SyncJobs) }
 
 	val permissionLauncher = rememberLauncherForActivityResult(
 		ActivityResultContracts.RequestMultiplePermissions()
 	) { result ->
-		viewModel.onPermissionChanged(result.values.all { it })
+		viewModel.onPermissionChanged(hasCalendarPermissions(context))
 	}
 
 	LaunchedEffect(Unit) {
 		viewModel.onPermissionChanged(hasCalendarPermissions(context))
+	}
+	DisposableEffect(lifecycleOwner) {
+		val observer = LifecycleEventObserver { _, event ->
+			if (event == Lifecycle.Event.ON_RESUME) {
+				viewModel.onPermissionChanged(hasCalendarPermissions(context))
+			}
+		}
+		lifecycleOwner.lifecycle.addObserver(observer)
+		onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
 	}
 
 	CalsynxApp(

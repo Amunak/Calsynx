@@ -2,6 +2,7 @@ package net.amunak.calsynx.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -26,7 +28,6 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -57,6 +58,7 @@ import net.amunak.calsynx.ui.formatters.formatFrequency
 import net.amunak.calsynx.ui.theme.CalsynxTheme
 import net.amunak.calsynx.ui.components.sanitizeCalendarName
 import androidx.compose.ui.res.stringResource
+import net.amunak.calsynx.ui.components.TooltipIconButton
 
 @Composable
 fun SyncJobRow(
@@ -145,6 +147,14 @@ fun SyncJobRow(
 			}
 
 			Spacer(modifier = Modifier.height(12.dp))
+			if (!job.isActive) {
+				Text(
+					text = stringResource(R.string.label_sync_paused),
+					style = MaterialTheme.typography.labelSmall,
+					color = MaterialTheme.colorScheme.onSurfaceVariant
+				)
+				Spacer(modifier = Modifier.height(6.dp))
+			}
 			Text(
 				text = formatSyncCounts(
 					resources,
@@ -170,11 +180,21 @@ fun SyncJobRow(
 			}
 			job.lastSyncError?.let { error ->
 				Spacer(modifier = Modifier.height(4.dp))
-				Text(
-					text = stringResource(R.string.label_last_error, error),
-					color = MaterialTheme.colorScheme.error,
-					style = MaterialTheme.typography.bodySmall
-				)
+				Row(verticalAlignment = Alignment.CenterVertically) {
+					Icon(
+						imageVector = Icons.Default.Warning,
+						contentDescription = null,
+						tint = MaterialTheme.colorScheme.error,
+						modifier = Modifier
+							.size(14.dp)
+							.padding(end = 6.dp)
+					)
+					Text(
+						text = stringResource(R.string.label_last_error, error),
+						color = MaterialTheme.colorScheme.error,
+						style = MaterialTheme.typography.bodySmall
+					)
+				}
 			}
 			Spacer(modifier = Modifier.height(12.dp))
 			if (isMissingCalendar) {
@@ -197,92 +217,110 @@ fun SyncJobRow(
 					}
 				}
 			} else {
-				Row(
-					modifier = Modifier.fillMaxWidth(),
-					horizontalArrangement = Arrangement.spacedBy(10.dp),
-					verticalAlignment = Alignment.CenterVertically
-				) {
-					FilledTonalButton(
-						onClick = { onToggleActive(job, !job.isActive) },
-						modifier = Modifier.weight(1f),
-						colors = ButtonDefaults.filledTonalButtonColors(
-							containerColor = MaterialTheme.colorScheme.secondaryContainer,
-							contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-						)
+				BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+					val isCompact = maxWidth < 360.dp
+					Row(
+						modifier = Modifier.fillMaxWidth(),
+						horizontalArrangement = Arrangement.spacedBy(10.dp),
+						verticalAlignment = Alignment.CenterVertically
 					) {
-						val icon = if (job.isActive) Icons.Default.Pause else Icons.Default.PlayArrow
-						val label = if (job.isActive) {
-							stringResource(R.string.action_pause)
-						} else {
-							stringResource(R.string.action_resume)
+						if (!isCompact) {
+							FilledTonalButton(
+								onClick = { onToggleActive(job, !job.isActive) },
+								modifier = Modifier.weight(1f),
+								colors = ButtonDefaults.filledTonalButtonColors(
+									containerColor = MaterialTheme.colorScheme.secondaryContainer,
+									contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+								)
+							) {
+								val icon = if (job.isActive) Icons.Default.Pause else Icons.Default.PlayArrow
+								val label = if (job.isActive) {
+									stringResource(R.string.action_pause)
+								} else {
+									stringResource(R.string.action_resume)
+								}
+								Icon(imageVector = icon, contentDescription = null)
+								Text(text = label, modifier = Modifier.padding(start = 6.dp))
+							}
 						}
-						Icon(imageVector = icon, contentDescription = null)
-						Text(text = label, modifier = Modifier.padding(start = 6.dp))
-					}
-					FilledTonalButton(
-						onClick = {
-							pulseTrigger += 1
-							onManualSync(job)
-						},
-						enabled = !isSyncing,
-						modifier = Modifier.weight(1f),
-						colors = ButtonDefaults.filledTonalButtonColors(
-							containerColor = MaterialTheme.colorScheme.primaryContainer,
-							contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-							disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
-							disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-						)
-					) {
-						Icon(
-							imageVector = Icons.Default.Sync,
-							contentDescription = null
-						)
-						Text(
-							text = stringResource(R.string.action_sync),
-							modifier = Modifier.padding(start = 6.dp)
-						)
-					}
-					Box {
-						IconButton(onClick = { menuExpanded = true }) {
-							Icon(
-								imageVector = Icons.Default.MoreVert,
-								contentDescription = stringResource(R.string.label_job_actions)
-							)
-						}
-						DropdownMenu(
-							expanded = menuExpanded,
-							onDismissRequest = { menuExpanded = false }
+						FilledTonalButton(
+							onClick = {
+								pulseTrigger += 1
+								onManualSync(job)
+							},
+							enabled = !isSyncing,
+							modifier = Modifier.weight(1f)
 						) {
-							DropdownMenuItem(
-								text = { Text(stringResource(R.string.action_edit)) },
-								leadingIcon = {
-									Icon(Icons.Default.Edit, contentDescription = null)
-								},
-								onClick = {
-									menuExpanded = false
-									onEditJob(job)
-								}
+							Icon(
+								imageVector = Icons.Default.Sync,
+								contentDescription = null
 							)
-							DropdownMenuItem(
-								text = { Text(stringResource(R.string.action_purge_synced)) },
-								leadingIcon = {
-									Icon(Icons.Default.LayersClear, contentDescription = null)
-								},
-								onClick = {
-									menuExpanded = false
-									showDeleteSyncedConfirm = true
-								}
+							Text(
+								text = stringResource(R.string.action_sync),
+								modifier = Modifier.padding(start = 6.dp)
 							)
-							DropdownMenuItem(
-								text = { Text(stringResource(R.string.action_delete)) },
-								leadingIcon = {
-									Icon(Icons.Default.Delete, contentDescription = null)
-								},
-								onClick = {
-									menuExpanded = false
-									showDeleteConfirm = true
+						}
+						Box {
+							TooltipIconButton(
+								tooltip = stringResource(R.string.label_job_actions),
+								onClick = { menuExpanded = true }
+							) {
+								Icon(
+									imageVector = Icons.Default.MoreVert,
+									contentDescription = stringResource(R.string.label_job_actions)
+								)
+							}
+							DropdownMenu(
+								expanded = menuExpanded,
+								onDismissRequest = { menuExpanded = false }
+							) {
+								if (isCompact) {
+									val icon = if (job.isActive) Icons.Default.Pause else Icons.Default.PlayArrow
+									val label = if (job.isActive) {
+										stringResource(R.string.action_pause)
+									} else {
+										stringResource(R.string.action_resume)
+									}
+									DropdownMenuItem(
+										text = { Text(label) },
+										leadingIcon = { Icon(icon, contentDescription = null) },
+										onClick = {
+											menuExpanded = false
+											onToggleActive(job, !job.isActive)
+										}
+									)
 								}
-							)
+								DropdownMenuItem(
+									text = { Text(stringResource(R.string.action_edit)) },
+									leadingIcon = {
+										Icon(Icons.Default.Edit, contentDescription = null)
+									},
+									onClick = {
+										menuExpanded = false
+										onEditJob(job)
+									}
+								)
+								DropdownMenuItem(
+									text = { Text(stringResource(R.string.action_purge_synced)) },
+									leadingIcon = {
+										Icon(Icons.Default.LayersClear, contentDescription = null)
+									},
+									onClick = {
+										menuExpanded = false
+										showDeleteSyncedConfirm = true
+									}
+								)
+								DropdownMenuItem(
+									text = { Text(stringResource(R.string.action_delete)) },
+									leadingIcon = {
+										Icon(Icons.Default.Delete, contentDescription = null)
+									},
+									onClick = {
+										menuExpanded = false
+										showDeleteConfirm = true
+									}
+								)
+							}
 						}
 					}
 				}
