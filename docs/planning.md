@@ -13,6 +13,7 @@
 - [x] Fix sync updates to clear stale `DTEND`/`DURATION` when the source field switches.
 - [x] Update UI copy that still claims "manual sync only" now that WorkManager scheduling exists.
 - [x] Decide how to treat hidden calendars in job creation/listing (show all vs. visible-only).
+- [x] Move sync job create/edit into a dedicated screen with sections.
 - [ ] Reduce repeated calendar/event queries when building calendar management stats.
 - [x] Centralize job label formatting to avoid duplicate logic in ViewModel/Worker/Log export.
 - [x] Add targeted tests for update field behavior.
@@ -26,6 +27,7 @@
 - Schedule background sync with WorkManager periodic work using flex windows to let Android optimize.
 - Align UI copy with background scheduling now that WorkManager is in place.
 - Allow hidden calendars in selections; mark them with a visibility-off icon in selection/management lists.
+- Move sync job create/edit to a dedicated activity with sectioned layout.
 
 ## Rejected
 - Move “Sync now” into an overflow-only action.

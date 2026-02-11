@@ -70,22 +70,6 @@ fun CalsynxAppRoute() {
 				)
 			)
 		},
-		onRefreshCalendars = viewModel::refreshCalendars,
-		onCreateJob = { sourceId, targetId, pastDays, futureDays, syncAllEvents, frequencyMinutes ->
-			viewModel.createJob(
-				sourceId,
-				targetId,
-				pastDays,
-				futureDays,
-				syncAllEvents,
-				frequencyMinutes
-			)
-			calendarViewModel.refreshCalendars()
-		},
-		onUpdateJob = { job, pastDays, futureDays, syncAllEvents, frequencyMinutes ->
-			viewModel.updateJobOptions(job, pastDays, futureDays, syncAllEvents, frequencyMinutes)
-			calendarViewModel.refreshCalendars()
-		},
 		onToggleActive = viewModel::setJobActive,
 		onDeleteJob = { job ->
 			viewModel.deleteJob(job)
@@ -121,9 +105,6 @@ fun CalsynxApp(
 	currentScreen: AppScreen,
 	onNavigate: (AppScreen) -> Unit,
 	onRequestPermissions: () -> Unit,
-	onRefreshCalendars: () -> Unit,
-	onCreateJob: (Long, Long, Int, Int, Boolean, Int) -> Unit,
-	onUpdateJob: (SyncJob, Int, Int, Boolean, Int) -> Unit,
 	onToggleActive: (SyncJob, Boolean) -> Unit,
 	onDeleteJob: (SyncJob) -> Unit,
 	onDeleteSyncedTargets: (SyncJob) -> Unit,
@@ -184,15 +165,12 @@ fun CalsynxApp(
 	) { screen ->
 		when (screen) {
 			AppScreen.SyncJobs -> {
-				SyncJobScreen(
-					uiState = uiState,
-					onRequestPermissions = onRequestPermissions,
-					onRefreshCalendars = onRefreshCalendars,
-					onCreateJob = onCreateJob,
-					onUpdateJob = onUpdateJob,
-					onToggleActive = onToggleActive,
-					onDeleteJob = onDeleteJob,
-					onDeleteSyncedTargets = onDeleteSyncedTargets,
+					SyncJobScreen(
+						uiState = uiState,
+						onRequestPermissions = onRequestPermissions,
+						onToggleActive = onToggleActive,
+						onDeleteJob = onDeleteJob,
+						onDeleteSyncedTargets = onDeleteSyncedTargets,
 					onManualSync = onManualSync,
 					onOpenCalendarManagement = { onNavigate(AppScreen.CalendarManagement) },
 					onOpenLogs = onOpenLogs
@@ -247,9 +225,6 @@ private fun CalsynxAppPreview() {
 			currentScreen = AppScreen.SyncJobs,
 			onNavigate = {},
 			onRequestPermissions = {},
-			onRefreshCalendars = {},
-			onCreateJob = { _, _, _, _, _, _ -> },
-			onUpdateJob = { _, _, _, _, _ -> },
 			onToggleActive = { _, _ -> },
 			onDeleteJob = {},
 			onDeleteSyncedTargets = {},

@@ -22,11 +22,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
@@ -38,12 +34,13 @@ import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import net.amunak.calsynx.R
 import net.amunak.calsynx.data.SyncJob
-import net.amunak.calsynx.ui.components.CreateJobDialog
 import net.amunak.calsynx.ui.components.SyncJobRow
 import net.amunak.calsynx.ui.components.sanitizeCalendarName
+import net.amunak.calsynx.ui.editor.SyncJobEditorActivity
 import net.amunak.calsynx.ui.theme.CalsynxTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,9 +48,6 @@ import net.amunak.calsynx.ui.theme.CalsynxTheme
 fun SyncJobScreen(
 	uiState: SyncJobUiState,
 	onRequestPermissions: () -> Unit,
-	onRefreshCalendars: () -> Unit,
-	onCreateJob: (Long, Long, Int, Int, Boolean, Int) -> Unit,
-	onUpdateJob: (SyncJob, Int, Int, Boolean, Int) -> Unit,
 	onToggleActive: (SyncJob, Boolean) -> Unit,
 	onDeleteJob: (SyncJob) -> Unit,
 	onDeleteSyncedTargets: (SyncJob) -> Unit,
@@ -61,15 +55,9 @@ fun SyncJobScreen(
 	onOpenCalendarManagement: () -> Unit,
 	onOpenLogs: () -> Unit
 ) {
-	var showDialog by remember { mutableStateOf(false) }
-	var editingJob by remember { mutableStateOf<SyncJob?>(null) }
+	val context = LocalContext.current
 	val calendarById = remember(uiState.calendars) {
 		uiState.calendars.associateBy { it.id }
-	}
-	LaunchedEffect(showDialog) {
-		if (showDialog) {
-			onRefreshCalendars()
-		}
 	}
 
 	Scaffold(
@@ -111,8 +99,7 @@ fun SyncJobScreen(
 		floatingActionButton = {
 			if (uiState.hasCalendarPermission) {
 				FloatingActionButton(onClick = {
-					editingJob = null
-					showDialog = true
+					context.startActivity(SyncJobEditorActivity.newIntent(context))
 				}) {
 					Icon(
 						imageVector = Icons.Default.Add,
@@ -213,37 +200,22 @@ fun SyncJobScreen(
 									|| calendarById[job.targetCalendarId] == null,
 								isSyncing = uiState.syncingJobIds.contains(job.id),
 								onToggleActive = onToggleActive,
-								onDeleteJob = onDeleteJob,
-								onDeleteSyncedTargets = onDeleteSyncedTargets,
-								onEditJob = {
-									editingJob = job
-									showDialog = true
-								},
-								onManualSync = onManualSync
-							)
-						}
+							onDeleteJob = onDeleteJob,
+							onDeleteSyncedTargets = onDeleteSyncedTargets,
+							onEditJob = {
+								context.startActivity(
+									SyncJobEditorActivity.newIntent(context, job.id)
+								)
+							},
+							onManualSync = onManualSync
+						)
+					}
 					}
 				}
 			}
 		}
 	}
 
-	if (showDialog) {
-		CreateJobDialog(
-			calendars = uiState.calendars,
-			jobs = uiState.jobs,
-			initialJob = editingJob,
-			onDismiss = { showDialog = false },
-			onCreate = { sourceId, targetId, pastDays, futureDays, syncAllEvents, frequencyMinutes ->
-				onCreateJob(sourceId, targetId, pastDays, futureDays, syncAllEvents, frequencyMinutes)
-				showDialog = false
-			},
-			onUpdate = { job, pastDays, futureDays, syncAllEvents, frequencyMinutes ->
-				onUpdateJob(job, pastDays, futureDays, syncAllEvents, frequencyMinutes)
-				showDialog = false
-			}
-		)
-	}
 }
 
 @Preview(showBackground = true)
@@ -257,9 +229,6 @@ private fun SyncJobScreenPreview() {
 				hasCalendarPermission = true
 			),
 			onRequestPermissions = {},
-			onRefreshCalendars = {},
-			onCreateJob = { _, _, _, _, _, _ -> },
-			onUpdateJob = { _, _, _, _, _ -> },
 			onToggleActive = { _, _ -> },
 			onDeleteJob = {},
 			onDeleteSyncedTargets = {},
