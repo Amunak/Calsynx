@@ -2,4 +2,11 @@
 <resources>
 
 	<style name="Theme.Calsynx" parent="android:Theme.Material.Light.NoActionBar" />
+
+	<style name="Theme.Calsynx.Splash" parent="Theme.SplashScreen">
+		<item name="android:windowBackground">@color/calsynx_splash_background</item>
+		<item name="windowSplashScreenBackground">@color/calsynx_splash_background</item>
+		<item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+		<item name="postSplashScreenTheme">@style/Theme.Calsynx</item>
+	</style>
 </resources>
