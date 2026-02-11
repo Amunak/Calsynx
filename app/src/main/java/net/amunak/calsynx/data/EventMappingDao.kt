@@ -33,6 +33,15 @@ interface EventMappingDao {
 	)
 	suspend fun deleteByJob(sourceCalendarId: Long, targetCalendarId: Long)
 
+	@Query(
+		"""
+		SELECT COUNT(*) FROM event_mappings
+		WHERE sourceCalendarId = :sourceCalendarId
+		  AND targetCalendarId = :targetCalendarId
+		"""
+	)
+	suspend fun countForJob(sourceCalendarId: Long, targetCalendarId: Long): Int
+
 	@Query("SELECT COUNT(*) FROM event_mappings WHERE targetCalendarId = :calendarId")
 	suspend fun countSyncedTargets(calendarId: Long): Int
 }

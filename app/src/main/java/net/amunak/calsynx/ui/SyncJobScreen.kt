@@ -51,8 +51,8 @@ fun SyncJobScreen(
 	uiState: SyncJobUiState,
 	onRequestPermissions: () -> Unit,
 	onRefreshCalendars: () -> Unit,
-	onCreateJob: (Long, Long, Int, Int, Int) -> Unit,
-	onUpdateJob: (SyncJob, Int, Int, Int) -> Unit,
+	onCreateJob: (Long, Long, Int, Int, Boolean, Int) -> Unit,
+	onUpdateJob: (SyncJob, Int, Int, Boolean, Int) -> Unit,
 	onToggleActive: (SyncJob, Boolean) -> Unit,
 	onDeleteJob: (SyncJob) -> Unit,
 	onManualSync: (SyncJob) -> Unit,
@@ -234,12 +234,12 @@ fun SyncJobScreen(
 			jobs = uiState.jobs,
 			initialJob = editingJob,
 			onDismiss = { showDialog = false },
-			onCreate = { sourceId, targetId, pastDays, futureDays, frequencyMinutes ->
-				onCreateJob(sourceId, targetId, pastDays, futureDays, frequencyMinutes)
+			onCreate = { sourceId, targetId, pastDays, futureDays, syncAllEvents, frequencyMinutes ->
+				onCreateJob(sourceId, targetId, pastDays, futureDays, syncAllEvents, frequencyMinutes)
 				showDialog = false
 			},
-			onUpdate = { job, pastDays, futureDays, frequencyMinutes ->
-				onUpdateJob(job, pastDays, futureDays, frequencyMinutes)
+			onUpdate = { job, pastDays, futureDays, syncAllEvents, frequencyMinutes ->
+				onUpdateJob(job, pastDays, futureDays, syncAllEvents, frequencyMinutes)
 				showDialog = false
 			}
 		)
@@ -258,8 +258,8 @@ private fun SyncJobScreenPreview() {
 			),
 			onRequestPermissions = {},
 			onRefreshCalendars = {},
-			onCreateJob = { _, _, _, _, _ -> },
-			onUpdateJob = { _, _, _, _ -> },
+			onCreateJob = { _, _, _, _, _, _ -> },
+			onUpdateJob = { _, _, _, _, _ -> },
 			onToggleActive = { _, _ -> },
 			onDeleteJob = {},
 			onManualSync = {},

@@ -126,6 +126,7 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 		targetId: Long,
 		pastDays: Int,
 		futureDays: Int,
+		syncAllEvents: Boolean,
 		frequencyMinutes: Int
 	) {
 		viewModelScope.launch(Dispatchers.IO) {
@@ -158,6 +159,7 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 					targetCalendarId = targetId,
 					windowPastDays = pastDays,
 					windowFutureDays = futureDays,
+					syncAllEvents = syncAllEvents,
 					frequencyMinutes = frequencyMinutes
 				)
 			)
@@ -168,6 +170,7 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 		job: SyncJob,
 		pastDays: Int,
 		futureDays: Int,
+		syncAllEvents: Boolean,
 		frequencyMinutes: Int
 	) {
 		viewModelScope.launch(Dispatchers.IO) {
@@ -175,6 +178,7 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 				job.copy(
 					windowPastDays = pastDays,
 					windowFutureDays = futureDays,
+					syncAllEvents = syncAllEvents,
 					frequencyMinutes = frequencyMinutes
 				)
 			)

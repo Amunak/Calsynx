@@ -41,6 +41,7 @@
 	<string name="label_sync_frequency">Sync frequency</string>
 	<string name="label_sync_jobs">Sync jobs</string>
 	<string name="label_sync_window_hint">Only events inside the sync window are kept in sync.</string>
+	<string name="label_sync_all_events">Sync all events</string>
 	<string name="label_target_calendar">Target calendar</string>
 	<string name="label_window_days_suffix">days</string>
 	<string name="label_sync_job_base_color">Sync job base color</string>
@@ -88,6 +89,7 @@
 	<string name="text_synced_output">Synced (output):</string>
 	<string name="text_type_label">Type: %1$s</string>
 	<string name="text_sync_window">%1$dd back · %2$dd ahead</string>
+	<string name="text_sync_window_all">All events</string>
 
 	<string name="text_on_device">On device</string>
 	<string name="text_external">External</string>

@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextFieldColors
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.Icon
@@ -55,8 +56,8 @@ fun CreateJobDialog(
 	jobs: List<net.amunak.calsynx.data.SyncJob>,
 	initialJob: net.amunak.calsynx.data.SyncJob? = null,
 	onDismiss: () -> Unit,
-	onCreate: (Long, Long, Int, Int, Int) -> Unit,
-	onUpdate: (net.amunak.calsynx.data.SyncJob, Int, Int, Int) -> Unit
+	onCreate: (Long, Long, Int, Int, Boolean, Int) -> Unit,
+	onUpdate: (net.amunak.calsynx.data.SyncJob, Int, Int, Boolean, Int) -> Unit
 ) {
 	var source by remember { mutableStateOf<CalendarInfo?>(null) }
 	var target by remember { mutableStateOf<CalendarInfo?>(null) }
@@ -66,6 +67,7 @@ fun CreateJobDialog(
 	val isEdit = initialJob != null
 	var pastDays by remember { mutableStateOf(initialJob?.windowPastDays ?: 7) }
 	var futureDays by remember { mutableStateOf(initialJob?.windowFutureDays ?: 90) }
+	var syncAllEvents by remember { mutableStateOf(initialJob?.syncAllEvents ?: false) }
 	var frequencySelection by remember {
 		mutableStateOf(
 			frequencyOptions().firstOrNull { it.minutes == initialJob?.frequencyMinutes }
@@ -173,16 +175,32 @@ fun CreateJobDialog(
 					NumberPickerRow(
 						label = stringResource(R.string.label_past_days),
 						value = pastDays,
-						onValueChange = { pastDays = it.coerceIn(0, 365) },
-						textFieldColors = textFieldColors
+						onValueChange = { pastDays = it.coerceIn(0, MAX_WINDOW_DAYS) },
+						textFieldColors = textFieldColors,
+						enabled = !syncAllEvents
 					)
 
 					NumberPickerRow(
 						label = stringResource(R.string.label_future_days),
 						value = futureDays,
-						onValueChange = { futureDays = it.coerceIn(0, 365) },
-						textFieldColors = textFieldColors
+						onValueChange = { futureDays = it.coerceIn(0, MAX_WINDOW_DAYS) },
+						textFieldColors = textFieldColors,
+						enabled = !syncAllEvents
 					)
+
+					Row(
+						verticalAlignment = Alignment.CenterVertically,
+						modifier = Modifier.padding(top = 4.dp)
+					) {
+						Checkbox(
+							checked = syncAllEvents,
+							onCheckedChange = { syncAllEvents = it }
+						)
+						Text(
+							text = stringResource(R.string.label_sync_all_events),
+							style = MaterialTheme.typography.bodySmall
+						)
+					}
 
 					OptionPicker(
 						label = stringResource(R.string.label_sync_frequency),
@@ -233,6 +251,7 @@ fun CreateJobDialog(
 									initialJob!!,
 									pastDays,
 									futureDays,
+									syncAllEvents,
 									frequencySelection.minutes
 								)
 							} else {
@@ -241,6 +260,7 @@ fun CreateJobDialog(
 									target!!.id,
 									pastDays,
 									futureDays,
+									syncAllEvents,
 									frequencySelection.minutes
 								)
 							}
@@ -387,7 +407,8 @@ private fun NumberPickerRow(
 	label: String,
 	value: Int,
 	onValueChange: (Int) -> Unit,
-	textFieldColors: TextFieldColors
+	textFieldColors: TextFieldColors,
+	enabled: Boolean = true
 ) {
 	var textValue by remember(value) { mutableStateOf(value.toString()) }
 	Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -400,7 +421,10 @@ private fun NumberPickerRow(
 			horizontalArrangement = Arrangement.SpaceBetween,
 			verticalAlignment = Alignment.CenterVertically
 		) {
-			IconButton(onClick = { onValueChange((value - 1).coerceAtLeast(0)) }) {
+			IconButton(
+				onClick = { onValueChange((value - 1).coerceAtLeast(0)) },
+				enabled = enabled
+			) {
 				Icon(
 					Icons.Default.Remove,
 					contentDescription = stringResource(R.string.label_decrease)
@@ -416,12 +440,13 @@ private fun NumberPickerRow(
 						onValueChange(number)
 					}
 				},
+				enabled = enabled,
 				keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
 				modifier = Modifier.weight(1f),
 				suffix = { Text(stringResource(R.string.label_window_days_suffix)) },
 				colors = textFieldColors
 			)
-			IconButton(onClick = { onValueChange(value + 1) }) {
+			IconButton(onClick = { onValueChange(value + 1) }, enabled = enabled) {
 				Icon(
 					Icons.Default.Add,
 					contentDescription = stringResource(R.string.label_increase)
@@ -473,6 +498,7 @@ private fun frequencyOptions(): List<FrequencyOption> {
 	)
 }
 
+private const val MAX_WINDOW_DAYS = 3650
 
 @Preview(showBackground = true)
 @Composable
@@ -482,8 +508,8 @@ private fun CreateJobDialogPreview() {
 			calendars = PreviewData.calendars(),
 			jobs = PreviewData.jobs(),
 			onDismiss = {},
-			onCreate = { _, _, _, _, _ -> },
-			onUpdate = { _, _, _, _ -> }
+			onCreate = { _, _, _, _, _, _ -> },
+			onUpdate = { _, _, _, _, _ -> }
 		)
 	}
 }

@@ -11,6 +11,7 @@ data class SyncJob(
 	val targetCalendarId: Long,
 	val windowPastDays: Int = 7,
 	val windowFutureDays: Int = 90,
+	val syncAllEvents: Boolean = false,
 	val frequencyMinutes: Int = 240,
 	val lastSyncTimestamp: Long? = null,
 	val lastSyncCreated: Int = 0,

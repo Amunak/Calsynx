@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import net.amunak.calsynx.calendar.CalendarInfo
 import net.amunak.calsynx.data.DatabaseProvider
 import net.amunak.calsynx.data.repository.CalendarRepository
@@ -37,12 +39,28 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 	private val calendarRepository = CalendarRepository()
 	private val syncJobRepository = SyncJobRepository(DatabaseProvider.get(app).syncJobDao())
 	private val mappingDao = DatabaseProvider.get(app).eventMappingDao()
+	private val refreshMutex = Mutex()
 
 	private val _uiState = MutableStateFlow(CalendarManagementUiState())
 	val uiState: StateFlow<CalendarManagementUiState> = _uiState.asStateFlow()
 
+	init {
+		// Refresh calendar stats whenever sync jobs change.
+		viewModelScope.launch(Dispatchers.IO) {
+			syncJobRepository.observeJobs().collect {
+				refreshCalendarsInternal()
+			}
+		}
+	}
+
 	fun refreshCalendars() {
 		viewModelScope.launch(Dispatchers.IO) {
+			refreshCalendarsInternal()
+		}
+	}
+
+	private suspend fun refreshCalendarsInternal() {
+		refreshMutex.withLock {
 			_uiState.update { it.copy(isLoading = true, errorMessage = null) }
 			try {
 				val calendars = calendarRepository.getCalendars(getApplication(), onlyVisible = false)
@@ -68,6 +86,15 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 					val selectedId = state.selectedCalendar?.calendar?.id
 					val selected = rows.firstOrNull { it.calendar.id == selectedId }
 					state.copy(calendars = rows, selectedCalendar = selected, isLoading = false)
+				}
+			} catch (e: SecurityException) {
+				Log.e(TAG, "Calendar permission denied while loading calendars", e)
+				_uiState.update {
+					it.copy(
+						isLoading = false,
+						errorMessage = getApplication<Application>()
+							.getString(R.string.message_calendar_permission_denied)
+					)
 				}
 			} catch (e: RuntimeException) {
 				Log.e(TAG, "Failed to load calendars", e)

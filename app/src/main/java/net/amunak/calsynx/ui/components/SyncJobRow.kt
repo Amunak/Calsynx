@@ -274,11 +274,15 @@ fun SyncJobRow(
 					color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
 				)
 				Text(
-					text = stringResource(
-						R.string.text_sync_window,
-						job.windowPastDays,
-						job.windowFutureDays
-					),
+					text = if (job.syncAllEvents) {
+						stringResource(R.string.text_sync_window_all)
+					} else {
+						stringResource(
+							R.string.text_sync_window,
+							job.windowPastDays,
+							job.windowFutureDays
+						)
+					},
 					style = MaterialTheme.typography.labelSmall,
 					color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
 				)

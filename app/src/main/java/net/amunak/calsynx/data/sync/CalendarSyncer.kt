@@ -26,11 +26,11 @@ class CalendarSyncer(
 		job: SyncJob,
 		window: SyncWindow = SyncWindow.fromJob(job)
 	): SyncResult {
-		val sourceEvents = querySourceEvents(job.sourceCalendarId, window)
-		val targetCount = countEvents(job.targetCalendarId, window)
+		val sourceEvents = querySourceEvents(job.sourceCalendarId, window, job.syncAllEvents)
 		if (sourceEvents.isEmpty()) {
 			val mappings = mappingDao.getForJob(job.sourceCalendarId, job.targetCalendarId)
 			val deleted = deleteOrphans(job, mappings, emptySet<Long>())
+			val targetCount = mappingDao.countForJob(job.sourceCalendarId, job.targetCalendarId)
 			return SyncResult(
 				created = 0,
 				updated = 0,
@@ -71,6 +71,7 @@ class CalendarSyncer(
 		}
 
 		val deleted = deleteOrphans(job, mappingBySource.values, sourceIds)
+		val targetCount = mappingDao.countForJob(job.sourceCalendarId, job.targetCalendarId)
 		return SyncResult(
 			created = created,
 			updated = updated,
@@ -82,7 +83,8 @@ class CalendarSyncer(
 
 	private fun querySourceEvents(
 		sourceCalendarId: Long,
-		window: SyncWindow
+		window: SyncWindow,
+		syncAllEvents: Boolean
 	): List<SourceEvent> {
 		val projection = arrayOf(
 			CalendarContract.Events._ID,
@@ -95,21 +97,32 @@ class CalendarSyncer(
 			CalendarContract.Events.EVENT_LOCATION,
 			CalendarContract.Events.DESCRIPTION
 		)
-		val selection = buildString {
-			append("${CalendarContract.Events.CALENDAR_ID} = ?")
-			append(" AND ${CalendarContract.Events.DELETED} = 0")
-			append(" AND (")
-			append("${CalendarContract.Events.RRULE} IS NOT NULL")
-			append(" OR (")
-			append("${CalendarContract.Events.DTSTART} <= ?")
-			append(" AND (${CalendarContract.Events.DTEND} IS NULL OR ${CalendarContract.Events.DTEND} >= ?)")
-			append("))")
+		val selection = if (syncAllEvents) {
+			buildString {
+				append("${CalendarContract.Events.CALENDAR_ID} = ?")
+				append(" AND ${CalendarContract.Events.DELETED} = 0")
+			}
+		} else {
+			buildString {
+				append("${CalendarContract.Events.CALENDAR_ID} = ?")
+				append(" AND ${CalendarContract.Events.DELETED} = 0")
+				append(" AND (")
+				append("${CalendarContract.Events.RRULE} IS NOT NULL")
+				append(" OR (")
+				append("${CalendarContract.Events.DTSTART} <= ?")
+				append(" AND (${CalendarContract.Events.DTEND} IS NULL OR ${CalendarContract.Events.DTEND} >= ?)")
+				append("))")
+			}
 		}
-		val selectionArgs = arrayOf(
-			sourceCalendarId.toString(),
-			window.endMillis.toString(),
-			window.startMillis.toString()
-		)
+		val selectionArgs = if (syncAllEvents) {
+			arrayOf(sourceCalendarId.toString())
+		} else {
+			arrayOf(
+				sourceCalendarId.toString(),
+				window.endMillis.toString(),
+				window.startMillis.toString()
+			)
+		}
 		val sortOrder = "${CalendarContract.Events.DTSTART} ASC"
 
 		val cursor = resolver.query(
@@ -149,36 +162,6 @@ class CalendarSyncer(
 			}
 			events
 		}
-	}
-
-	private fun countEvents(
-		calendarId: Long,
-		window: SyncWindow
-	): Int {
-		val projection = arrayOf(CalendarContract.Events._ID)
-		val selection = buildString {
-			append("${CalendarContract.Events.CALENDAR_ID} = ?")
-			append(" AND ${CalendarContract.Events.DELETED} = 0")
-			append(" AND (")
-			append("${CalendarContract.Events.RRULE} IS NOT NULL")
-			append(" OR (")
-			append("${CalendarContract.Events.DTSTART} <= ?")
-			append(" AND (${CalendarContract.Events.DTEND} IS NULL OR ${CalendarContract.Events.DTEND} >= ?)")
-			append("))")
-		}
-		val selectionArgs = arrayOf(
-			calendarId.toString(),
-			window.endMillis.toString(),
-			window.startMillis.toString()
-		)
-		val cursor = resolver.query(
-			CalendarContract.Events.CONTENT_URI,
-			projection,
-			selection,
-			selectionArgs,
-			null
-		) ?: return 0
-		return cursor.use { it.count }
 	}
 
 	private fun insertTargetEvent(
