@@ -42,6 +42,8 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.ui.res.stringResource
+import net.amunak.calscium.R
 import net.amunak.calscium.calendar.CalendarInfo
 import net.amunak.calscium.ui.PreviewData
 import net.amunak.calscium.ui.theme.CalsciumTheme
@@ -103,11 +105,15 @@ fun CreateJobDialog(
 				verticalArrangement = Arrangement.spacedBy(14.dp)
 			) {
 				Text(
-					text = if (isEdit) "Edit sync job" else "Create sync job",
+					text = if (isEdit) {
+						stringResource(R.string.title_edit_sync_job)
+					} else {
+						stringResource(R.string.dialog_create_sync_job)
+					},
 					style = MaterialTheme.typography.titleLarge
 				)
 				if (calendars.isEmpty()) {
-					Text("No calendars available.")
+					Text(stringResource(R.string.label_no_calendars_available))
 				} else {
 					// Keep edit and create dialogs visually consistent.
 					if (isEdit) {
@@ -138,7 +144,7 @@ fun CreateJobDialog(
 						}
 					} else {
 						CalendarPicker(
-							label = "Source calendar",
+							label = stringResource(R.string.label_source_calendar),
 							calendars = calendars,
 							selected = source,
 							expanded = sourceExpanded,
@@ -151,7 +157,7 @@ fun CreateJobDialog(
 						)
 
 						CalendarPicker(
-							label = "Target calendar",
+							label = stringResource(R.string.label_target_calendar),
 							calendars = calendars,
 							selected = target,
 							expanded = targetExpanded,
@@ -165,21 +171,21 @@ fun CreateJobDialog(
 					}
 
 					NumberPickerRow(
-						label = "Past days",
+						label = stringResource(R.string.label_past_days),
 						value = pastDays,
 						onValueChange = { pastDays = it.coerceIn(0, 365) },
 						textFieldColors = textFieldColors
 					)
 
 					NumberPickerRow(
-						label = "Future days",
+						label = stringResource(R.string.label_future_days),
 						value = futureDays,
 						onValueChange = { futureDays = it.coerceIn(0, 365) },
 						textFieldColors = textFieldColors
 					)
 
 					OptionPicker(
-						label = "Sync frequency",
+						label = stringResource(R.string.label_sync_frequency),
 						options = frequencyOptions(),
 						selected = frequencySelection,
 						onSelected = { frequencySelection = it }
@@ -187,7 +193,7 @@ fun CreateJobDialog(
 
 					if (validationError != null && !isEdit) {
 						Text(
-							text = validationError,
+							text = stringResource(validationError),
 							color = MaterialTheme.colorScheme.error,
 							style = MaterialTheme.typography.bodySmall
 						)
@@ -211,7 +217,7 @@ fun CreateJobDialog(
 							contentDescription = null
 						)
 						Text(
-							text = "Cancel",
+							text = stringResource(R.string.action_cancel),
 							modifier = Modifier.padding(start = 6.dp)
 						)
 					}
@@ -241,13 +247,17 @@ fun CreateJobDialog(
 							disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
 							disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
 						)
-					) {
+						) {
 						Icon(
 							imageVector = Icons.Default.Check,
 							contentDescription = null
 						)
 						Text(
-							text = if (isEdit) "Update" else "Save",
+							text = if (isEdit) {
+								stringResource(R.string.action_update)
+							} else {
+								stringResource(R.string.action_save)
+							},
 							modifier = Modifier.padding(start = 6.dp)
 						)
 					}
@@ -279,7 +289,7 @@ private fun CalendarPicker(
 				enabled = enabled
 			) {
 				CalendarLabel(
-					name = selected?.displayName ?: "Select",
+					name = selected?.displayName ?: stringResource(R.string.label_select),
 					color = selected?.color
 				)
 				Icon(
@@ -292,7 +302,11 @@ private fun CalendarPicker(
 				expanded = expanded,
 				onDismissRequest = { onExpandedChange(false) }
 			) {
-				groupCalendars(calendars).forEach { (accountLabel, entries) ->
+				groupCalendars(
+					calendars,
+					onDeviceLabel = stringResource(R.string.text_on_device),
+					externalLabel = stringResource(R.string.text_external)
+				).forEach { (accountLabel, entries) ->
 					DropdownMenuItem(
 						text = {
 							Text(
@@ -338,7 +352,7 @@ private fun <T> OptionPicker(
 				onClick = { expanded = true },
 				modifier = Modifier.fillMaxWidth()
 			) {
-				Text(selected.displayLabel)
+				Text(stringResource(selected.displayLabelRes))
 				Icon(
 					imageVector = Icons.Default.ArrowDropDown,
 					contentDescription = null,
@@ -351,7 +365,7 @@ private fun <T> OptionPicker(
 			) {
 				options.forEach { option ->
 					DropdownMenuItem(
-						text = { Text(option.displayLabel) },
+						text = { Text(stringResource(option.displayLabelRes)) },
 						onClick = {
 							onSelected(option)
 							expanded = false
@@ -382,7 +396,10 @@ private fun NumberPickerRow(
 			verticalAlignment = Alignment.CenterVertically
 		) {
 			IconButton(onClick = { onValueChange((value - 1).coerceAtLeast(0)) }) {
-				Icon(Icons.Default.Remove, contentDescription = "Decrease")
+				Icon(
+					Icons.Default.Remove,
+					contentDescription = stringResource(R.string.label_decrease)
+				)
 			}
 			OutlinedTextField(
 				value = textValue,
@@ -396,11 +413,14 @@ private fun NumberPickerRow(
 				},
 				keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
 				modifier = Modifier.weight(1f),
-				suffix = { Text("days") },
+				suffix = { Text(stringResource(R.string.label_window_days_suffix)) },
 				colors = textFieldColors
 			)
 			IconButton(onClick = { onValueChange(value + 1) }) {
-				Icon(Icons.Default.Add, contentDescription = "Increase")
+				Icon(
+					Icons.Default.Add,
+					contentDescription = stringResource(R.string.label_increase)
+				)
 			}
 		}
 	}
@@ -411,40 +431,40 @@ private fun validateSelection(
 	target: CalendarInfo?,
 	jobs: List<net.amunak.calscium.data.SyncJob>,
 	currentJobId: Long?
-): String? {
-	if (source == null || target == null) return "Select both calendars."
-	if (source.id == target.id) return "Source and target must be different."
+): Int? {
+	if (source == null || target == null) return R.string.message_validation_select_both
+	if (source.id == target.id) return R.string.message_validation_source_target_same
 	if (jobs.any { it.targetCalendarId == target.id && it.id != currentJobId }) {
-		return "Target calendar is already used by another job."
+		return R.string.message_validation_target_in_use
 	}
 	if (jobs.any { it.targetCalendarId == source.id && it.id != currentJobId }) {
-		return "Source calendar is already a target in another job."
+		return R.string.message_validation_source_is_target
 	}
 	return null
 }
 
 interface DisplayOption {
-	val displayLabel: String
+	val displayLabelRes: Int
 }
 
 data class FrequencyOption(
 	val minutes: Int,
-	override val displayLabel: String
+	override val displayLabelRes: Int
 ) : DisplayOption
 
 private fun frequencyOptions(): List<FrequencyOption> {
 	return listOf(
-		FrequencyOption(5, "Every 5 minutes"),
-		FrequencyOption(15, "Every 15 minutes"),
-		FrequencyOption(30, "Every 30 minutes"),
-		FrequencyOption(60, "Hourly"),
-		FrequencyOption(120, "Every 2 hours"),
-		FrequencyOption(240, "Every 4 hours"),
-		FrequencyOption(360, "Every 6 hours"),
-		FrequencyOption(720, "Every 12 hours"),
-		FrequencyOption(1440, "Daily"),
-		FrequencyOption(10080, "Weekly"),
-		FrequencyOption(43200, "Monthly")
+		FrequencyOption(5, R.string.frequency_every_5_minutes),
+		FrequencyOption(15, R.string.frequency_every_15_minutes),
+		FrequencyOption(30, R.string.frequency_every_30_minutes),
+		FrequencyOption(60, R.string.frequency_hourly),
+		FrequencyOption(120, R.string.frequency_every_2_hours),
+		FrequencyOption(240, R.string.frequency_every_4_hours),
+		FrequencyOption(360, R.string.frequency_every_6_hours),
+		FrequencyOption(720, R.string.frequency_every_12_hours),
+		FrequencyOption(1440, R.string.frequency_daily),
+		FrequencyOption(10080, R.string.frequency_weekly),
+		FrequencyOption(43200, R.string.frequency_monthly)
 	)
 }
 
@@ -454,8 +474,8 @@ private fun frequencyOptions(): List<FrequencyOption> {
 private fun CreateJobDialogPreview() {
 	CalsciumTheme {
 		CreateJobDialog(
-			calendars = PreviewData.calendars,
-			jobs = PreviewData.jobs,
+			calendars = PreviewData.calendars(),
+			jobs = PreviewData.jobs(),
 			onDismiss = {},
 			onCreate = { _, _, _, _, _ -> },
 			onUpdate = { _, _, _, _ -> }

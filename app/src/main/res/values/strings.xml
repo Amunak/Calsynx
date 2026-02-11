@@ -1,3 +1,127 @@
 <resources>
 	<string name="app_name">Calscium</string>
+	<string name="action_add_sync_job">Add sync job</string>
+	<string name="action_back">Back</string>
+	<string name="action_cancel">Cancel</string>
+	<string name="action_change_color">Change color</string>
+	<string name="action_close">Close</string>
+	<string name="action_create">Create</string>
+	<string name="action_delete">Delete</string>
+	<string name="action_delete_calendar">Delete calendar</string>
+	<string name="action_edit">Edit</string>
+	<string name="action_grant_permissions">Grant permissions</string>
+	<string name="action_pause">Pause</string>
+	<string name="action_purge_events">Purge all events</string>
+	<string name="action_rename_calendar">Rename calendar</string>
+	<string name="action_resume">Resume</string>
+	<string name="action_save">Save</string>
+	<string name="action_sync">Sync</string>
+	<string name="action_update">Update</string>
+
+	<string name="label_actions">Actions</string>
+	<string name="label_calendar_access_required">Calendar access is required to list calendars and sync events.</string>
+	<string name="label_calendar_management">Calendar management</string>
+	<string name="label_calendar_name">Calendar name</string>
+	<string name="label_create_calendar">Create calendar</string>
+	<string name="label_future_days">Future days</string>
+	<string name="label_app_navigation">App navigation</string>
+	<string name="label_increase">Increase</string>
+	<string name="label_job_actions">Job actions</string>
+	<string name="label_last_error">Last error: %1$s</string>
+	<string name="label_loading_calendars">Loading calendars...</string>
+	<string name="label_decrease">Decrease</string>
+	<string name="label_manual_sync_only">Manual sync only</string>
+	<string name="label_no_actions_available">No actions available for this calendar.</string>
+	<string name="label_no_calendars_available">No calendars available.</string>
+	<string name="label_no_sync_jobs">No sync jobs yet. Tap + to create one.</string>
+	<string name="label_past_days">Past days</string>
+	<string name="label_permissions_limited">Some actions are unavailable due to calendar permissions.</string>
+	<string name="label_select">Select</string>
+	<string name="label_source_calendar">Source calendar</string>
+	<string name="label_sync_frequency">Sync frequency</string>
+	<string name="label_sync_jobs">Sync jobs</string>
+	<string name="label_target_calendar">Target calendar</string>
+	<string name="label_window_days_suffix">days</string>
+	<string name="label_sync_job_base_color">Sync job base color</string>
+
+	<string name="message_background_scheduling_later">Background scheduling will be added later.</string>
+	<string name="message_calendar_permission_denied">Calendar permission denied.</string>
+	<string name="message_calendar_delete">Delete "%1$s" and all its events. Any sync mappings to this calendar will be lost.</string>
+	<string name="message_calendar_purge">This will delete all events in "%1$s" and cannot be undone.</string>
+	<string name="message_delete_sync_job">Delete the sync between "%1$s" and "%2$s"? This removes the job, forgets previous mappings, and stops syncing.</string>
+	<string name="message_failed_load_calendars">Failed to load calendars.</string>
+	<string name="message_no_calendars_available">No calendars available.</string>
+	<string name="message_saved">Saved.</string>
+	<string name="message_sync_error">Sync failed.</string>
+	<string name="message_unknown_calendar">Unknown (%1$d)</string>
+	<string name="message_unable_change_color">Unable to change calendar color.</string>
+	<string name="message_unable_create_calendar">Unable to create calendar.</string>
+	<string name="message_unable_delete_calendar">Unable to delete calendar.</string>
+	<string name="message_unable_purge_calendar">Unable to purge calendar events.</string>
+	<string name="message_unable_rename_calendar">Unable to rename calendar.</string>
+	<string name="preview_calendar_label">Work calendar</string>
+	<string name="preview_calendar_work">Work</string>
+	<string name="preview_calendar_personal">Personal</string>
+	<string name="message_validation_select_both">Select both calendars.</string>
+	<string name="message_validation_source_target_same">Source and target must be different.</string>
+	<string name="message_validation_target_in_use">Target calendar is already used by another job.</string>
+	<string name="message_validation_source_is_target">Source calendar is already a target in another job.</string>
+
+	<string name="title_calendar_management">Calendar Management</string>
+	<string name="title_create_calendar">Create calendar</string>
+	<string name="title_delete_calendar">Delete calendar?</string>
+	<string name="title_delete_sync_job">Delete sync job?</string>
+	<string name="title_edit_sync_job">Edit sync job</string>
+	<string name="title_purge_calendar">Purge all events?</string>
+	<string name="title_rename_calendar">Rename calendar</string>
+	<string name="title_select_color">Select color</string>
+
+	<string name="text_account_label">Account: %1$s</string>
+	<string name="text_access_level_label">Access level: %1$s</string>
+	<string name="text_additional_targets">+%1$d</string>
+	<string name="text_events">Events: %1$d</string>
+	<string name="text_events_synced">Events: %1$d · Synced: %2$d</string>
+	<string name="text_owner_label">Owner: %1$s</string>
+	<string name="text_synced_entries">Synced entries: %1$d</string>
+	<string name="text_synced_input">Synced (input):</string>
+	<string name="text_synced_output">Synced (output):</string>
+	<string name="text_type_label">Type: %1$s</string>
+	<string name="text_sync_window">%1$dd back · %2$dd ahead</string>
+
+	<string name="text_on_device">On device</string>
+	<string name="text_external">External</string>
+
+	<string name="dialog_calendar_name_default">New calendar</string>
+	<string name="dialog_calendar_management_title">Calendar Management</string>
+	<string name="dialog_create_sync_job">Create sync job</string>
+
+	<string name="last_sync_syncing">Last sync: syncing...</string>
+	<string name="last_sync_never">Last sync: never</string>
+	<string name="last_sync_with_time">Last sync: %1$s</string>
+	<string name="sync_counts">Created %1$d, Updated %2$d, Deleted %3$d · Source %4$d, Target %5$d</string>
+
+	<string name="frequency_hourly">Hourly</string>
+	<string name="frequency_daily">Daily</string>
+	<string name="frequency_weekly">Weekly</string>
+	<string name="frequency_monthly">Monthly</string>
+	<string name="frequency_every_5_minutes">Every 5 minutes</string>
+	<string name="frequency_every_15_minutes">Every 15 minutes</string>
+	<string name="frequency_every_30_minutes">Every 30 minutes</string>
+	<string name="frequency_every_2_hours">Every 2 hours</string>
+	<string name="frequency_every_4_hours">Every 4 hours</string>
+	<string name="frequency_every_6_hours">Every 6 hours</string>
+	<string name="frequency_every_12_hours">Every 12 hours</string>
+
+	<plurals name="frequency_minutes">
+		<item quantity="one">Every %d minute</item>
+		<item quantity="other">Every %d minutes</item>
+	</plurals>
+	<plurals name="frequency_hours">
+		<item quantity="one">Every %d hour</item>
+		<item quantity="other">Every %d hours</item>
+	</plurals>
+	<plurals name="frequency_days">
+		<item quantity="one">Every %d day</item>
+		<item quantity="other">Every %d days</item>
+	</plurals>
 </resources>

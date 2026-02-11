@@ -44,6 +44,8 @@ import net.amunak.calscium.calendar.CalendarInfo
 import net.amunak.calscium.ui.PreviewData
 import net.amunak.calscium.ui.components.groupCalendars
 import net.amunak.calscium.ui.components.sanitizeCalendarName
+import androidx.compose.ui.res.stringResource
+import net.amunak.calscium.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,10 +65,13 @@ fun CalendarManagementScreen(
 	Scaffold(
 		topBar = {
 			TopAppBar(
-				title = { Text("Calendar Management") },
+				title = { Text(stringResource(R.string.title_calendar_management)) },
 				navigationIcon = {
 					IconButton(onClick = onBack) {
-						Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+						Icon(
+							Icons.AutoMirrored.Filled.ArrowBack,
+							contentDescription = stringResource(R.string.action_back)
+						)
 					}
 				}
 			)
@@ -74,7 +79,10 @@ fun CalendarManagementScreen(
 		floatingActionButton = {
 			ExtendedFloatingActionButton(onClick = { showCreateDialog = true }) {
 				Icon(Icons.Default.Add, contentDescription = null)
-				Text(text = "Create calendar", modifier = Modifier.padding(start = 6.dp))
+				Text(
+					text = stringResource(R.string.label_create_calendar),
+					modifier = Modifier.padding(start = 6.dp)
+				)
 			}
 		}
 	) { padding ->
@@ -98,20 +106,24 @@ fun CalendarManagementScreen(
 				}
 				if (state.isLoading) {
 					Text(
-						text = "Loading calendars...",
+						text = stringResource(R.string.label_loading_calendars),
 						style = MaterialTheme.typography.bodySmall,
 						color = MaterialTheme.colorScheme.onSurfaceVariant
 					)
 				}
 				if (!state.isLoading && state.calendars.isEmpty()) {
 					Text(
-						text = "No calendars available.",
+						text = stringResource(R.string.label_no_calendars_available),
 						style = MaterialTheme.typography.bodySmall,
 						color = MaterialTheme.colorScheme.onSurfaceVariant
 					)
 				}
 
-				val grouped = groupCalendars(state.calendars.map { it.calendar })
+				val grouped = groupCalendars(
+					state.calendars.map { it.calendar },
+					onDeviceLabel = stringResource(R.string.text_on_device),
+					externalLabel = stringResource(R.string.text_external)
+				)
 				LazyColumn(
 					contentPadding = PaddingValues(bottom = 96.dp),
 					verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -185,7 +197,10 @@ fun CalendarDetailScreen(
 				title = { Text(calendarTitle) },
 				navigationIcon = {
 					IconButton(onClick = onBack) {
-						Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+						Icon(
+							Icons.AutoMirrored.Filled.ArrowBack,
+							contentDescription = stringResource(R.string.action_back)
+						)
 					}
 				}
 			)
@@ -220,42 +235,45 @@ fun CalendarDetailScreen(
 							.padding(16.dp),
 						verticalArrangement = Arrangement.spacedBy(10.dp)
 					) {
-						Text("Actions", style = MaterialTheme.typography.titleSmall)
+						Text(
+							text = stringResource(R.string.label_actions),
+							style = MaterialTheme.typography.titleSmall
+						)
 						if (canEditCalendar) {
 							ActionRow(
 								icon = Icons.Default.Edit,
-								label = "Rename calendar",
+								label = stringResource(R.string.action_rename_calendar),
 								onClick = { showRenameDialog = true }
 							)
 							ActionRow(
 								icon = Icons.Default.Palette,
-								label = "Change color",
+								label = stringResource(R.string.action_change_color),
 								onClick = { showColorDialog = true }
 							)
 						}
 						if (canWriteEvents) {
 							ActionRow(
 								icon = Icons.Default.Warning,
-								label = "Purge all events",
+								label = stringResource(R.string.action_purge_events),
 								onClick = { showPurgeDialog = true }
 							)
 						}
 						if (canDeleteCalendar) {
 							ActionRow(
 								icon = Icons.Default.Delete,
-								label = "Delete calendar",
+								label = stringResource(R.string.action_delete_calendar),
 								onClick = { showDeleteDialog = true }
 							)
 						}
 						if (!hasActions) {
 							Text(
-								text = "No actions available for this calendar.",
+								text = stringResource(R.string.label_no_actions_available),
 								style = MaterialTheme.typography.bodySmall,
 								color = MaterialTheme.colorScheme.onSurfaceVariant
 							)
 						} else if (!canEditCalendar || !canWriteEvents || !canDeleteCalendar) {
 							Text(
-								text = "Some actions are unavailable due to calendar permissions.",
+								text = stringResource(R.string.label_permissions_limited),
 								style = MaterialTheme.typography.bodySmall,
 								color = MaterialTheme.colorScheme.onSurfaceVariant
 							)
@@ -289,9 +307,9 @@ fun CalendarDetailScreen(
 
 	if (showPurgeDialog) {
 		ConfirmDialog(
-			title = "Purge all events?",
-			message = "This will delete all events in \"${calendarTitle}\" and cannot be undone.",
-			confirmLabel = "Purge",
+			title = stringResource(R.string.title_purge_calendar),
+			message = stringResource(R.string.message_calendar_purge, calendarTitle),
+			confirmLabel = stringResource(R.string.action_purge_events),
 			onDismiss = { showPurgeDialog = false },
 			onConfirm = {
 				onPurge(calendar)
@@ -302,9 +320,9 @@ fun CalendarDetailScreen(
 
 	if (showDeleteDialog) {
 		ConfirmDialog(
-			title = "Delete calendar?",
-			message = "Delete \"${calendarTitle}\" and all its events. Any sync mappings to this calendar will be lost.",
-			confirmLabel = "Delete",
+			title = stringResource(R.string.title_delete_calendar),
+			message = stringResource(R.string.message_calendar_delete, calendarTitle),
+			confirmLabel = stringResource(R.string.action_delete),
 			onDismiss = { showDeleteDialog = false },
 			onConfirm = {
 				onDelete(calendar)
@@ -321,11 +339,11 @@ private fun CalendarManagementScreenPreview() {
 		state = CalendarManagementUiState(
 			calendars = listOf(
 				CalendarRowUi(
-					calendar = PreviewData.calendars.first(),
+					calendar = PreviewData.calendars().first(),
 					eventCount = 12,
 					syncedCount = 5,
-					incomingCalendars = listOf(PreviewData.calendars.first()),
-					outgoingCalendars = PreviewData.calendars
+					incomingCalendars = listOf(PreviewData.calendars().first()),
+					outgoingCalendars = PreviewData.calendars()
 				)
 			),
 			isLoading = false
@@ -340,7 +358,7 @@ private fun CalendarManagementScreenPreview() {
 @Preview(showBackground = true)
 @Composable
 private fun CalendarDetailScreenPreview() {
-	val calendar = PreviewData.calendars.first()
+	val calendar = PreviewData.calendars().first()
 	CalendarDetailScreen(
 		state = CalendarManagementUiState(
 			selectedCalendar = CalendarRowUi(
@@ -348,7 +366,7 @@ private fun CalendarDetailScreenPreview() {
 				eventCount = 12,
 				syncedCount = 5,
 				incomingCalendars = listOf(calendar),
-				outgoingCalendars = PreviewData.calendars
+				outgoingCalendars = PreviewData.calendars()
 			)
 		),
 		onBack = {},

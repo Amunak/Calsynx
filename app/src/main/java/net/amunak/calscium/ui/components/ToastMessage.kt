@@ -5,6 +5,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.res.stringResource
+import net.amunak.calscium.R
 
 @Composable
 fun ToastMessage(
@@ -22,5 +24,5 @@ fun ToastMessage(
 @Preview(showBackground = true)
 @Composable
 private fun ToastMessagePreview() {
-	ToastMessage(message = "Saved", onShown = {})
+	ToastMessage(message = stringResource(R.string.message_saved), onShown = {})
 }

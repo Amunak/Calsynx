@@ -24,6 +24,7 @@ import net.amunak.calscium.domain.RunManualSyncUseCase
 import net.amunak.calscium.domain.UpdateSyncErrorUseCase
 import net.amunak.calscium.domain.UpdateSyncStatsUseCase
 import net.amunak.calscium.domain.UpdateSyncJobUseCase
+import net.amunak.calscium.R
 
 data class SyncJobUiState(
 	val jobs: List<SyncJob> = emptyList(),
@@ -110,10 +111,10 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 			} catch (e: SecurityException) {
 				Log.e(TAG, "Calendar permission denied while refreshing calendars", e)
 				calendars.value = emptyList()
-				errorMessage.value = "Calendar permission denied."
+				errorMessage.value = app.getString(R.string.message_calendar_permission_denied)
 			} catch (e: RuntimeException) {
 				Log.e(TAG, "Failed to load calendars", e)
-				errorMessage.value = "Failed to load calendars."
+				errorMessage.value = app.getString(R.string.message_failed_load_calendars)
 			} finally {
 				isRefreshing.value = false
 			}
@@ -137,9 +138,9 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 					"Rejected sync job due to calendar conflict: source=$sourceId target=$targetId"
 				)
 				errorMessage.value = if (targetConflict) {
-					"Target calendar already used by another job."
+					app.getString(R.string.message_validation_target_in_use)
 				} else {
-					"Source calendar is already a target in another job."
+					app.getString(R.string.message_validation_source_is_target)
 				}
 				return@launch
 			}
@@ -192,12 +193,14 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 				runManualSync.invoke(job)
 			} catch (e: SecurityException) {
 				Log.e(TAG, "Calendar permission denied during manual sync", e)
-				updateSyncError(job, "Calendar permission denied.")
-				errorMessage.value = "Calendar permission denied."
+				val message = app.getString(R.string.message_calendar_permission_denied)
+				updateSyncError(job, message)
+				errorMessage.value = message
 			} catch (e: RuntimeException) {
 				Log.e(TAG, "Manual sync failed", e)
-				updateSyncError(job, "Sync failed.")
-				errorMessage.value = "Sync failed."
+				val message = app.getString(R.string.message_sync_error)
+				updateSyncError(job, message)
+				errorMessage.value = message
 			} finally {
 				syncingJobIds.value = syncingJobIds.value - job.id
 			}

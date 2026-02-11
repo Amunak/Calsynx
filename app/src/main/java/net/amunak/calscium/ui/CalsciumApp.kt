@@ -17,9 +17,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import net.amunak.calscium.R
 import net.amunak.calscium.data.SyncJob
 import net.amunak.calscium.ui.components.ToastMessage
 import net.amunak.calscium.ui.calendar.CalendarManagementScreen
@@ -132,7 +134,7 @@ fun CalsciumApp(
 
 	AnimatedContent(
 		targetState = currentScreen,
-		label = "App navigation",
+		label = stringResource(R.string.label_app_navigation),
 		transitionSpec = {
 			val targetIndex = screenOrder.indexOf(targetState)
 			val initialIndex = screenOrder.indexOf(initialState)
@@ -187,8 +189,8 @@ private fun CalsciumAppPreview() {
 	CalsciumTheme {
 		CalsciumApp(
 			uiState = SyncJobUiState(
-				jobs = PreviewData.jobs,
-				calendars = PreviewData.calendars,
+				jobs = PreviewData.jobs(),
+				calendars = PreviewData.calendars(),
 				hasCalendarPermission = true
 			),
 			calendarState = net.amunak.calscium.ui.calendar.CalendarManagementUiState(),

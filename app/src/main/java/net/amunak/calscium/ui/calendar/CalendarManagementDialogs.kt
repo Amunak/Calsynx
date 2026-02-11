@@ -27,23 +27,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import net.amunak.calscium.R
 import net.amunak.calscium.ui.components.sanitizeCalendarName
 
 @Composable
-fun CreateCalendarDialog(
-	onDismiss: () -> Unit,
-	onCreate: (String, Int) -> Unit
-) {
-	val colorRows = remember { defaultCalendarColorRows() }
-	val defaultColor = colorRows.first().first()
-	var name by remember { mutableStateOf("New calendar") }
+	fun CreateCalendarDialog(
+		onDismiss: () -> Unit,
+		onCreate: (String, Int) -> Unit
+	) {
+		val colorRows = remember { defaultCalendarColorRows() }
+		val defaultColor = colorRows.first().first()
+		val defaultName = stringResource(R.string.dialog_calendar_name_default)
+		var name by remember(defaultName) { mutableStateOf(defaultName) }
 	var selectedColor by remember { mutableStateOf(defaultColor) }
 
 	AlertDialog(
 		onDismissRequest = onDismiss,
 		shape = MaterialTheme.shapes.large,
 		containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-		title = { Text("Create calendar") },
+		title = { Text(stringResource(R.string.title_create_calendar)) },
 		text = {
 			val textFieldColors = OutlinedTextFieldDefaults.colors(
 				focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -58,7 +61,7 @@ fun CreateCalendarDialog(
 				OutlinedTextField(
 					value = name,
 					onValueChange = { name = sanitizeCalendarName(it) },
-					label = { Text("Calendar name") },
+					label = { Text(stringResource(R.string.label_calendar_name)) },
 					modifier = Modifier.fillMaxWidth(),
 					colors = textFieldColors
 				)
@@ -73,12 +76,12 @@ fun CreateCalendarDialog(
 				onClick = { onCreate(name.trim(), selectedColor) },
 				enabled = name.isNotBlank()
 			) {
-				Text("Create")
+				Text(stringResource(R.string.action_create))
 			}
 		},
 		dismissButton = {
 			TextButton(onClick = onDismiss) {
-				Text("Cancel")
+				Text(stringResource(R.string.action_cancel))
 			}
 		}
 	)
@@ -95,7 +98,7 @@ fun RenameCalendarDialog(
 		onDismissRequest = onDismiss,
 		shape = MaterialTheme.shapes.large,
 		containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-		title = { Text("Rename calendar") },
+		title = { Text(stringResource(R.string.title_rename_calendar)) },
 		text = {
 			val textFieldColors = OutlinedTextFieldDefaults.colors(
 				focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -106,19 +109,19 @@ fun RenameCalendarDialog(
 			OutlinedTextField(
 				value = name,
 				onValueChange = { name = sanitizeCalendarName(it) },
-				label = { Text("Calendar name") },
+				label = { Text(stringResource(R.string.label_calendar_name)) },
 				modifier = Modifier.fillMaxWidth(),
 				colors = textFieldColors
 			)
 		},
 		confirmButton = {
 			Button(onClick = { onSave(name.trim()) }, enabled = name.isNotBlank()) {
-				Text("Save")
+				Text(stringResource(R.string.action_save))
 			}
 		},
 		dismissButton = {
 			TextButton(onClick = onDismiss) {
-				Text("Cancel")
+				Text(stringResource(R.string.action_cancel))
 			}
 		}
 	)
@@ -133,7 +136,7 @@ fun ColorPickerDialog(
 		onDismissRequest = onDismiss,
 		shape = MaterialTheme.shapes.large,
 		containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-		title = { Text("Select color") },
+		title = { Text(stringResource(R.string.title_select_color)) },
 		text = {
 			ColorPickerRow(
 				selectedColor = null,
@@ -142,7 +145,7 @@ fun ColorPickerDialog(
 		},
 		confirmButton = {
 			TextButton(onClick = onDismiss) {
-				Text("Close")
+				Text(stringResource(R.string.action_close))
 			}
 		}
 	)
@@ -197,7 +200,7 @@ fun ConfirmDialog(
 		},
 		dismissButton = {
 			TextButton(onClick = onDismiss) {
-				Text("Cancel")
+				Text(stringResource(R.string.action_cancel))
 			}
 		}
 	)
@@ -236,7 +239,11 @@ private fun CreateCalendarDialogPreview() {
 @Preview(showBackground = true)
 @Composable
 private fun RenameCalendarDialogPreview() {
-	RenameCalendarDialog(initialName = "Work", onDismiss = {}, onSave = {})
+	RenameCalendarDialog(
+		initialName = stringResource(R.string.preview_calendar_work),
+		onDismiss = {},
+		onSave = {}
+	)
 }
 
 @Preview(showBackground = true)
@@ -249,9 +256,12 @@ private fun ColorPickerDialogPreview() {
 @Composable
 private fun ConfirmDialogPreview() {
 	ConfirmDialog(
-		title = "Delete calendar?",
-		message = "Delete \"Work\" and all its events.",
-		confirmLabel = "Delete",
+		title = stringResource(R.string.title_delete_calendar),
+		message = stringResource(
+			R.string.message_calendar_delete,
+			stringResource(R.string.preview_calendar_work)
+		),
+		confirmLabel = stringResource(R.string.action_delete),
 		onDismiss = {},
 		onConfirm = {}
 	)

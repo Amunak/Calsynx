@@ -37,6 +37,8 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.ui.res.stringResource
+import net.amunak.calscium.R
 import net.amunak.calscium.data.SyncJob
 import net.amunak.calscium.ui.components.CreateJobDialog
 import net.amunak.calscium.ui.components.SyncJobRow
@@ -70,13 +72,13 @@ fun SyncJobScreen(
 	Scaffold(
 		topBar = {
 			TopAppBar(
-				title = { Text("Calscium") },
+				title = { Text(stringResource(R.string.app_name)) },
 				actions = {
 					if (uiState.hasCalendarPermission) {
 						IconButton(onClick = onOpenCalendarManagement) {
 							Icon(
 								imageVector = Icons.Default.Settings,
-								contentDescription = "Calendar management"
+								contentDescription = stringResource(R.string.label_calendar_management)
 							)
 						}
 					}
@@ -91,7 +93,7 @@ fun SyncJobScreen(
 				}) {
 					Icon(
 						imageVector = Icons.Default.Add,
-						contentDescription = "Add sync job"
+						contentDescription = stringResource(R.string.action_add_sync_job)
 					)
 				}
 			}
@@ -109,7 +111,7 @@ fun SyncJobScreen(
 			) {
 			if (!uiState.hasCalendarPermission) {
 				Text(
-					text = "Calendar access is required to list calendars and sync events.",
+					text = stringResource(R.string.label_calendar_access_required),
 					style = MaterialTheme.typography.bodyMedium
 				)
 				Spacer(modifier = Modifier.height(12.dp))
@@ -119,7 +121,7 @@ fun SyncJobScreen(
 						contentDescription = null
 					)
 					Text(
-						text = "Grant permissions",
+						text = stringResource(R.string.action_grant_permissions),
 						modifier = Modifier.padding(start = 6.dp)
 					)
 				}
@@ -127,7 +129,7 @@ fun SyncJobScreen(
 			}
 
 			Text(
-				text = "Sync jobs",
+				text = stringResource(R.string.label_sync_jobs),
 				style = MaterialTheme.typography.titleMedium
 			)
 			Spacer(modifier = Modifier.height(4.dp))
@@ -150,12 +152,12 @@ fun SyncJobScreen(
 					)
 					Column(modifier = Modifier.padding(start = 8.dp)) {
 						Text(
-							text = "Manual sync only",
+							text = stringResource(R.string.label_manual_sync_only),
 							style = MaterialTheme.typography.titleSmall,
 							color = MaterialTheme.colorScheme.onPrimaryContainer
 						)
 						Text(
-							text = "Background scheduling will be added later.",
+							text = stringResource(R.string.message_background_scheduling_later),
 							style = MaterialTheme.typography.bodySmall,
 							color = MaterialTheme.colorScheme.onPrimaryContainer
 						)
@@ -176,7 +178,7 @@ fun SyncJobScreen(
 
 			if (uiState.jobs.isEmpty()) {
 				Text(
-					text = "No sync jobs yet. Tap + to create one.",
+					text = stringResource(R.string.label_no_sync_jobs),
 					style = MaterialTheme.typography.bodyMedium
 				)
 			} else {
@@ -189,12 +191,18 @@ fun SyncJobScreen(
 						val sourceName =
 							sanitizeCalendarName(
 								calendarById[job.sourceCalendarId]?.displayName
-									?: "Unknown (${job.sourceCalendarId})"
+									?: stringResource(
+										R.string.message_unknown_calendar,
+										job.sourceCalendarId
+									)
 							)
 						val targetName =
 							sanitizeCalendarName(
 								calendarById[job.targetCalendarId]?.displayName
-									?: "Unknown (${job.targetCalendarId})"
+									?: stringResource(
+										R.string.message_unknown_calendar,
+										job.targetCalendarId
+									)
 							)
 						SyncJobRow(
 							job = job,
@@ -244,8 +252,8 @@ private fun SyncJobScreenPreview() {
 	CalsciumTheme {
 		SyncJobScreen(
 			uiState = SyncJobUiState(
-				jobs = PreviewData.jobs,
-				calendars = PreviewData.calendars,
+				jobs = PreviewData.jobs(),
+				calendars = PreviewData.calendars(),
 				hasCalendarPermission = true
 			),
 			onRequestPermissions = {},

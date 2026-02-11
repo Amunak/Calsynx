@@ -16,6 +16,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.res.stringResource
+import net.amunak.calscium.R
 
 @Composable
 fun CalendarLabel(
@@ -53,7 +55,7 @@ fun CalendarLabel(
 @Composable
 private fun CalendarLabelPreview() {
 	CalendarLabel(
-		name = "Work calendar",
+		name = stringResource(R.string.preview_calendar_label),
 		color = 0xFF1E88E5.toInt()
 	)
 }

@@ -15,6 +15,7 @@ import net.amunak.calscium.data.DatabaseProvider
 import net.amunak.calscium.data.repository.CalendarRepository
 import net.amunak.calscium.data.repository.SyncJobRepository
 import net.amunak.calscium.ui.components.sanitizeCalendarName
+import net.amunak.calscium.R
 
 data class CalendarRowUi(
 	val calendar: CalendarInfo,
@@ -71,7 +72,11 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 			} catch (e: RuntimeException) {
 				Log.e(TAG, "Failed to load calendars", e)
 				_uiState.update {
-					it.copy(isLoading = false, errorMessage = "Failed to load calendars.")
+					it.copy(
+						isLoading = false,
+						errorMessage = getApplication<Application>()
+							.getString(R.string.message_failed_load_calendars)
+					)
 				}
 			}
 		}
@@ -97,11 +102,17 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 				)
 				if (!updated) {
 					Log.w(TAG, "Calendar name update failed for ${calendar.id}")
-					postToast("Unable to rename calendar.")
+					postToast(
+						getApplication<Application>()
+							.getString(R.string.message_unable_rename_calendar)
+					)
 				}
 			} catch (e: RuntimeException) {
 				Log.e(TAG, "Calendar name update failed", e)
-				postToast("Unable to rename calendar.")
+				postToast(
+					getApplication<Application>()
+						.getString(R.string.message_unable_rename_calendar)
+				)
 			}
 			refreshCalendars()
 		}
@@ -117,11 +128,17 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 				)
 				if (!updated) {
 					Log.w(TAG, "Calendar color update failed for ${calendar.id}")
-					postToast("Unable to change calendar color.")
+					postToast(
+						getApplication<Application>()
+							.getString(R.string.message_unable_change_color)
+					)
 				}
 			} catch (e: RuntimeException) {
 				Log.e(TAG, "Calendar color update failed", e)
-				postToast("Unable to change calendar color.")
+				postToast(
+					getApplication<Application>()
+						.getString(R.string.message_unable_change_color)
+				)
 			}
 			refreshCalendars()
 		}
@@ -137,7 +154,10 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 				Log.i(TAG, "Purged $deleted events for calendar ${calendar.id}")
 			} catch (e: RuntimeException) {
 				Log.e(TAG, "Calendar purge failed", e)
-				postToast("Unable to purge calendar events.")
+				postToast(
+					getApplication<Application>()
+						.getString(R.string.message_unable_purge_calendar)
+				)
 			}
 			refreshCalendars()
 		}
@@ -152,11 +172,17 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 				)
 				if (!deleted) {
 					Log.w(TAG, "Calendar delete failed for ${calendar.id}")
-					postToast("Unable to delete calendar.")
+					postToast(
+						getApplication<Application>()
+							.getString(R.string.message_unable_delete_calendar)
+					)
 				}
 			} catch (e: RuntimeException) {
 				Log.e(TAG, "Calendar delete failed", e)
-				postToast("Unable to delete calendar.")
+				postToast(
+					getApplication<Application>()
+						.getString(R.string.message_unable_delete_calendar)
+				)
 			}
 			refreshCalendars()
 		}
@@ -175,11 +201,17 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 				)
 				if (uri == null) {
 					Log.w(TAG, "Calendar creation failed for $displayName")
-					postToast("Unable to create calendar.")
+					postToast(
+						getApplication<Application>()
+							.getString(R.string.message_unable_create_calendar)
+					)
 				}
 			} catch (e: RuntimeException) {
 				Log.e(TAG, "Calendar creation failed", e)
-				postToast("Unable to create calendar.")
+				postToast(
+					getApplication<Application>()
+						.getString(R.string.message_unable_create_calendar)
+				)
 			}
 			refreshCalendars()
 		}

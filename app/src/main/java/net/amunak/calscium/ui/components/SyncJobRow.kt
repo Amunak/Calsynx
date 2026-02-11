@@ -39,6 +39,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
@@ -48,11 +49,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import net.amunak.calscium.data.SyncJob
+import net.amunak.calscium.R
 import net.amunak.calscium.ui.formatters.formatLastSync
 import net.amunak.calscium.ui.formatters.formatSyncCounts
 import net.amunak.calscium.ui.formatters.formatFrequency
 import net.amunak.calscium.ui.theme.CalsciumTheme
 import net.amunak.calscium.ui.components.sanitizeCalendarName
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun SyncJobRow(
@@ -72,6 +75,7 @@ fun SyncJobRow(
 	var showDeleteConfirm by remember { mutableStateOf(false) }
 	val pulse = remember { Animatable(0f) }
 	var pulseTrigger by remember { mutableStateOf(0) }
+	val resources = LocalContext.current.resources
 
 	// Pulse on click so short syncs still show feedback.
 	LaunchedEffect(pulseTrigger) {
@@ -88,7 +92,7 @@ fun SyncJobRow(
 	val animatedBaseColor by animateColorAsState(
 		targetValue = baseColor,
 		animationSpec = tween(durationMillis = 220),
-		label = "Sync job base color"
+		label = stringResource(R.string.label_sync_job_base_color)
 	)
 	val cardColor = lerp(
 		start = animatedBaseColor,
@@ -131,7 +135,7 @@ fun SyncJobRow(
 				}
 				Spacer(modifier = Modifier.height(6.dp))
 				Text(
-					text = formatLastSync(job.lastSyncTimestamp, isSyncing),
+					text = formatLastSync(resources, job.lastSyncTimestamp, isSyncing),
 					style = MaterialTheme.typography.bodySmall,
 					color = MaterialTheme.colorScheme.onSurfaceVariant
 				)
@@ -140,6 +144,7 @@ fun SyncJobRow(
 			Spacer(modifier = Modifier.height(12.dp))
 			Text(
 				text = formatSyncCounts(
+					resources,
 					created = job.lastSyncCreated,
 					updated = job.lastSyncUpdated,
 					deleted = job.lastSyncDeleted,
@@ -152,7 +157,7 @@ fun SyncJobRow(
 			job.lastSyncError?.let { error ->
 				Spacer(modifier = Modifier.height(4.dp))
 				Text(
-					text = "Last error: $error",
+					text = stringResource(R.string.label_last_error, error),
 					color = MaterialTheme.colorScheme.error,
 					style = MaterialTheme.typography.bodySmall
 				)
@@ -171,7 +176,10 @@ fun SyncJobRow(
 						)
 					) {
 						Icon(imageVector = Icons.Default.Delete, contentDescription = null)
-						Text(text = "Delete", modifier = Modifier.padding(start = 6.dp))
+						Text(
+							text = stringResource(R.string.action_delete),
+							modifier = Modifier.padding(start = 6.dp)
+						)
 					}
 				}
 			} else {
@@ -189,7 +197,11 @@ fun SyncJobRow(
 						)
 					) {
 						val icon = if (job.isActive) Icons.Default.Pause else Icons.Default.PlayArrow
-						val label = if (job.isActive) "Pause" else "Resume"
+						val label = if (job.isActive) {
+							stringResource(R.string.action_pause)
+						} else {
+							stringResource(R.string.action_resume)
+						}
 						Icon(imageVector = icon, contentDescription = null)
 						Text(text = label, modifier = Modifier.padding(start = 6.dp))
 					}
@@ -212,7 +224,7 @@ fun SyncJobRow(
 							contentDescription = null
 						)
 						Text(
-							text = "Sync",
+							text = stringResource(R.string.action_sync),
 							modifier = Modifier.padding(start = 6.dp)
 						)
 					}
@@ -220,7 +232,7 @@ fun SyncJobRow(
 						IconButton(onClick = { menuExpanded = true }) {
 							Icon(
 								imageVector = Icons.Default.MoreVert,
-								contentDescription = "Job actions"
+								contentDescription = stringResource(R.string.label_job_actions)
 							)
 						}
 						DropdownMenu(
@@ -228,7 +240,7 @@ fun SyncJobRow(
 							onDismissRequest = { menuExpanded = false }
 						) {
 							DropdownMenuItem(
-								text = { Text("Edit") },
+								text = { Text(stringResource(R.string.action_edit)) },
 								leadingIcon = {
 									Icon(Icons.Default.Edit, contentDescription = null)
 								},
@@ -238,7 +250,7 @@ fun SyncJobRow(
 								}
 							)
 							DropdownMenuItem(
-								text = { Text("Delete") },
+								text = { Text(stringResource(R.string.action_delete)) },
 								leadingIcon = {
 									Icon(Icons.Default.Delete, contentDescription = null)
 								},
@@ -257,12 +269,16 @@ fun SyncJobRow(
 				horizontalArrangement = Arrangement.SpaceBetween
 			) {
 				Text(
-					text = formatFrequency(job.frequencyMinutes),
+					text = formatFrequency(resources, job.frequencyMinutes),
 					style = MaterialTheme.typography.labelSmall,
 					color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
 				)
 				Text(
-					text = "${job.windowPastDays}d back · ${job.windowFutureDays}d ahead",
+					text = stringResource(
+						R.string.text_sync_window,
+						job.windowPastDays,
+						job.windowFutureDays
+					),
 					style = MaterialTheme.typography.labelSmall,
 					color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
 				)
@@ -273,11 +289,14 @@ fun SyncJobRow(
 	if (showDeleteConfirm) {
 		AlertDialog(
 			onDismissRequest = { showDeleteConfirm = false },
-			title = { Text("Delete sync job?") },
+			title = { Text(stringResource(R.string.title_delete_sync_job)) },
 			text = {
 				Text(
-					"Delete the sync between \"$sourceName\" and \"$targetName\"? " +
-						"This removes the job, forgets previous mappings, and stops syncing."
+					stringResource(
+						R.string.message_delete_sync_job,
+						displaySourceName,
+						displayTargetName
+					)
 				)
 			},
 			confirmButton = {
@@ -287,12 +306,12 @@ fun SyncJobRow(
 						onDeleteJob(job)
 					}
 				) {
-					Text("Delete")
+					Text(stringResource(R.string.action_delete))
 				}
 			},
 			dismissButton = {
 				TextButton(onClick = { showDeleteConfirm = false }) {
-					Text("Cancel")
+					Text(stringResource(R.string.action_cancel))
 				}
 			}
 		)
@@ -322,8 +341,8 @@ private fun SyncJobRowPreview() {
 				lastSyncTimestamp = System.currentTimeMillis() - 86_400_000L,
 				isActive = true
 			),
-			sourceName = "Work",
-			targetName = "Personal",
+			sourceName = stringResource(R.string.preview_calendar_work),
+			targetName = stringResource(R.string.preview_calendar_personal),
 			sourceColor = 0xFF3F51B5.toInt(),
 			targetColor = 0xFFFF9800.toInt(),
 			isMissingCalendar = false,

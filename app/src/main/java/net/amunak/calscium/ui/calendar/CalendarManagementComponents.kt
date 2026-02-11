@@ -22,8 +22,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import net.amunak.calscium.calendar.CalendarInfo
+import net.amunak.calscium.R
 import net.amunak.calscium.ui.PreviewData
 import net.amunak.calscium.ui.components.CalendarLabel
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun CalendarRowCard(
@@ -51,13 +53,13 @@ fun CalendarRowCard(
 			)
 			Spacer(modifier = Modifier.height(6.dp))
 			Text(
-				text = "${row.eventCount} events",
+				text = stringResource(R.string.text_events, row.eventCount),
 				style = MaterialTheme.typography.bodySmall,
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)
 			if (row.incomingCalendars.isNotEmpty() && row.syncedCount > 0) {
 				Text(
-					text = "Synced entries: ${row.syncedCount}",
+					text = stringResource(R.string.text_synced_entries, row.syncedCount),
 					style = MaterialTheme.typography.bodySmall,
 					color = MaterialTheme.colorScheme.onSurfaceVariant
 				)
@@ -65,7 +67,7 @@ fun CalendarRowCard(
 			if (incomingCalendar != null) {
 				Row(verticalAlignment = Alignment.CenterVertically) {
 					Text(
-						text = "Synced (input):",
+						text = stringResource(R.string.text_synced_input),
 						style = MaterialTheme.typography.bodySmall,
 						color = MaterialTheme.colorScheme.onSurfaceVariant,
 						modifier = Modifier.padding(end = 6.dp)
@@ -83,7 +85,7 @@ fun CalendarRowCard(
 				val extraCount = outgoingCalendars.size - 1
 				Row(verticalAlignment = Alignment.CenterVertically) {
 					Text(
-						text = "Synced (output):",
+						text = stringResource(R.string.text_synced_output),
 						style = MaterialTheme.typography.bodySmall,
 						color = MaterialTheme.colorScheme.onSurfaceVariant,
 						modifier = Modifier.padding(end = 6.dp)
@@ -96,7 +98,7 @@ fun CalendarRowCard(
 					)
 					if (extraCount > 0) {
 						Text(
-							text = " +$extraCount",
+							text = stringResource(R.string.text_additional_targets, extraCount),
 							style = MaterialTheme.typography.bodySmall,
 							color = MaterialTheme.colorScheme.onSurfaceVariant
 						)
@@ -125,15 +127,15 @@ fun CalendarMetaSection(
 			)
 		}
 		Text(
-			text = "Type: $typeLabel",
+			text = stringResource(R.string.text_type_label, typeLabel),
 			style = MaterialTheme.typography.bodySmall,
 			color = MaterialTheme.colorScheme.onSurfaceVariant
 		)
 		Text(
 			text = if (row.incomingCalendars.isNotEmpty() && row.syncedCount > 0) {
-				"Events: ${row.eventCount} · Synced: ${row.syncedCount}"
+				stringResource(R.string.text_events_synced, row.eventCount, row.syncedCount)
 			} else {
-				"Events: ${row.eventCount}"
+				stringResource(R.string.text_events, row.eventCount)
 			},
 			style = MaterialTheme.typography.bodySmall,
 			color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -142,7 +144,7 @@ fun CalendarMetaSection(
 		if (source != null) {
 			Row(verticalAlignment = Alignment.CenterVertically) {
 				Text(
-					text = "Synced (input):",
+					text = stringResource(R.string.text_synced_input),
 					style = MaterialTheme.typography.bodySmall,
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 					modifier = Modifier.padding(end = 6.dp)
@@ -157,7 +159,7 @@ fun CalendarMetaSection(
 		}
 		if (targetCalendars.isNotEmpty()) {
 			Text(
-				text = "Synced (output):",
+				text = stringResource(R.string.text_synced_output),
 				style = MaterialTheme.typography.bodySmall,
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)
@@ -183,20 +185,20 @@ fun AccountDetailsSection(calendar: CalendarInfo) {
 	val accessLabel = calendar.accessLevel?.toString()
 	Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
 		Text(
-			text = "Account: $accountLabel",
+			text = stringResource(R.string.text_account_label, accountLabel),
 			style = MaterialTheme.typography.bodySmall,
 			color = MaterialTheme.colorScheme.onSurfaceVariant
 		)
 		if (ownerLabel != null) {
 			Text(
-				text = "Owner: $ownerLabel",
+				text = stringResource(R.string.text_owner_label, ownerLabel),
 				style = MaterialTheme.typography.bodySmall,
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)
 		}
 		if (accessLabel != null) {
 			Text(
-				text = "Access level: $accessLabel",
+				text = stringResource(R.string.text_access_level_label, accessLabel),
 				style = MaterialTheme.typography.bodySmall,
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)
@@ -226,17 +228,23 @@ fun ActionRow(
 	}
 }
 
+@Composable
 fun calendarTypeLabel(calendar: CalendarInfo): String {
 	return when {
-		calendar.accountType == CalendarContract.ACCOUNT_TYPE_LOCAL -> "On device"
-		calendar.accountType.isNullOrBlank() -> "External"
+		calendar.accountType == CalendarContract.ACCOUNT_TYPE_LOCAL ->
+			stringResource(R.string.text_on_device)
+		calendar.accountType.isNullOrBlank() -> stringResource(R.string.text_external)
 		else -> calendar.accountType
 	}
 }
 
+@Composable
 fun accountLabel(calendar: CalendarInfo): String {
-	if (calendar.accountType == CalendarContract.ACCOUNT_TYPE_LOCAL) return "On device"
-	val name = calendar.accountName?.takeIf { it.isNotBlank() } ?: "External"
+	if (calendar.accountType == CalendarContract.ACCOUNT_TYPE_LOCAL) {
+		return stringResource(R.string.text_on_device)
+	}
+	val name = calendar.accountName?.takeIf { it.isNotBlank() }
+		?: stringResource(R.string.text_external)
 	val type = calendar.accountType?.takeIf { it.isNotBlank() }
 	return if (type != null) "$name · $type" else name
 }
@@ -244,13 +252,13 @@ fun accountLabel(calendar: CalendarInfo): String {
 @Preview(showBackground = true)
 @Composable
 private fun CalendarRowCardPreview() {
-	val calendar = PreviewData.calendars.first()
+	val calendar = PreviewData.calendars().first()
 	val row = CalendarRowUi(
 		calendar = calendar,
 		eventCount = 12,
 		syncedCount = 5,
 		incomingCalendars = listOf(calendar),
-		outgoingCalendars = PreviewData.calendars
+		outgoingCalendars = PreviewData.calendars()
 	)
 	CalendarRowCard(row = row, onClick = {})
 }
@@ -258,25 +266,25 @@ private fun CalendarRowCardPreview() {
 @Preview(showBackground = true)
 @Composable
 private fun CalendarMetaSectionPreview() {
-	val calendar = PreviewData.calendars.first()
+	val calendar = PreviewData.calendars().first()
 	val row = CalendarRowUi(
 		calendar = calendar,
 		eventCount = 12,
 		syncedCount = 5,
 		incomingCalendars = listOf(calendar),
-		outgoingCalendars = PreviewData.calendars
+		outgoingCalendars = PreviewData.calendars()
 	)
 	CalendarMetaSection(
 		row = row,
 		sourceCalendars = listOf(calendar),
-		targetCalendars = PreviewData.calendars
+		targetCalendars = PreviewData.calendars()
 	)
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun AccountDetailsSectionPreview() {
-	AccountDetailsSection(calendar = PreviewData.calendars.first())
+	AccountDetailsSection(calendar = PreviewData.calendars().first())
 }
 
 @Preview(showBackground = true)
@@ -284,7 +292,7 @@ private fun AccountDetailsSectionPreview() {
 private fun ActionRowPreview() {
 	ActionRow(
 		icon = androidx.compose.material.icons.Icons.Default.Edit,
-		label = "Rename calendar",
+		label = stringResource(R.string.action_rename_calendar),
 		onClick = {}
 	)
 }
