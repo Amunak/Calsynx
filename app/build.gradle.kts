@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-	namespace = "net.amunak.calscium"
+	namespace = "net.amunak.calsynx"
 	compileSdk = 36
 
 	defaultConfig {
-		applicationId = "net.amunak.calscium"
+		applicationId = "net.amunak.calsynx"
 		minSdk = 30
 		targetSdk = 36
 		versionCode = 1

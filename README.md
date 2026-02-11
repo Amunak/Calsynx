@@ -1,6 +1,6 @@
-# Calscium
+# Calsynx
 
-Calscium is an Android app that copies (synchronizes) events on-device from one calendar into another.
+Calsynx is an Android app that copies (synchronizes) events on-device from one calendar into another.
 It does a simple one-way synchronization, (source → target). You need to provide the calendars:
 it does not use any cloud services, accounts, or servers. These can be either local calendars
 or calendars added by other apps / device accounts.
@@ -24,7 +24,7 @@ you should still probably use a separate calendar for the sync outside of your m
 - Only events inside the configured sync window are kept in sync; mappings outside the window are removed.
 
 ## Permissions
-Calscium needs `READ_CALENDAR` and `WRITE_CALENDAR` to list calendars and sync events.
+Calsynx needs `READ_CALENDAR` and `WRITE_CALENDAR` to list calendars and sync events.
 
 ## Build (CLI)
 Prerequisites:

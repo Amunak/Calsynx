@@ -1,5 +1,5 @@
 <resources>
-	<string name="app_name">Calscium</string>
+	<string name="app_name">Calsynx</string>
 	<string name="action_add_sync_job">Add sync job</string>
 	<string name="action_back">Back</string>
 	<string name="action_cancel">Cancel</string>

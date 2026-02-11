@@ -22,5 +22,5 @@ dependencyResolutionManagement {
 	}
 }
 
-rootProject.name = "Calscium"
+rootProject.name = "Calsynx"
 include(":app")
