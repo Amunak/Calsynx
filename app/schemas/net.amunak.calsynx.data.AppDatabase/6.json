@@ -1,0 +1,174 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 6,
+    "identityHash": "eea02413ff4878e50fa6d51332f32cf0",
+    "entities": [
+      {
+        "tableName": "sync_jobs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sourceCalendarId` INTEGER NOT NULL, `targetCalendarId` INTEGER NOT NULL, `windowPastDays` INTEGER NOT NULL, `windowFutureDays` INTEGER NOT NULL, `syncAllEvents` INTEGER NOT NULL, `frequencyMinutes` INTEGER NOT NULL, `lastSyncTimestamp` INTEGER, `lastSyncCreated` INTEGER NOT NULL, `lastSyncUpdated` INTEGER NOT NULL, `lastSyncDeleted` INTEGER NOT NULL, `lastSyncSourceCount` INTEGER NOT NULL, `lastSyncTargetCount` INTEGER NOT NULL, `lastSyncUnpairedTargetCount` INTEGER NOT NULL, `lastSyncError` TEXT, `isActive` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceCalendarId",
+            "columnName": "sourceCalendarId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetCalendarId",
+            "columnName": "targetCalendarId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "windowPastDays",
+            "columnName": "windowPastDays",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "windowFutureDays",
+            "columnName": "windowFutureDays",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syncAllEvents",
+            "columnName": "syncAllEvents",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "frequencyMinutes",
+            "columnName": "frequencyMinutes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncTimestamp",
+            "columnName": "lastSyncTimestamp",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastSyncCreated",
+            "columnName": "lastSyncCreated",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncUpdated",
+            "columnName": "lastSyncUpdated",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncDeleted",
+            "columnName": "lastSyncDeleted",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncSourceCount",
+            "columnName": "lastSyncSourceCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncTargetCount",
+            "columnName": "lastSyncTargetCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncUnpairedTargetCount",
+            "columnName": "lastSyncUnpairedTargetCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSyncError",
+            "columnName": "lastSyncError",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "isActive",
+            "columnName": "isActive",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "event_mappings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sourceEventId` INTEGER NOT NULL, `targetEventId` INTEGER NOT NULL, `sourceCalendarId` INTEGER NOT NULL, `targetCalendarId` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceEventId",
+            "columnName": "sourceEventId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetEventId",
+            "columnName": "targetEventId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceCalendarId",
+            "columnName": "sourceCalendarId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetCalendarId",
+            "columnName": "targetCalendarId",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_event_mappings_sourceEventId_sourceCalendarId_targetCalendarId",
+            "unique": true,
+            "columnNames": [
+              "sourceEventId",
+              "sourceCalendarId",
+              "targetCalendarId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_event_mappings_sourceEventId_sourceCalendarId_targetCalendarId` ON `${TABLE_NAME}` (`sourceEventId`, `sourceCalendarId`, `targetCalendarId`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'eea02413ff4878e50fa6d51332f32cf0')"
+    ]
+  }
+}
