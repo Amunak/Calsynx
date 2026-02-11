@@ -171,6 +171,36 @@ class CalendarSyncerInstrumentedTest {
 	}
 
 	@Test
+	fun syncIncludesRecurringSeriesOutsideWindowStart() = runBlockingTest {
+		val mappingDao = InMemoryEventMappingDao()
+		val syncer = CalendarSyncer(resolver, mappingDao, eventsUri)
+		val sourceId = 15L
+		val targetId = 25L
+
+		insertEvent(
+			resolver,
+			sourceId,
+			eventValues(
+				title = "Series far in past",
+				startMillis = 1_000L,
+				endMillis = 2_000L,
+				rrule = "FREQ=DAILY;COUNT=30"
+			)
+		)
+
+		val result = syncer.sync(syncJob(sourceId, targetId), SyncWindow(1_000_000L, 2_000_000L))
+		assertEquals(1, result.created)
+
+		val targetEvents = queryEvents(resolver, targetId)
+		assertEquals(1, targetEvents.size)
+		val target = targetEvents.first()
+		assertEquals("Series far in past", target.getAsString(CalendarContract.Events.TITLE))
+		assertEquals(1_000L, target.getAsLong(CalendarContract.Events.DTSTART))
+		assertEquals(2_000L, target.getAsLong(CalendarContract.Events.DTEND))
+		assertEquals("FREQ=DAILY;COUNT=30", target.getAsString(CalendarContract.Events.RRULE))
+	}
+
+	@Test
 	fun deleteSyncedTargetsRemovesMappedEvents() = runBlockingTest {
 		val mappingDao = InMemoryEventMappingDao()
 		val syncer = CalendarSyncer(resolver, mappingDao, eventsUri)
