@@ -190,6 +190,11 @@ fun CreateJobDialog(
 						selected = frequencySelection,
 						onSelected = { frequencySelection = it }
 					)
+					Text(
+						text = stringResource(R.string.label_sync_window_hint),
+						style = MaterialTheme.typography.bodySmall,
+						color = MaterialTheme.colorScheme.onSurfaceVariant
+					)
 
 					if (validationError != null && !isEdit) {
 						Text(

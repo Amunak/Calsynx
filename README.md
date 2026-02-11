@@ -21,6 +21,7 @@ you should still probably use a separate calendar for the sync outside of your m
 - If a source event was already synced before, its target event is updated to match the source.
 - If a saved target event no longer exists, the mapping is dropped and the source is re-synced.
 - If a source event disappears, the previously synced target event is deleted.
+- Only events inside the configured sync window are kept in sync; mappings outside the window are removed.
 
 ## Permissions
 Calscium needs `READ_CALENDAR` and `WRITE_CALENDAR` to list calendars and sync events.

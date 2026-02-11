@@ -40,6 +40,7 @@
 	<string name="label_source_calendar">Source calendar</string>
 	<string name="label_sync_frequency">Sync frequency</string>
 	<string name="label_sync_jobs">Sync jobs</string>
+	<string name="label_sync_window_hint">Only events inside the sync window are kept in sync.</string>
 	<string name="label_target_calendar">Target calendar</string>
 	<string name="label_window_days_suffix">days</string>
 	<string name="label_sync_job_base_color">Sync job base color</string>
