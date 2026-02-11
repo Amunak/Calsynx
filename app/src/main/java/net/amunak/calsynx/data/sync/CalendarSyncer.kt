@@ -20,7 +20,8 @@ data class SyncResult(
 
 class CalendarSyncer(
 	private val resolver: ContentResolver,
-	private val mappingDao: EventMappingDao
+	private val mappingDao: EventMappingDao,
+	private val eventsUri: android.net.Uri = CalendarContract.Events.CONTENT_URI
 ) {
 	suspend fun sync(
 		job: SyncJob,
@@ -121,7 +122,7 @@ class CalendarSyncer(
 		val sortOrder = "${CalendarContract.Events.DTSTART} ASC"
 
 		val cursor = resolver.query(
-			CalendarContract.Events.CONTENT_URI,
+			eventsUri,
 			projection,
 			selection,
 			selectionArgs,
@@ -192,7 +193,7 @@ class CalendarSyncer(
 		source: SourceEvent
 	): Long? {
 		val values = toContentValues(targetCalendarId, source)
-		val uri = resolver.insert(CalendarContract.Events.CONTENT_URI, values)
+		val uri = resolver.insert(eventsUri, values)
 		if (uri == null) {
 			Log.w(TAG, "Insert returned null uri for target calendar $targetCalendarId")
 			return null
@@ -210,7 +211,7 @@ class CalendarSyncer(
 		source: SourceEvent
 	): Boolean {
 		val values = toContentValues(null, source, isUpdate = true)
-		val uri = CalendarContract.Events.CONTENT_URI.buildUpon()
+		val uri = eventsUri.buildUpon()
 			.appendPath(targetEventId.toString())
 			.build()
 		val updated = resolver.update(uri, values, null, null) > 0
@@ -223,7 +224,7 @@ class CalendarSyncer(
 	private fun deleteTargets(targetIds: List<Long>): Int {
 		var deleted = 0
 		targetIds.forEach { targetId ->
-			val uri = CalendarContract.Events.CONTENT_URI.buildUpon()
+			val uri = eventsUri.buildUpon()
 				.appendPath(targetId.toString())
 				.build()
 			val result = resolver.delete(uri, null, null)
@@ -313,7 +314,7 @@ class CalendarSyncer(
 			val placeholders = chunk.joinToString(",") { "?" }
 			val selection = "${CalendarContract.Events._ID} IN ($placeholders)"
 			val cursor = resolver.query(
-				CalendarContract.Events.CONTENT_URI,
+				eventsUri,
 				arrayOf(CalendarContract.Events._ID),
 				selection,
 				chunk.map { it.toString() }.toTypedArray(),
