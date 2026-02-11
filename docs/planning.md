@@ -14,7 +14,7 @@
 - [x] Update UI copy that still claims "manual sync only" now that WorkManager scheduling exists.
 - [x] Decide how to treat hidden calendars in job creation/listing (show all vs. visible-only).
 - [ ] Reduce repeated calendar/event queries when building calendar management stats.
-- [ ] Centralize job label formatting to avoid duplicate logic in ViewModel/Worker/Log export.
+- [x] Centralize job label formatting to avoid duplicate logic in ViewModel/Worker/Log export.
 - [x] Add targeted tests for update field behavior.
 - [ ] Add targeted tests for sync plan behavior.
 

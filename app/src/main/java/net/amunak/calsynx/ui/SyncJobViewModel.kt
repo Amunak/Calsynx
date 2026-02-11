@@ -19,7 +19,7 @@ import net.amunak.calsynx.data.repository.SyncJobRepository
 import net.amunak.calsynx.data.sync.CalendarSyncer
 import net.amunak.calsynx.data.sync.SyncJobScheduler
 import net.amunak.calsynx.ui.logs.SyncLogStore
-import net.amunak.calsynx.ui.components.sanitizeCalendarName
+import net.amunak.calsynx.ui.formatters.formatJobLabel
 import net.amunak.calsynx.domain.CreateSyncJobUseCase
 import net.amunak.calsynx.domain.DeleteSyncJobUseCase
 import net.amunak.calsynx.domain.ObserveSyncJobsUseCase
@@ -272,16 +272,7 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 	}
 
 	private fun jobLabel(job: SyncJob): String {
-		val calendarById = calendars.value.associateBy { it.id }
-		val sourceName = sanitizeCalendarName(
-			calendarById[job.sourceCalendarId]?.displayName
-				?: "Unknown (${job.sourceCalendarId})"
-		)
-		val targetName = sanitizeCalendarName(
-			calendarById[job.targetCalendarId]?.displayName
-				?: "Unknown (${job.targetCalendarId})"
-		)
-		return "job ${job.id} ($sourceName → $targetName)"
+		return formatJobLabel(job, calendars.value)
 	}
 
 	companion object {

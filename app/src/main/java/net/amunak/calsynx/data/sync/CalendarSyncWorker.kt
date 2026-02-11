@@ -11,7 +11,7 @@ import net.amunak.calsynx.domain.RunManualSyncUseCase
 import net.amunak.calsynx.domain.UpdateSyncErrorUseCase
 import net.amunak.calsynx.domain.UpdateSyncStatsUseCase
 import net.amunak.calsynx.ui.logs.SyncLogStore
-import net.amunak.calsynx.ui.components.sanitizeCalendarName
+import net.amunak.calsynx.ui.formatters.formatJobLabel
 
 class CalendarSyncWorker(
 	appContext: Context,
@@ -64,16 +64,7 @@ class CalendarSyncWorker(
 	private fun buildJobLabel(job: net.amunak.calsynx.data.SyncJob, calendarRepository: CalendarRepository): String {
 		return try {
 			val calendars = calendarRepository.getCalendars(applicationContext, onlyVisible = false)
-			val calendarById = calendars.associateBy { it.id }
-			val sourceName = sanitizeCalendarName(
-				calendarById[job.sourceCalendarId]?.displayName
-					?: "Unknown (${job.sourceCalendarId})"
-			)
-			val targetName = sanitizeCalendarName(
-				calendarById[job.targetCalendarId]?.displayName
-					?: "Unknown (${job.targetCalendarId})"
-			)
-			"job ${job.id} ($sourceName → $targetName)"
+			formatJobLabel(job, calendars)
 		} catch (e: RuntimeException) {
 			"job ${job.id}"
 		}

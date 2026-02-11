@@ -20,7 +20,7 @@ import net.amunak.calsynx.R
 import net.amunak.calsynx.data.DatabaseProvider
 import net.amunak.calsynx.data.repository.CalendarRepository
 import net.amunak.calsynx.data.repository.SyncJobRepository
-import net.amunak.calsynx.ui.components.sanitizeCalendarName
+import net.amunak.calsynx.ui.formatters.resolveJobCalendarNames
 import java.io.File
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -108,28 +108,21 @@ class SyncLogViewModel(app: Application) : AndroidViewModel(app) {
 	private suspend fun buildJobSummary(context: Context): String {
 		return try {
 			val calendars = calendarRepository.getCalendars(context, onlyVisible = false)
-			val calendarById = calendars.associateBy { it.id }
-			val jobs = jobRepository.getAll()
+				val calendarById = calendars.associateBy { it.id }
+				val jobs = jobRepository.getAll()
 			if (jobs.isEmpty()) {
 				"- None"
 			} else {
-				jobs.joinToString("\n") { job ->
-					val sourceName = sanitizeCalendarName(
-						calendarById[job.sourceCalendarId]?.displayName
-							?: "Unknown (${job.sourceCalendarId})"
-					)
-					val targetName = sanitizeCalendarName(
-						calendarById[job.targetCalendarId]?.displayName
-							?: "Unknown (${job.targetCalendarId})"
-					)
-					val status = if (job.isActive) "active" else "paused"
-					val window = if (job.syncAllEvents) {
-						"all events"
-					} else {
-						"${job.windowPastDays}d back, ${job.windowFutureDays}d ahead"
+					jobs.joinToString("\n") { job ->
+						val names = resolveJobCalendarNames(job, calendarById)
+						val status = if (job.isActive) "active" else "paused"
+						val window = if (job.syncAllEvents) {
+							"all events"
+						} else {
+							"${job.windowPastDays}d back, ${job.windowFutureDays}d ahead"
+						}
+						"- ${job.id}: ${names.sourceName} → ${names.targetName} ($status, every ${job.frequencyMinutes}m, window=$window)"
 					}
-					"- ${job.id}: $sourceName → $targetName ($status, every ${job.frequencyMinutes}m, window=$window)"
-				}
 			}
 		} catch (e: RuntimeException) {
 			"- Unable to load jobs: ${e.message ?: "unknown error"}"
