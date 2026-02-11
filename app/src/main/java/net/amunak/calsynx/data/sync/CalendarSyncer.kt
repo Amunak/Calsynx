@@ -96,39 +96,18 @@ class CalendarSyncer(
 			CalendarContract.Events.EVENT_LOCATION,
 			CalendarContract.Events.DESCRIPTION
 		)
-		val selection = if (syncAllEvents) {
-			buildString {
-				append("${CalendarContract.Events.CALENDAR_ID} = ?")
-				append(" AND ${CalendarContract.Events.DELETED} = 0")
-			}
-		} else {
-			buildString {
-				append("${CalendarContract.Events.CALENDAR_ID} = ?")
-				append(" AND ${CalendarContract.Events.DELETED} = 0")
-				append(" AND (")
-				append("${CalendarContract.Events.RRULE} IS NOT NULL")
-				append(" OR (")
-				append("${CalendarContract.Events.DTSTART} <= ?")
-				append(" AND (${CalendarContract.Events.DTEND} IS NULL OR ${CalendarContract.Events.DTEND} >= ?)")
-				append("))")
-			}
-		}
-		val selectionArgs = if (syncAllEvents) {
-			arrayOf(sourceCalendarId.toString())
-		} else {
-			arrayOf(
-				sourceCalendarId.toString(),
-				window.endMillis.toString(),
-				window.startMillis.toString()
-			)
-		}
+		val querySpec = buildEventQuerySpec(
+			calendarId = sourceCalendarId,
+			window = window,
+			syncAllEvents = syncAllEvents
+		)
 		val sortOrder = "${CalendarContract.Events.DTSTART} ASC"
 
 		val cursor = resolver.query(
 			eventsUri,
 			projection,
-			selection,
-			selectionArgs,
+			querySpec.selection,
+			querySpec.selectionArgs,
 			sortOrder
 		) ?: return emptyList()
 
@@ -197,37 +176,16 @@ class CalendarSyncer(
 		syncAllEvents: Boolean
 	): Int {
 		val projection = arrayOf(CalendarContract.Events._ID)
-		val selection = if (syncAllEvents) {
-			buildString {
-				append("${CalendarContract.Events.CALENDAR_ID} = ?")
-				append(" AND ${CalendarContract.Events.DELETED} = 0")
-			}
-		} else {
-			buildString {
-				append("${CalendarContract.Events.CALENDAR_ID} = ?")
-				append(" AND ${CalendarContract.Events.DELETED} = 0")
-				append(" AND (")
-				append("${CalendarContract.Events.RRULE} IS NOT NULL")
-				append(" OR (")
-				append("${CalendarContract.Events.DTSTART} <= ?")
-				append(" AND (${CalendarContract.Events.DTEND} IS NULL OR ${CalendarContract.Events.DTEND} >= ?)")
-				append("))")
-			}
-		}
-		val selectionArgs = if (syncAllEvents) {
-			arrayOf(calendarId.toString())
-		} else {
-			arrayOf(
-				calendarId.toString(),
-				window.endMillis.toString(),
-				window.startMillis.toString()
-			)
-		}
+		val querySpec = buildEventQuerySpec(
+			calendarId = calendarId,
+			window = window,
+			syncAllEvents = syncAllEvents
+		)
 		val cursor = resolver.query(
 			eventsUri,
 			projection,
-			selection,
-			selectionArgs,
+			querySpec.selection,
+			querySpec.selectionArgs,
 			null
 		) ?: return 0
 		return cursor.use { it.count }
@@ -430,6 +388,44 @@ internal data class EventTimeFields(
 	val dtEnd: Long?,
 	val duration: String?
 )
+
+internal data class EventQuerySpec(
+	val selection: String,
+	val selectionArgs: Array<String>
+)
+
+internal fun buildEventQuerySpec(
+	calendarId: Long,
+	window: SyncWindow,
+	syncAllEvents: Boolean
+): EventQuerySpec {
+	if (syncAllEvents) {
+		return EventQuerySpec(
+			selection = buildString {
+				append("${CalendarContract.Events.CALENDAR_ID} = ?")
+				append(" AND ${CalendarContract.Events.DELETED} = 0")
+			},
+			selectionArgs = arrayOf(calendarId.toString())
+		)
+	}
+	return EventQuerySpec(
+		selection = buildString {
+			append("${CalendarContract.Events.CALENDAR_ID} = ?")
+			append(" AND ${CalendarContract.Events.DELETED} = 0")
+			append(" AND (")
+			append("${CalendarContract.Events.RRULE} IS NOT NULL")
+			append(" OR (")
+			append("${CalendarContract.Events.DTSTART} <= ?")
+			append(" AND (${CalendarContract.Events.DTEND} IS NULL OR ${CalendarContract.Events.DTEND} >= ?)")
+			append("))")
+		},
+		selectionArgs = arrayOf(
+			calendarId.toString(),
+			window.endMillis.toString(),
+			window.startMillis.toString()
+		)
+	)
+}
 
 internal fun resolveEventTimeFields(source: SourceEvent): EventTimeFields {
 	return if (!source.duration.isNullOrBlank()) {

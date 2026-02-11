@@ -17,6 +17,7 @@
 - [x] Centralize job label formatting to avoid duplicate logic in ViewModel/Worker/Log export.
 - [x] Add targeted tests for update field behavior.
 - [x] Add targeted tests for sync plan behavior.
+- [x] Add tests to cover recurring event window inclusion.
 
 ## Decisions
 - Keep calendar management as a separate utility screen (not embedded in sync job dialogs).
