@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
@@ -102,6 +104,8 @@ fun SyncJobScreen(
 	}
 
 	val bottomPadding = if (uiState.hasCalendarPermission) 96.dp else 16.dp
+	val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+	val contentBottomPadding = bottomPadding + navBarPadding
 
 	Scaffold(
 		topBar = {
@@ -148,8 +152,7 @@ fun SyncJobScreen(
 		floatingActionButton = {
 			if (uiState.hasCalendarPermission) {
 				ExtendedFloatingActionButton(
-					onClick = { context.startActivity(SyncJobEditorActivity.newIntent(context)) },
-					modifier = Modifier.navigationBarsPadding()
+					onClick = { context.startActivity(SyncJobEditorActivity.newIntent(context)) }
 				) {
 					Icon(
 						imageVector = Icons.Default.Add,
@@ -172,14 +175,13 @@ fun SyncJobScreen(
 					state = listState,
 					modifier = Modifier
 						.fillMaxSize()
-						.padding(padding)
-						.navigationBarsPadding(),
+						.padding(padding),
 					verticalArrangement = Arrangement.spacedBy(12.dp),
 					contentPadding = PaddingValues(
 						start = 16.dp,
 						end = 16.dp,
 						top = 16.dp,
-						bottom = bottomPadding
+						bottom = contentBottomPadding
 					)
 				) {
 					if (!uiState.hasCalendarPermission) {

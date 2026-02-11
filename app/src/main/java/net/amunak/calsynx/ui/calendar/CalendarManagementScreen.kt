@@ -138,7 +138,7 @@ fun CalendarManagementScreen(
 				) {
 					LazyColumn(
 						state = listState,
-						contentPadding = PaddingValues(bottom = 96.dp),
+						contentPadding = PaddingValues(end = 12.dp, bottom = 96.dp),
 						verticalArrangement = Arrangement.spacedBy(12.dp)
 					) {
 						grouped.forEach { (group, calendars) ->

@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.max
 
 @Composable
 fun ScrollIndicator(
@@ -34,6 +35,7 @@ fun ScrollIndicator(
 	val layoutInfo = state.layoutInfo
 	val visibleItems = layoutInfo.visibleItemsInfo
 	if (visibleItems.isEmpty()) return
+	if (!state.canScrollBackward && !state.canScrollForward) return
 	val totalItems = layoutInfo.totalItemsCount
 	if (totalItems <= 0) return
 	val averageItemSize = visibleItems.sumOf { it.size }.toFloat() / visibleItems.size
@@ -63,14 +65,15 @@ fun ScrollIndicator(
 			.padding(vertical = 4.dp)
 	) {
 		val viewportHeight = size.height
-		if (totalContentHeight <= viewportHeight) return@Canvas
+		val effectiveContentHeight = max(totalContentHeight, viewportHeight + 1f)
 
 		val scrollOffset =
-			state.firstVisibleItemIndex * averageItemSize + state.firstVisibleItemScrollOffset
-		val rawThumbHeight = (viewportHeight / totalContentHeight) * viewportHeight
+			state.firstVisibleItemIndex * (averageItemSize + averageSpacing) +
+				state.firstVisibleItemScrollOffset
+		val rawThumbHeight = (viewportHeight / effectiveContentHeight) * viewportHeight
 		val thumbHeight = rawThumbHeight.coerceAtLeast(minThumbPx)
 		val maxOffset = (viewportHeight - thumbHeight).coerceAtLeast(0f)
-		val thumbOffset = ((scrollOffset / totalContentHeight) * viewportHeight)
+		val thumbOffset = ((scrollOffset / effectiveContentHeight) * viewportHeight)
 			.coerceIn(0f, maxOffset)
 		val radius = size.width / 2f
 
