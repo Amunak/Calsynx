@@ -16,7 +16,7 @@
 - [ ] Reduce repeated calendar/event queries when building calendar management stats.
 - [x] Centralize job label formatting to avoid duplicate logic in ViewModel/Worker/Log export.
 - [x] Add targeted tests for update field behavior.
-- [ ] Add targeted tests for sync plan behavior.
+- [x] Add targeted tests for sync plan behavior.
 
 ## Decisions
 - Keep calendar management as a separate utility screen (not embedded in sync job dialogs).

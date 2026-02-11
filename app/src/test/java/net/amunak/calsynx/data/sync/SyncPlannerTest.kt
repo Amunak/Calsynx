@@ -44,6 +44,22 @@ class SyncPlannerTest {
 		assertEquals(listOf(1L, 2L), plan.orphanMappingIds)
 	}
 
+	@Test
+	fun buildSyncPlan_missingTargetForExistingSourceCreatesNewTarget() {
+		val sources = listOf(sourceEvent(id = 1L))
+		val mappings = listOf(
+			EventMapping(id = 5L, sourceEventId = 1L, targetEventId = 10L, sourceCalendarId = 7L, targetCalendarId = 8L)
+		)
+
+		val plan = buildSyncPlan(sources, mappings, existingTargetIds = emptySet())
+
+		assertEquals(listOf(5L), plan.missingMappingIds)
+		assertEquals(listOf(1L), plan.createSources.map { it.id })
+		assertTrue(plan.updateTargets.isEmpty())
+		assertTrue(plan.orphanTargetIds.isEmpty())
+		assertTrue(plan.orphanMappingIds.isEmpty())
+	}
+
 	private fun sourceEvent(id: Long): SourceEvent {
 		return SourceEvent(
 			id = id,
