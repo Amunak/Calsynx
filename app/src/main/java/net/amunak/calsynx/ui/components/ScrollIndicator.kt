@@ -37,18 +37,29 @@ fun ScrollIndicator(
 	val totalItems = layoutInfo.totalItemsCount
 	if (totalItems <= 0) return
 	val averageItemSize = visibleItems.sumOf { it.size }.toFloat() / visibleItems.size
-	val totalContentHeight = averageItemSize * totalItems
+	val averageSpacing = if (visibleItems.size >= 2) {
+		val spacings = visibleItems.zipWithNext { current, next ->
+			(next.offset - current.offset - current.size).coerceAtLeast(0)
+		}
+		spacings.average().toFloat()
+	} else {
+		0f
+	}
+	val totalContentHeight = averageItemSize * totalItems +
+		averageSpacing * (totalItems - 1) +
+		layoutInfo.beforeContentPadding +
+		layoutInfo.afterContentPadding
 	if (totalContentHeight <= 0f) return
 
-	val alpha = if (state.isScrollInProgress) 0.85f else 0.65f
+	val alpha = if (state.isScrollInProgress) 0.85f else 0.35f
 	val thumbColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha)
-	val trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.18f)
+	val trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f)
 	val minThumbPx = with(LocalDensity.current) { minThumbHeight.toPx() }
 
 	Canvas(
 		modifier = modifier
 			.fillMaxHeight()
-			.width(8.dp)
+			.width(5.dp)
 			.padding(vertical = 4.dp)
 	) {
 		val viewportHeight = size.height

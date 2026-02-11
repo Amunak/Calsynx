@@ -505,7 +505,7 @@ fun SyncJobEditorScreen(
 			state = listState,
 			modifier = Modifier
 				.align(Alignment.CenterEnd)
-				.padding(end = 4.dp)
+				.padding(end = 6.dp)
 		)
 	}
 	}
