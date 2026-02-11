@@ -237,7 +237,7 @@ class CalendarSyncer(
 		targetCalendarId: Long,
 		source: SourceEvent
 	): Long? {
-		val values = toContentValues(targetCalendarId, source)
+		val values = buildEventContentValues(targetCalendarId, source)
 		val uri = resolver.insert(eventsUri, values)
 		if (uri == null) {
 			Log.w(TAG, "Insert returned null uri for target calendar $targetCalendarId")
@@ -255,7 +255,7 @@ class CalendarSyncer(
 		targetEventId: Long,
 		source: SourceEvent
 	): Boolean {
-		val values = toContentValues(null, source, isUpdate = true)
+		val values = buildEventContentValues(null, source)
 		val uri = eventsUri.buildUpon()
 			.appendPath(targetEventId.toString())
 			.build()
@@ -294,60 +294,6 @@ class CalendarSyncer(
 			)
 		}
 		return deleted
-	}
-
-	private fun toContentValues(
-		targetCalendarId: Long?,
-		source: SourceEvent,
-		isUpdate: Boolean = false
-	): ContentValues {
-		return ContentValues().apply {
-			if (targetCalendarId != null) {
-				put(CalendarContract.Events.CALENDAR_ID, targetCalendarId)
-			}
-			put(CalendarContract.Events.TITLE, source.title)
-			put(CalendarContract.Events.DTSTART, source.startMillis)
-			if (!source.duration.isNullOrBlank()) {
-				put(CalendarContract.Events.DURATION, source.duration)
-				if (!isUpdate) {
-					putNull(CalendarContract.Events.DTEND)
-				}
-			} else if (source.endMillis != null) {
-				put(CalendarContract.Events.DTEND, source.endMillis)
-				if (!isUpdate) {
-					putNull(CalendarContract.Events.DURATION)
-				}
-			} else {
-				val defaultDuration = if (source.allDay) "P1D" else "PT1H"
-				if (isUpdate) {
-					put(CalendarContract.Events.DURATION, defaultDuration)
-				} else {
-					putNull(CalendarContract.Events.DTEND)
-					put(CalendarContract.Events.DURATION, defaultDuration)
-				}
-			}
-			put(CalendarContract.Events.ALL_DAY, if (source.allDay) 1 else 0)
-			put(CalendarContract.Events.EVENT_TIMEZONE, source.timeZone)
-			put(CalendarContract.Events.EVENT_END_TIMEZONE, source.endTimeZone)
-			put(CalendarContract.Events.RRULE, source.rrule)
-			put(CalendarContract.Events.EXDATE, source.exdate)
-			put(CalendarContract.Events.EXRULE, source.exrule)
-			put(CalendarContract.Events.RDATE, source.rdate)
-			if (source.originalId != null) {
-				put(CalendarContract.Events.ORIGINAL_ID, source.originalId)
-			}
-			if (source.originalInstanceTime != null) {
-				put(CalendarContract.Events.ORIGINAL_INSTANCE_TIME, source.originalInstanceTime)
-			}
-			if (source.originalAllDay != null) {
-				put(CalendarContract.Events.ORIGINAL_ALL_DAY, if (source.originalAllDay) 1 else 0)
-			}
-			if (source.status != null) {
-				put(CalendarContract.Events.STATUS, source.status)
-			}
-			put(CalendarContract.Events.EVENT_LOCATION, source.location)
-			put(CalendarContract.Events.DESCRIPTION, source.description)
-		}
 	}
 
 	private suspend fun upsertMapping(
@@ -479,3 +425,64 @@ internal data class SourceEvent(
 	val location: String?,
 	val description: String?
 )
+
+internal data class EventTimeFields(
+	val dtEnd: Long?,
+	val duration: String?
+)
+
+internal fun resolveEventTimeFields(source: SourceEvent): EventTimeFields {
+	return if (!source.duration.isNullOrBlank()) {
+		EventTimeFields(dtEnd = null, duration = source.duration)
+	} else if (source.endMillis != null) {
+		EventTimeFields(dtEnd = source.endMillis, duration = null)
+	} else {
+		val defaultDuration = if (source.allDay) "P1D" else "PT1H"
+		EventTimeFields(dtEnd = null, duration = defaultDuration)
+	}
+}
+
+internal fun buildEventContentValues(
+	targetCalendarId: Long?,
+	source: SourceEvent
+): ContentValues {
+	return ContentValues().apply {
+		if (targetCalendarId != null) {
+			put(CalendarContract.Events.CALENDAR_ID, targetCalendarId)
+		}
+		put(CalendarContract.Events.TITLE, source.title)
+		put(CalendarContract.Events.DTSTART, source.startMillis)
+		val timeFields = resolveEventTimeFields(source)
+		if (timeFields.duration == null) {
+			putNull(CalendarContract.Events.DURATION)
+		} else {
+			put(CalendarContract.Events.DURATION, timeFields.duration)
+		}
+		if (timeFields.dtEnd == null) {
+			putNull(CalendarContract.Events.DTEND)
+		} else {
+			put(CalendarContract.Events.DTEND, timeFields.dtEnd)
+		}
+		put(CalendarContract.Events.ALL_DAY, if (source.allDay) 1 else 0)
+		put(CalendarContract.Events.EVENT_TIMEZONE, source.timeZone)
+		put(CalendarContract.Events.EVENT_END_TIMEZONE, source.endTimeZone)
+		put(CalendarContract.Events.RRULE, source.rrule)
+		put(CalendarContract.Events.EXDATE, source.exdate)
+		put(CalendarContract.Events.EXRULE, source.exrule)
+		put(CalendarContract.Events.RDATE, source.rdate)
+		if (source.originalId != null) {
+			put(CalendarContract.Events.ORIGINAL_ID, source.originalId)
+		}
+		if (source.originalInstanceTime != null) {
+			put(CalendarContract.Events.ORIGINAL_INSTANCE_TIME, source.originalInstanceTime)
+		}
+		if (source.originalAllDay != null) {
+			put(CalendarContract.Events.ORIGINAL_ALL_DAY, if (source.originalAllDay) 1 else 0)
+		}
+		if (source.status != null) {
+			put(CalendarContract.Events.STATUS, source.status)
+		}
+		put(CalendarContract.Events.EVENT_LOCATION, source.location)
+		put(CalendarContract.Events.DESCRIPTION, source.description)
+	}
+}
