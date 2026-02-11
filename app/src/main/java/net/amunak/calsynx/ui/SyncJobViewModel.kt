@@ -122,7 +122,7 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 			isRefreshing.value = true
 			errorMessage.value = null
 			try {
-				calendars.value = calendarRepository.getCalendars(app)
+				calendars.value = calendarRepository.getCalendars(app, onlyVisible = false)
 			} catch (e: SecurityException) {
 				Log.e(TAG, "Calendar permission denied while refreshing calendars", e)
 				calendars.value = emptyList()

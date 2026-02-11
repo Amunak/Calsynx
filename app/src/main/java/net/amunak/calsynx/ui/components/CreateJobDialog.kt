@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.ui.res.stringResource
 import net.amunak.calsynx.R
@@ -345,10 +346,22 @@ private fun CalendarPicker(
 					entries.forEach { calendar ->
 						DropdownMenuItem(
 							text = {
-								CalendarLabel(
-									name = calendar.displayName,
-									color = calendar.color
-								)
+								Box(modifier = Modifier.fillMaxWidth()) {
+									CalendarLabel(
+										name = calendar.displayName,
+										color = calendar.color
+									)
+									if (!calendar.isVisible) {
+										Icon(
+											imageVector = Icons.Default.VisibilityOff,
+											contentDescription = stringResource(R.string.label_calendar_hidden),
+											tint = MaterialTheme.colorScheme.onSurfaceVariant,
+											modifier = Modifier
+												.size(16.dp)
+												.align(Alignment.CenterEnd)
+										)
+									}
+								}
 							},
 							onClick = { onSelected(calendar) }
 						)

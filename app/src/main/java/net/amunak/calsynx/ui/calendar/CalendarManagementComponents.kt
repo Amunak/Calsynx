@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
@@ -16,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,10 +49,24 @@ fun CalendarRowCard(
 				.fillMaxWidth()
 				.padding(16.dp)
 		) {
-			CalendarLabel(
-				name = row.calendar.displayName,
-				color = row.calendar.color
-			)
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.SpaceBetween
+			) {
+				CalendarLabel(
+					name = row.calendar.displayName,
+					color = row.calendar.color
+				)
+				if (!row.calendar.isVisible) {
+					Icon(
+						imageVector = Icons.Default.VisibilityOff,
+						contentDescription = stringResource(R.string.label_calendar_hidden),
+						tint = MaterialTheme.colorScheme.onSurfaceVariant,
+						modifier = Modifier.size(16.dp)
+					)
+				}
+			}
 			Spacer(modifier = Modifier.height(6.dp))
 			Text(
 				text = stringResource(R.string.text_events, row.eventCount),

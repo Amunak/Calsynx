@@ -63,7 +63,7 @@ class CalendarSyncWorker(
 
 	private fun buildJobLabel(job: net.amunak.calsynx.data.SyncJob, calendarRepository: CalendarRepository): String {
 		return try {
-			val calendars = calendarRepository.getCalendars(applicationContext)
+			val calendars = calendarRepository.getCalendars(applicationContext, onlyVisible = false)
 			val calendarById = calendars.associateBy { it.id }
 			val sourceName = sanitizeCalendarName(
 				calendarById[job.sourceCalendarId]?.displayName

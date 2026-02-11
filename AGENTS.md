@@ -18,3 +18,7 @@
 ## Communication
 - Be concise and actionable.
 - Ask questions when unsure.
+
+## Project Preferences
+- Prioritize correctness fixes and refactors that improve code separation and Material best practices.
+- Hidden calendars should be selectable and marked with a visibility-off icon in selection/management lists.

@@ -24,6 +24,7 @@
 
 	<string name="label_actions">Actions</string>
 	<string name="label_calendar_access_required">Calendar access is required to list calendars and sync events.</string>
+	<string name="label_calendar_hidden">Hidden calendar</string>
 	<string name="label_calendar_management">Calendar management</string>
 	<string name="label_calendar_name">Calendar name</string>
 	<string name="label_create_calendar">Create calendar</string>

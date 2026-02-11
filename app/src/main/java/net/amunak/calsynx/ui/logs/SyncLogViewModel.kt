@@ -107,7 +107,7 @@ class SyncLogViewModel(app: Application) : AndroidViewModel(app) {
 
 	private suspend fun buildJobSummary(context: Context): String {
 		return try {
-			val calendars = calendarRepository.getCalendars(context)
+			val calendars = calendarRepository.getCalendars(context, onlyVisible = false)
 			val calendarById = calendars.associateBy { it.id }
 			val jobs = jobRepository.getAll()
 			if (jobs.isEmpty()) {
