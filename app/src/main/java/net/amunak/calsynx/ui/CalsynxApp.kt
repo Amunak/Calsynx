@@ -32,7 +32,8 @@ import net.amunak.calsynx.ui.theme.CalsynxTheme
 enum class AppScreen {
 	SyncJobs,
 	CalendarManagement,
-	CalendarDetail
+	CalendarDetail,
+	SyncLogs
 }
 
 @Composable
@@ -41,6 +42,8 @@ fun CalsynxAppRoute() {
 	val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 	val calendarViewModel: CalendarManagementViewModel = viewModel()
 	val calendarState by calendarViewModel.uiState.collectAsStateWithLifecycle()
+	val logViewModel: net.amunak.calsynx.ui.logs.SyncLogViewModel = viewModel()
+	val logState by logViewModel.uiState.collectAsStateWithLifecycle()
 	val context = LocalContext.current
 	var currentScreen by rememberSaveable { mutableStateOf(AppScreen.SyncJobs) }
 
@@ -88,6 +91,7 @@ fun CalsynxAppRoute() {
 			viewModel.deleteJob(job)
 			calendarViewModel.refreshCalendars()
 		},
+		onDeleteSyncedTargets = viewModel::deleteSyncedTargets,
 		onManualSync = viewModel::runManualSync,
 		onRefreshCalendarsManagement = calendarViewModel::refreshCalendars,
 		onSelectCalendar = {
@@ -99,9 +103,15 @@ fun CalsynxAppRoute() {
 		onUpdateCalendarColor = calendarViewModel::updateCalendarColor,
 		onPurgeCalendar = calendarViewModel::purgeCalendar,
 		onDeleteCalendar = calendarViewModel::deleteCalendar,
-		onCreateCalendar = calendarViewModel::createCalendar,
-		onCalendarToastShown = calendarViewModel::clearToast
-	)
+	onCreateCalendar = calendarViewModel::createCalendar,
+	onCalendarToastShown = calendarViewModel::clearToast,
+	onOpenLogs = { currentScreen = AppScreen.SyncLogs },
+	logState = logState,
+	onClearLogToast = logViewModel::clearToast,
+	onClearLogs = logViewModel::clearLogs,
+	onShareLogs = logViewModel::shareLogs,
+	onRefreshLogs = logViewModel::loadLogs
+)
 }
 
 @Composable
@@ -116,6 +126,7 @@ fun CalsynxApp(
 	onUpdateJob: (SyncJob, Int, Int, Boolean, Int) -> Unit,
 	onToggleActive: (SyncJob, Boolean) -> Unit,
 	onDeleteJob: (SyncJob) -> Unit,
+	onDeleteSyncedTargets: (SyncJob) -> Unit,
 	onManualSync: (SyncJob) -> Unit,
 	onRefreshCalendarsManagement: () -> Unit,
 	onSelectCalendar: (Long) -> Unit,
@@ -125,16 +136,27 @@ fun CalsynxApp(
 	onPurgeCalendar: (net.amunak.calsynx.calendar.CalendarInfo) -> Unit,
 	onDeleteCalendar: (net.amunak.calsynx.calendar.CalendarInfo) -> Unit,
 	onCreateCalendar: (String, Int) -> Unit,
-	onCalendarToastShown: () -> Unit
+	onCalendarToastShown: () -> Unit,
+	onOpenLogs: () -> Unit,
+	logState: net.amunak.calsynx.ui.logs.SyncLogUiState,
+	onClearLogToast: () -> Unit,
+	onClearLogs: () -> Unit,
+	onShareLogs: () -> Unit,
+	onRefreshLogs: () -> Unit
 ) {
 	ToastMessage(
 		message = calendarState.toastMessage,
 		onShown = onCalendarToastShown
 	)
+	ToastMessage(
+		message = logState.toastMessage,
+		onShown = onClearLogToast
+	)
 	val screenOrder = listOf(
 		AppScreen.SyncJobs,
 		AppScreen.CalendarManagement,
-		AppScreen.CalendarDetail
+		AppScreen.CalendarDetail,
+		AppScreen.SyncLogs
 	)
 
 	BackHandler(enabled = currentScreen != AppScreen.SyncJobs) {
@@ -144,6 +166,7 @@ fun CalsynxApp(
 				onNavigate(AppScreen.CalendarManagement)
 			}
 			AppScreen.CalendarManagement -> onNavigate(AppScreen.SyncJobs)
+			AppScreen.SyncLogs -> onNavigate(AppScreen.SyncJobs)
 			AppScreen.SyncJobs -> Unit
 		}
 	}
@@ -169,8 +192,10 @@ fun CalsynxApp(
 					onUpdateJob = onUpdateJob,
 					onToggleActive = onToggleActive,
 					onDeleteJob = onDeleteJob,
+					onDeleteSyncedTargets = onDeleteSyncedTargets,
 					onManualSync = onManualSync,
-					onOpenCalendarManagement = { onNavigate(AppScreen.CalendarManagement) }
+					onOpenCalendarManagement = { onNavigate(AppScreen.CalendarManagement) },
+					onOpenLogs = onOpenLogs
 				)
 			}
 			AppScreen.CalendarManagement -> {
@@ -193,6 +218,15 @@ fun CalsynxApp(
 					onUpdateColor = onUpdateCalendarColor,
 					onPurge = onPurgeCalendar,
 					onDelete = onDeleteCalendar
+				)
+			}
+			AppScreen.SyncLogs -> {
+				net.amunak.calsynx.ui.logs.SyncLogScreen(
+					state = logState,
+					onBack = { onNavigate(AppScreen.SyncJobs) },
+					onClearLogs = onClearLogs,
+					onShareLogs = onShareLogs,
+					onRefresh = onRefreshLogs
 				)
 			}
 		}
@@ -218,6 +252,7 @@ private fun CalsynxAppPreview() {
 			onUpdateJob = { _, _, _, _, _ -> },
 			onToggleActive = { _, _ -> },
 			onDeleteJob = {},
+			onDeleteSyncedTargets = {},
 			onManualSync = {},
 			onRefreshCalendarsManagement = {},
 			onSelectCalendar = {},
@@ -227,7 +262,13 @@ private fun CalsynxAppPreview() {
 			onPurgeCalendar = {},
 			onDeleteCalendar = {},
 			onCreateCalendar = { _, _ -> },
-			onCalendarToastShown = {}
+			onCalendarToastShown = {},
+			onOpenLogs = {},
+			logState = net.amunak.calsynx.ui.logs.SyncLogUiState(),
+			onClearLogToast = {},
+			onClearLogs = {},
+			onShareLogs = {},
+			onRefreshLogs = {}
 		)
 	}
 }

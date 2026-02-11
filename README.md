@@ -14,6 +14,8 @@ you should still probably use a separate calendar for the sync outside of your m
 - Creates sync jobs that copy events from a source calendar into a target calendar.
 - Tracks the last sync time, counts, and any errors per job.
 - Provides convenient calendar management (create local calendars, rename, recolor, purge, delete).
+- Runs background sync for active jobs using WorkManager with a flex window (about one-third of the interval) so Android can batch work.
+- Sync jobs include a "purge synced events" action to remove only events previously created by Calsynx (as a recovery measure).
 
 ### Sync behavior (one-way copy)
 - Source events are copied into the target calendar; target-only events are ignored.

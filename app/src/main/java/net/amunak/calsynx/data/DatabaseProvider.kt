@@ -16,23 +16,9 @@ object DatabaseProvider {
 				AppDatabase::class.java,
 				"calsynx.db"
 			)
-				.addMigrations(
-					MIGRATION_4_5,
-					MIGRATION_5_6
-				)
+				.addMigrations(MIGRATION_5_6)
 				.build()
 				.also { instance = it }
-		}
-	}
-
-	private val MIGRATION_4_5 = object : Migration(4, 5) {
-		override fun migrate(db: SupportSQLiteDatabase) {
-			db.execSQL(
-				"""
-				ALTER TABLE sync_jobs
-				ADD COLUMN syncAllEvents INTEGER NOT NULL DEFAULT 0
-				""".trimIndent()
-			)
 		}
 	}
 

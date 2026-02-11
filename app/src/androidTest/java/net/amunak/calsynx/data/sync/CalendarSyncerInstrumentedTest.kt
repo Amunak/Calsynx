@@ -170,6 +170,28 @@ class CalendarSyncerInstrumentedTest {
 		assertEquals(1, queryEvents(resolver, targetId).size)
 	}
 
+	@Test
+	fun deleteSyncedTargetsRemovesMappedEvents() = runBlockingTest {
+		val mappingDao = InMemoryEventMappingDao()
+		val syncer = CalendarSyncer(resolver, mappingDao, eventsUri)
+		val sourceId = 14L
+		val targetId = 24L
+
+		insertEvent(
+			resolver,
+			sourceId,
+			eventValues(title = "Cleanup", startMillis = 1_000L, endMillis = 2_000L)
+		)
+		syncer.sync(syncJob(sourceId, targetId), SyncWindow(0L, 10_000L))
+		assertEquals(1, queryEvents(resolver, targetId).size)
+		assertEquals(1, mappingDao.countForJob(sourceId, targetId))
+
+		val deleted = syncer.deleteSyncedTargets(syncJob(sourceId, targetId))
+		assertEquals(1, deleted)
+		assertEquals(0, queryEvents(resolver, targetId).size)
+		assertEquals(0, mappingDao.countForJob(sourceId, targetId))
+	}
+
 	private fun syncJob(sourceId: Long, targetId: Long): SyncJob {
 		return SyncJob(
 			id = 1L,

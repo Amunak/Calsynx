@@ -33,6 +33,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Icon
@@ -55,8 +56,10 @@ fun SyncJobScreen(
 	onUpdateJob: (SyncJob, Int, Int, Boolean, Int) -> Unit,
 	onToggleActive: (SyncJob, Boolean) -> Unit,
 	onDeleteJob: (SyncJob) -> Unit,
+	onDeleteSyncedTargets: (SyncJob) -> Unit,
 	onManualSync: (SyncJob) -> Unit,
-	onOpenCalendarManagement: () -> Unit
+	onOpenCalendarManagement: () -> Unit,
+	onOpenLogs: () -> Unit
 ) {
 	var showDialog by remember { mutableStateOf(false) }
 	var editingJob by remember { mutableStateOf<SyncJob?>(null) }
@@ -89,6 +92,12 @@ fun SyncJobScreen(
 				},
 				actions = {
 					if (uiState.hasCalendarPermission) {
+						IconButton(onClick = onOpenLogs) {
+							Icon(
+								imageVector = Icons.Default.BugReport,
+								contentDescription = stringResource(R.string.label_view_logs)
+							)
+						}
 						IconButton(onClick = onOpenCalendarManagement) {
 							Icon(
 								imageVector = Icons.Default.Settings,
@@ -229,6 +238,7 @@ fun SyncJobScreen(
 							isSyncing = uiState.syncingJobIds.contains(job.id),
 							onToggleActive = onToggleActive,
 							onDeleteJob = onDeleteJob,
+							onDeleteSyncedTargets = onDeleteSyncedTargets,
 							onEditJob = {
 								editingJob = job
 								showDialog = true
@@ -276,8 +286,10 @@ private fun SyncJobScreenPreview() {
 			onUpdateJob = { _, _, _, _, _ -> },
 			onToggleActive = { _, _ -> },
 			onDeleteJob = {},
+			onDeleteSyncedTargets = {},
 			onManualSync = {},
-			onOpenCalendarManagement = {}
+			onOpenCalendarManagement = {},
+			onOpenLogs = {}
 		)
 	}
 }

@@ -281,6 +281,21 @@ class CalendarSyncer(
 		return deleted
 	}
 
+	suspend fun deleteSyncedTargets(job: SyncJob): Int {
+		val mappings = mappingDao.getForJob(job.sourceCalendarId, job.targetCalendarId)
+		if (mappings.isEmpty()) return 0
+		val targetIds = mappings.map { it.targetEventId }
+		val deleted = deleteTargets(targetIds)
+		mappingDao.deleteByIds(mappings.map { it.id })
+		if (deleted < targetIds.size) {
+			Log.w(
+				TAG,
+				"Deleted $deleted of ${targetIds.size} synced targets for job ${job.id}"
+			)
+		}
+		return deleted
+	}
+
 	private fun toContentValues(
 		targetCalendarId: Long?,
 		source: SourceEvent,

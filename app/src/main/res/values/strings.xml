@@ -7,8 +7,10 @@
 	<string name="action_close">Close</string>
 	<string name="action_create">Create</string>
 	<string name="action_delete">Delete</string>
+	<string name="action_purge_synced">Purge synced events</string>
 	<string name="action_delete_calendar">Delete calendar</string>
 	<string name="action_edit">Edit</string>
+	<string name="action_refresh">Refresh</string>
 	<string name="action_grant_permissions">Grant permissions</string>
 	<string name="action_pause">Pause</string>
 	<string name="action_purge_events">Purge all events</string>
@@ -16,6 +18,8 @@
 	<string name="action_resume">Resume</string>
 	<string name="action_save">Save</string>
 	<string name="action_sync">Sync</string>
+	<string name="action_share">Share</string>
+	<string name="action_clear_logs">Clear logs</string>
 	<string name="action_update">Update</string>
 
 	<string name="label_actions">Actions</string>
@@ -34,15 +38,18 @@
 	<string name="label_no_actions_available">No actions available for this calendar.</string>
 	<string name="label_no_calendars_available">No calendars available.</string>
 	<string name="label_no_sync_jobs">No sync jobs yet. Tap + to create one.</string>
+	<string name="label_no_logs">No sync logs yet.</string>
 	<string name="label_past_days">Past days</string>
 	<string name="label_permissions_limited">Some actions are unavailable due to calendar permissions.</string>
 	<string name="label_select">Select</string>
+	<string name="label_share_logs">Share sync logs</string>
 	<string name="label_source_calendar">Source calendar</string>
 	<string name="label_sync_frequency">Sync frequency</string>
 	<string name="label_sync_jobs">Sync jobs</string>
 	<string name="label_sync_window_hint">Only events inside the sync window are kept in sync.</string>
 	<string name="label_sync_all_events">Sync all events</string>
 	<string name="label_target_calendar">Target calendar</string>
+	<string name="label_view_logs">Sync logs</string>
 	<string name="label_window_days_suffix">days</string>
 	<string name="label_sync_job_base_color">Sync job base color</string>
 
@@ -51,10 +58,13 @@
 	<string name="message_calendar_delete">Delete "%1$s" and all its events. Any sync mappings to this calendar will be lost.</string>
 	<string name="message_calendar_purge">This will delete all events in "%1$s" and cannot be undone.</string>
 	<string name="message_delete_sync_job">Delete the sync between "%1$s" and "%2$s"? This removes the job, forgets previous mappings, and stops syncing.</string>
+	<string name="message_purge_synced_events">Purge synced events from "%1$s" → "%2$s"? This only removes events created by Calsynx and forgets their mapping.</string>
+	<string name="message_purge_synced_failed">Unable to purge synced events.</string>
 	<string name="message_failed_load_calendars">Failed to load calendars.</string>
 	<string name="message_no_calendars_available">No calendars available.</string>
 	<string name="message_saved">Saved.</string>
 	<string name="message_sync_error">Sync failed.</string>
+	<string name="message_share_logs_failed">Unable to share logs.</string>
 	<string name="message_unknown_calendar">Unknown (%1$d)</string>
 	<string name="message_unable_change_color">Unable to change calendar color.</string>
 	<string name="message_unable_create_calendar">Unable to create calendar.</string>
@@ -73,10 +83,12 @@
 	<string name="title_create_calendar">Create calendar</string>
 	<string name="title_delete_calendar">Delete calendar?</string>
 	<string name="title_delete_sync_job">Delete sync job?</string>
+	<string name="title_purge_synced_events">Purge synced events?</string>
 	<string name="title_edit_sync_job">Edit sync job</string>
 	<string name="title_purge_calendar">Purge all events?</string>
 	<string name="title_rename_calendar">Rename calendar</string>
 	<string name="title_select_color">Select color</string>
+	<string name="title_sync_logs">Sync logs</string>
 
 	<string name="text_account_label">Account: %1$s</string>
 	<string name="text_access_level_label">Access level: %1$s</string>
@@ -108,7 +120,6 @@
 	<string name="frequency_daily">Daily</string>
 	<string name="frequency_weekly">Weekly</string>
 	<string name="frequency_monthly">Monthly</string>
-	<string name="frequency_every_5_minutes">Every 5 minutes</string>
 	<string name="frequency_every_15_minutes">Every 15 minutes</string>
 	<string name="frequency_every_30_minutes">Every 30 minutes</string>
 	<string name="frequency_every_2_hours">Every 2 hours</string>

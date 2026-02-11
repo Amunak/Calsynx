@@ -17,6 +17,9 @@ import net.amunak.calsynx.data.SyncJob
 import net.amunak.calsynx.data.repository.CalendarRepository
 import net.amunak.calsynx.data.repository.SyncJobRepository
 import net.amunak.calsynx.data.sync.CalendarSyncer
+import net.amunak.calsynx.data.sync.SyncJobScheduler
+import net.amunak.calsynx.ui.logs.SyncLogStore
+import net.amunak.calsynx.ui.components.sanitizeCalendarName
 import net.amunak.calsynx.domain.CreateSyncJobUseCase
 import net.amunak.calsynx.domain.DeleteSyncJobUseCase
 import net.amunak.calsynx.domain.ObserveSyncJobsUseCase
@@ -55,6 +58,8 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 		calendarSyncer,
 		updateSyncStats
 	)
+	private val scheduler = SyncJobScheduler(app)
+	private val logStore = SyncLogStore(app)
 
 	private val calendars = MutableStateFlow<List<CalendarInfo>>(emptyList())
 	private val hasCalendarPermission = MutableStateFlow(false)
@@ -91,6 +96,16 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 			errorMessage = aux.errorMessage
 		)
 	}.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SyncJobUiState())
+
+	init {
+		viewModelScope.launch(Dispatchers.IO) {
+			try {
+				scheduler.scheduleAll(syncJobRepository.getAll())
+			} catch (e: RuntimeException) {
+				Log.e(TAG, "Failed to schedule background sync jobs", e)
+			}
+		}
+	}
 
 	fun onPermissionChanged(hasPermission: Boolean) {
 		hasCalendarPermission.value = hasPermission
@@ -162,7 +177,19 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 					syncAllEvents = syncAllEvents,
 					frequencyMinutes = frequencyMinutes
 				)
-			)
+			).also { id ->
+				val job = SyncJob(
+					id = id,
+					sourceCalendarId = sourceId,
+					targetCalendarId = targetId,
+					windowPastDays = pastDays,
+					windowFutureDays = futureDays,
+					syncAllEvents = syncAllEvents,
+					frequencyMinutes = frequencyMinutes
+				)
+				scheduler.schedule(job)
+				scheduler.enqueueImmediate(job)
+			}
 		}
 	}
 
@@ -174,26 +201,48 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 		frequencyMinutes: Int
 	) {
 		viewModelScope.launch(Dispatchers.IO) {
-			updateSyncJob(
-				job.copy(
-					windowPastDays = pastDays,
-					windowFutureDays = futureDays,
-					syncAllEvents = syncAllEvents,
-					frequencyMinutes = frequencyMinutes
-				)
+			val updated = job.copy(
+				windowPastDays = pastDays,
+				windowFutureDays = futureDays,
+				syncAllEvents = syncAllEvents,
+				frequencyMinutes = frequencyMinutes
 			)
+			updateSyncJob(updated)
+			scheduler.schedule(updated)
 		}
 	}
 
 	fun setJobActive(job: SyncJob, isActive: Boolean) {
 		viewModelScope.launch(Dispatchers.IO) {
-			updateSyncJob(job.copy(isActive = isActive))
+			val updated = job.copy(isActive = isActive)
+			updateSyncJob(updated)
+			scheduler.schedule(updated)
 		}
 	}
 
 	fun deleteJob(job: SyncJob) {
 		viewModelScope.launch(Dispatchers.IO) {
 			deleteSyncJob(job)
+			scheduler.cancel(job.id)
+		}
+	}
+
+	fun deleteSyncedTargets(job: SyncJob) {
+		viewModelScope.launch(Dispatchers.IO) {
+			errorMessage.value = null
+			try {
+				val deleted = calendarSyncer.deleteSyncedTargets(job)
+				logStore.append("Purged $deleted synced events for ${jobLabel(job)}")
+				if (deleted == 0) {
+					Log.i(TAG, "No synced targets to delete for job ${job.id}")
+				}
+			} catch (e: SecurityException) {
+				Log.e(TAG, "Calendar permission denied while deleting synced targets", e)
+				errorMessage.value = app.getString(R.string.message_calendar_permission_denied)
+			} catch (e: RuntimeException) {
+				Log.e(TAG, "Failed to delete synced targets for job ${job.id}", e)
+				errorMessage.value = app.getString(R.string.message_purge_synced_failed)
+			}
 		}
 	}
 
@@ -203,13 +252,16 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 			errorMessage.value = null
 			try {
 				runManualSync.invoke(job)
+				logStore.append("Manual sync completed for ${jobLabel(job)}")
 			} catch (e: SecurityException) {
 				Log.e(TAG, "Calendar permission denied during manual sync", e)
+				logStore.append("Manual sync permission denied for ${jobLabel(job)}")
 				val message = app.getString(R.string.message_calendar_permission_denied)
 				updateSyncError(job, message)
 				errorMessage.value = message
 			} catch (e: RuntimeException) {
 				Log.e(TAG, "Manual sync failed", e)
+				logStore.append("Manual sync failed for ${jobLabel(job)}: ${e.message ?: "unknown error"}")
 				val message = app.getString(R.string.message_sync_error)
 				updateSyncError(job, message)
 				errorMessage.value = message
@@ -217,6 +269,19 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 				syncingJobIds.value = syncingJobIds.value - job.id
 			}
 		}
+	}
+
+	private fun jobLabel(job: SyncJob): String {
+		val calendarById = calendars.value.associateBy { it.id }
+		val sourceName = sanitizeCalendarName(
+			calendarById[job.sourceCalendarId]?.displayName
+				?: "Unknown (${job.sourceCalendarId})"
+		)
+		val targetName = sanitizeCalendarName(
+			calendarById[job.targetCalendarId]?.displayName
+				?: "Unknown (${job.targetCalendarId})"
+		)
+		return "job ${job.id} ($sourceName → $targetName)"
 	}
 
 	companion object {

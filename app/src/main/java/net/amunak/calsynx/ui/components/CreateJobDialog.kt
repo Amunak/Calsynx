@@ -484,7 +484,6 @@ data class FrequencyOption(
 
 private fun frequencyOptions(): List<FrequencyOption> {
 	return listOf(
-		FrequencyOption(5, R.string.frequency_every_5_minutes),
 		FrequencyOption(15, R.string.frequency_every_15_minutes),
 		FrequencyOption(30, R.string.frequency_every_30_minutes),
 		FrequencyOption(60, R.string.frequency_hourly),

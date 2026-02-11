@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.LayersClear
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
@@ -68,11 +69,13 @@ fun SyncJobRow(
 	isSyncing: Boolean,
 	onToggleActive: (SyncJob, Boolean) -> Unit,
 	onDeleteJob: (SyncJob) -> Unit,
+	onDeleteSyncedTargets: (SyncJob) -> Unit,
 	onEditJob: (SyncJob) -> Unit,
 	onManualSync: (SyncJob) -> Unit
 ) {
 	var menuExpanded by remember { mutableStateOf(false) }
 	var showDeleteConfirm by remember { mutableStateOf(false) }
+	var showDeleteSyncedConfirm by remember { mutableStateOf(false) }
 	val pulse = remember { Animatable(0f) }
 	var pulseTrigger by remember { mutableStateOf(0) }
 	val resources = LocalContext.current.resources
@@ -261,6 +264,16 @@ fun SyncJobRow(
 								}
 							)
 							DropdownMenuItem(
+								text = { Text(stringResource(R.string.action_purge_synced)) },
+								leadingIcon = {
+									Icon(Icons.Default.LayersClear, contentDescription = null)
+								},
+								onClick = {
+									menuExpanded = false
+									showDeleteSyncedConfirm = true
+								}
+							)
+							DropdownMenuItem(
 								text = { Text(stringResource(R.string.action_delete)) },
 								leadingIcon = {
 									Icon(Icons.Default.Delete, contentDescription = null)
@@ -331,6 +344,37 @@ fun SyncJobRow(
 			}
 		)
 	}
+
+	if (showDeleteSyncedConfirm) {
+		AlertDialog(
+			onDismissRequest = { showDeleteSyncedConfirm = false },
+			title = { Text(stringResource(R.string.title_purge_synced_events)) },
+			text = {
+				Text(
+					stringResource(
+						R.string.message_purge_synced_events,
+						displaySourceName,
+						displayTargetName
+					)
+				)
+			},
+			confirmButton = {
+				TextButton(
+					onClick = {
+						showDeleteSyncedConfirm = false
+						onDeleteSyncedTargets(job)
+					}
+				) {
+					Text(stringResource(R.string.action_delete))
+				}
+			},
+			dismissButton = {
+				TextButton(onClick = { showDeleteSyncedConfirm = false }) {
+					Text(stringResource(R.string.action_cancel))
+				}
+			}
+		)
+	}
 }
 
 @Composable
@@ -364,6 +408,7 @@ private fun SyncJobRowPreview() {
 			isSyncing = false,
 			onToggleActive = { _, _ -> },
 			onDeleteJob = {},
+			onDeleteSyncedTargets = {},
 			onEditJob = {},
 			onManualSync = {}
 		)
