@@ -68,10 +68,26 @@ fun CalsynxAppRoute() {
 			)
 		},
 		onRefreshCalendars = viewModel::refreshCalendars,
-		onCreateJob = viewModel::createJob,
-		onUpdateJob = viewModel::updateJobOptions,
+		onCreateJob = { sourceId, targetId, pastDays, futureDays, syncAllEvents, frequencyMinutes ->
+			viewModel.createJob(
+				sourceId,
+				targetId,
+				pastDays,
+				futureDays,
+				syncAllEvents,
+				frequencyMinutes
+			)
+			calendarViewModel.refreshCalendars()
+		},
+		onUpdateJob = { job, pastDays, futureDays, syncAllEvents, frequencyMinutes ->
+			viewModel.updateJobOptions(job, pastDays, futureDays, syncAllEvents, frequencyMinutes)
+			calendarViewModel.refreshCalendars()
+		},
 		onToggleActive = viewModel::setJobActive,
-		onDeleteJob = viewModel::deleteJob,
+		onDeleteJob = { job ->
+			viewModel.deleteJob(job)
+			calendarViewModel.refreshCalendars()
+		},
 		onManualSync = viewModel::runManualSync,
 		onRefreshCalendarsManagement = calendarViewModel::refreshCalendars,
 		onSelectCalendar = {

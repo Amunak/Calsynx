@@ -91,9 +91,18 @@ class CalendarSyncer(
 			CalendarContract.Events.TITLE,
 			CalendarContract.Events.DTSTART,
 			CalendarContract.Events.DTEND,
+			CalendarContract.Events.DURATION,
 			CalendarContract.Events.ALL_DAY,
 			CalendarContract.Events.EVENT_TIMEZONE,
+			CalendarContract.Events.EVENT_END_TIMEZONE,
 			CalendarContract.Events.RRULE,
+			CalendarContract.Events.EXDATE,
+			CalendarContract.Events.EXRULE,
+			CalendarContract.Events.RDATE,
+			CalendarContract.Events.ORIGINAL_ID,
+			CalendarContract.Events.ORIGINAL_INSTANCE_TIME,
+			CalendarContract.Events.ORIGINAL_ALL_DAY,
+			CalendarContract.Events.STATUS,
 			CalendarContract.Events.EVENT_LOCATION,
 			CalendarContract.Events.DESCRIPTION
 		)
@@ -138,9 +147,20 @@ class CalendarSyncer(
 			val titleIndex = it.getColumnIndexOrThrow(CalendarContract.Events.TITLE)
 			val startIndex = it.getColumnIndexOrThrow(CalendarContract.Events.DTSTART)
 			val endIndex = it.getColumnIndexOrThrow(CalendarContract.Events.DTEND)
+			val durationIndex = it.getColumnIndexOrThrow(CalendarContract.Events.DURATION)
 			val allDayIndex = it.getColumnIndexOrThrow(CalendarContract.Events.ALL_DAY)
 			val tzIndex = it.getColumnIndexOrThrow(CalendarContract.Events.EVENT_TIMEZONE)
+			val endTzIndex = it.getColumnIndexOrThrow(CalendarContract.Events.EVENT_END_TIMEZONE)
 			val rruleIndex = it.getColumnIndexOrThrow(CalendarContract.Events.RRULE)
+			val exdateIndex = it.getColumnIndexOrThrow(CalendarContract.Events.EXDATE)
+			val exruleIndex = it.getColumnIndexOrThrow(CalendarContract.Events.EXRULE)
+			val rdateIndex = it.getColumnIndexOrThrow(CalendarContract.Events.RDATE)
+			val originalIdIndex = it.getColumnIndexOrThrow(CalendarContract.Events.ORIGINAL_ID)
+			val originalInstanceIndex =
+				it.getColumnIndexOrThrow(CalendarContract.Events.ORIGINAL_INSTANCE_TIME)
+			val originalAllDayIndex =
+				it.getColumnIndexOrThrow(CalendarContract.Events.ORIGINAL_ALL_DAY)
+			val statusIndex = it.getColumnIndexOrThrow(CalendarContract.Events.STATUS)
 			val locationIndex = it.getColumnIndexOrThrow(CalendarContract.Events.EVENT_LOCATION)
 			val descriptionIndex = it.getColumnIndexOrThrow(CalendarContract.Events.DESCRIPTION)
 
@@ -152,9 +172,26 @@ class CalendarSyncer(
 						title = it.getString(titleIndex),
 						startMillis = it.getLong(startIndex),
 						endMillis = if (it.isNull(endIndex)) null else it.getLong(endIndex),
+						duration = if (it.isNull(durationIndex)) null else it.getString(durationIndex),
 						allDay = it.getInt(allDayIndex) == 1,
 						timeZone = it.getString(tzIndex),
+						endTimeZone = it.getString(endTzIndex),
 						rrule = it.getString(rruleIndex),
+						exdate = it.getString(exdateIndex),
+						exrule = it.getString(exruleIndex),
+						rdate = it.getString(rdateIndex),
+						originalId = if (it.isNull(originalIdIndex)) null else it.getLong(originalIdIndex),
+						originalInstanceTime = if (it.isNull(originalInstanceIndex)) {
+							null
+						} else {
+							it.getLong(originalInstanceIndex)
+						},
+						originalAllDay = if (it.isNull(originalAllDayIndex)) {
+							null
+						} else {
+							it.getInt(originalAllDayIndex) == 1
+						},
+						status = if (it.isNull(statusIndex)) null else it.getInt(statusIndex),
 						location = it.getString(locationIndex),
 						description = it.getString(descriptionIndex)
 					)
@@ -186,7 +223,7 @@ class CalendarSyncer(
 		targetEventId: Long,
 		source: SourceEvent
 	): Boolean {
-		val values = toContentValues(null, source)
+		val values = toContentValues(null, source, isUpdate = true)
 		val uri = CalendarContract.Events.CONTENT_URI.buildUpon()
 			.appendPath(targetEventId.toString())
 			.build()
@@ -230,7 +267,8 @@ class CalendarSyncer(
 
 	private fun toContentValues(
 		targetCalendarId: Long?,
-		source: SourceEvent
+		source: SourceEvent,
+		isUpdate: Boolean = false
 	): ContentValues {
 		return ContentValues().apply {
 			if (targetCalendarId != null) {
@@ -238,17 +276,44 @@ class CalendarSyncer(
 			}
 			put(CalendarContract.Events.TITLE, source.title)
 			put(CalendarContract.Events.DTSTART, source.startMillis)
-			if (source.endMillis != null) {
+			if (!source.duration.isNullOrBlank()) {
+				put(CalendarContract.Events.DURATION, source.duration)
+				if (!isUpdate) {
+					putNull(CalendarContract.Events.DTEND)
+				}
+			} else if (source.endMillis != null) {
 				put(CalendarContract.Events.DTEND, source.endMillis)
-				putNull(CalendarContract.Events.DURATION)
+				if (!isUpdate) {
+					putNull(CalendarContract.Events.DURATION)
+				}
 			} else {
-				putNull(CalendarContract.Events.DTEND)
 				val defaultDuration = if (source.allDay) "P1D" else "PT1H"
-				put(CalendarContract.Events.DURATION, defaultDuration)
+				if (isUpdate) {
+					put(CalendarContract.Events.DURATION, defaultDuration)
+				} else {
+					putNull(CalendarContract.Events.DTEND)
+					put(CalendarContract.Events.DURATION, defaultDuration)
+				}
 			}
 			put(CalendarContract.Events.ALL_DAY, if (source.allDay) 1 else 0)
 			put(CalendarContract.Events.EVENT_TIMEZONE, source.timeZone)
+			put(CalendarContract.Events.EVENT_END_TIMEZONE, source.endTimeZone)
 			put(CalendarContract.Events.RRULE, source.rrule)
+			put(CalendarContract.Events.EXDATE, source.exdate)
+			put(CalendarContract.Events.EXRULE, source.exrule)
+			put(CalendarContract.Events.RDATE, source.rdate)
+			if (source.originalId != null) {
+				put(CalendarContract.Events.ORIGINAL_ID, source.originalId)
+			}
+			if (source.originalInstanceTime != null) {
+				put(CalendarContract.Events.ORIGINAL_INSTANCE_TIME, source.originalInstanceTime)
+			}
+			if (source.originalAllDay != null) {
+				put(CalendarContract.Events.ORIGINAL_ALL_DAY, if (source.originalAllDay) 1 else 0)
+			}
+			if (source.status != null) {
+				put(CalendarContract.Events.STATUS, source.status)
+			}
 			put(CalendarContract.Events.EVENT_LOCATION, source.location)
 			put(CalendarContract.Events.DESCRIPTION, source.description)
 		}
@@ -320,9 +385,18 @@ private data class SourceEvent(
 	val title: String?,
 	val startMillis: Long,
 	val endMillis: Long?,
+	val duration: String?,
 	val allDay: Boolean,
 	val timeZone: String?,
+	val endTimeZone: String?,
 	val rrule: String?,
+	val exdate: String?,
+	val exrule: String?,
+	val rdate: String?,
+	val originalId: Long?,
+	val originalInstanceTime: Long?,
+	val originalAllDay: Boolean?,
+	val status: Int?,
 	val location: String?,
 	val description: String?
 )
