@@ -19,6 +19,7 @@ data class SyncJob(
 	val lastSyncDeleted: Int = 0,
 	val lastSyncSourceCount: Int = 0,
 	val lastSyncTargetCount: Int = 0,
+	val lastSyncUnpairedTargetCount: Int = 0,
 	val lastSyncError: String? = null,
 	val isActive: Boolean = true
 )

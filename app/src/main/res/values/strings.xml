@@ -90,6 +90,7 @@
 	<string name="text_type_label">Type: %1$s</string>
 	<string name="text_sync_window">%1$dd back · %2$dd ahead</string>
 	<string name="text_sync_window_all">All events</string>
+	<string name="text_unpaired_target">Unpaired in target: %1$d</string>
 
 	<string name="text_on_device">On device</string>
 	<string name="text_external">External</string>

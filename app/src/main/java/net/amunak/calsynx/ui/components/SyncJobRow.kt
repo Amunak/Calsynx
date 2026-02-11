@@ -154,6 +154,17 @@ fun SyncJobRow(
 				style = MaterialTheme.typography.bodySmall,
 				color = MaterialTheme.colorScheme.onSurfaceVariant
 			)
+			if (job.lastSyncUnpairedTargetCount > 0) {
+				Spacer(modifier = Modifier.height(4.dp))
+				Text(
+					text = stringResource(
+						R.string.text_unpaired_target,
+						job.lastSyncUnpairedTargetCount
+					),
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.onSurfaceVariant
+				)
+			}
 			job.lastSyncError?.let { error ->
 				Spacer(modifier = Modifier.height(4.dp))
 				Text(

@@ -47,6 +47,7 @@ class UpdateSyncStatsUseCase(
 	private val repository: SyncJobRepository
 ) {
 	suspend operator fun invoke(job: SyncJob, result: SyncResult): Long {
+		val unpaired = (result.targetTotalCount - result.targetCount).coerceAtLeast(0)
 		return repository.upsert(
 			job.copy(
 				lastSyncTimestamp = System.currentTimeMillis(),
@@ -55,6 +56,7 @@ class UpdateSyncStatsUseCase(
 				lastSyncDeleted = result.deleted,
 				lastSyncSourceCount = result.sourceCount,
 				lastSyncTargetCount = result.targetCount,
+				lastSyncUnpairedTargetCount = unpaired,
 				lastSyncError = null
 			)
 		)
