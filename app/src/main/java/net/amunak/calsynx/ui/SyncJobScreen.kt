@@ -11,8 +11,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Surface
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -35,7 +36,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.ui.res.stringResource
@@ -126,128 +126,104 @@ fun SyncJobScreen(
 			modifier = Modifier.fillMaxSize(),
 			color = MaterialTheme.colorScheme.surfaceContainerLowest
 		) {
-			Column(
-				modifier = Modifier
-					.fillMaxSize()
-					.padding(padding)
-					.padding(16.dp)
-			) {
 			if (!uiState.hasCalendarPermission) {
-				Text(
-					text = stringResource(R.string.label_calendar_access_required),
-					style = MaterialTheme.typography.bodyMedium
-				)
-				Spacer(modifier = Modifier.height(12.dp))
-				Button(onClick = onRequestPermissions) {
-					Icon(
-						imageVector = Icons.Default.CalendarToday,
-						contentDescription = null
-					)
-					Text(
-						text = stringResource(R.string.action_grant_permissions),
-						modifier = Modifier.padding(start = 6.dp)
-					)
-				}
-				return@Column
-			}
-
-			Text(
-				text = stringResource(R.string.label_sync_jobs),
-				style = MaterialTheme.typography.titleMedium
-			)
-			Spacer(modifier = Modifier.height(4.dp))
-			Surface(
-				modifier = Modifier.fillMaxWidth(),
-				shape = MaterialTheme.shapes.large,
-				tonalElevation = 2.dp,
-				color = MaterialTheme.colorScheme.primaryContainer
-			) {
-				Row(
+				Column(
 					modifier = Modifier
-						.fillMaxWidth()
-						.padding(14.dp),
-					verticalAlignment = Alignment.CenterVertically
+						.fillMaxSize()
+						.padding(padding)
+						.padding(16.dp)
+						.verticalScroll(rememberScrollState())
 				) {
-					Icon(
-						imageVector = Icons.Default.Sync,
-						contentDescription = null,
-						tint = MaterialTheme.colorScheme.onPrimaryContainer
+					Text(
+						text = stringResource(R.string.label_calendar_access_required),
+						style = MaterialTheme.typography.bodyMedium
 					)
-					Column(modifier = Modifier.padding(start = 8.dp)) {
-						Text(
-							text = stringResource(R.string.label_manual_sync_only),
-							style = MaterialTheme.typography.titleSmall,
-							color = MaterialTheme.colorScheme.onPrimaryContainer
+					Spacer(modifier = Modifier.height(12.dp))
+					Button(onClick = onRequestPermissions) {
+						Icon(
+							imageVector = Icons.Default.CalendarToday,
+							contentDescription = null
 						)
 						Text(
-							text = stringResource(R.string.message_background_scheduling_later),
-							style = MaterialTheme.typography.bodySmall,
-							color = MaterialTheme.colorScheme.onPrimaryContainer
+							text = stringResource(R.string.action_grant_permissions),
+							modifier = Modifier.padding(start = 6.dp)
 						)
 					}
 				}
-			}
-
-			uiState.errorMessage?.let { message ->
-				Spacer(modifier = Modifier.height(8.dp))
-				Text(
-					text = message,
-					color = MaterialTheme.colorScheme.error,
-					style = MaterialTheme.typography.bodySmall
-				)
-			}
-
-			Spacer(modifier = Modifier.height(12.dp))
-
-			if (uiState.jobs.isEmpty()) {
-				Text(
-					text = stringResource(R.string.label_no_sync_jobs),
-					style = MaterialTheme.typography.bodyMedium
-				)
 			} else {
 				LazyColumn(
-					modifier = Modifier.fillMaxWidth(),
+					modifier = Modifier
+						.fillMaxSize()
+						.padding(padding),
 					verticalArrangement = Arrangement.spacedBy(12.dp),
-					contentPadding = PaddingValues(bottom = 96.dp)
+					contentPadding = PaddingValues(
+						start = 16.dp,
+						end = 16.dp,
+						top = 16.dp,
+						bottom = 96.dp
+					)
 				) {
-					items(uiState.jobs, key = { it.id }) { job ->
-						val sourceName =
-							sanitizeCalendarName(
-								calendarById[job.sourceCalendarId]?.displayName
-									?: stringResource(
-										R.string.message_unknown_calendar,
-										job.sourceCalendarId
-									)
+					item {
+						Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+							Text(
+								text = stringResource(R.string.label_sync_jobs),
+								style = MaterialTheme.typography.titleMedium
 							)
-						val targetName =
-							sanitizeCalendarName(
-								calendarById[job.targetCalendarId]?.displayName
-									?: stringResource(
-										R.string.message_unknown_calendar,
-										job.targetCalendarId
-									)
+							uiState.errorMessage?.let { message ->
+								Text(
+									text = message,
+									color = MaterialTheme.colorScheme.error,
+									style = MaterialTheme.typography.bodySmall
+								)
+							}
+						}
+					}
+					if (uiState.jobs.isEmpty()) {
+						item {
+							Text(
+								text = stringResource(R.string.label_no_sync_jobs),
+								style = MaterialTheme.typography.bodyMedium
 							)
-						SyncJobRow(
-							job = job,
-							sourceName = sourceName,
-							targetName = targetName,
-							sourceColor = calendarById[job.sourceCalendarId]?.color,
-							targetColor = calendarById[job.targetCalendarId]?.color,
-							isMissingCalendar = calendarById[job.sourceCalendarId] == null
-								|| calendarById[job.targetCalendarId] == null,
-							isSyncing = uiState.syncingJobIds.contains(job.id),
-							onToggleActive = onToggleActive,
-							onDeleteJob = onDeleteJob,
-							onDeleteSyncedTargets = onDeleteSyncedTargets,
-							onEditJob = {
-								editingJob = job
-								showDialog = true
-							},
-							onManualSync = onManualSync
-						)
+						}
+					} else {
+						items(uiState.jobs, key = { it.id }) { job ->
+							val sourceName =
+								sanitizeCalendarName(
+									calendarById[job.sourceCalendarId]?.displayName
+										?: stringResource(
+											R.string.message_unknown_calendar,
+											job.sourceCalendarId
+										)
+								)
+							val targetName =
+								sanitizeCalendarName(
+									calendarById[job.targetCalendarId]?.displayName
+										?: stringResource(
+											R.string.message_unknown_calendar,
+											job.targetCalendarId
+										)
+								)
+							SyncJobRow(
+								job = job,
+								sourceName = sourceName,
+								targetName = targetName,
+								sourceColor = calendarById[job.sourceCalendarId]?.color,
+								targetColor = calendarById[job.targetCalendarId]?.color,
+								isMissingCalendar = calendarById[job.sourceCalendarId] == null
+									|| calendarById[job.targetCalendarId] == null,
+								isSyncing = uiState.syncingJobIds.contains(job.id),
+								onToggleActive = onToggleActive,
+								onDeleteJob = onDeleteJob,
+								onDeleteSyncedTargets = onDeleteSyncedTargets,
+								onEditJob = {
+									editingJob = job
+									showDialog = true
+								},
+								onManualSync = onManualSync
+							)
+						}
 					}
 				}
-			}
 			}
 		}
 	}

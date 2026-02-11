@@ -34,7 +34,6 @@
 	<string name="label_last_error">Last error: %1$s</string>
 	<string name="label_loading_calendars">Loading calendars...</string>
 	<string name="label_decrease">Decrease</string>
-	<string name="label_manual_sync_only">Manual sync only</string>
 	<string name="label_no_actions_available">No actions available for this calendar.</string>
 	<string name="label_no_calendars_available">No calendars available.</string>
 	<string name="label_no_sync_jobs">No sync jobs yet. Tap + to create one.</string>
@@ -53,7 +52,6 @@
 	<string name="label_window_days_suffix">days</string>
 	<string name="label_sync_job_base_color">Sync job base color</string>
 
-	<string name="message_background_scheduling_later">Background scheduling will be added later.</string>
 	<string name="message_calendar_permission_denied">Calendar permission denied.</string>
 	<string name="message_calendar_delete">Delete "%1$s" and all its events. Any sync mappings to this calendar will be lost.</string>
 	<string name="message_calendar_purge">This will delete all events in "%1$s" and cannot be undone.</string>
