@@ -27,50 +27,36 @@ class CalendarSyncer(
 		window: SyncWindow = SyncWindow.fromJob(job)
 	): SyncResult {
 		val sourceEvents = querySourceEvents(job.sourceCalendarId, window, job.syncAllEvents)
-		if (sourceEvents.isEmpty()) {
-			val mappings = mappingDao.getForJob(job.sourceCalendarId, job.targetCalendarId)
-			val deleted = deleteOrphans(job, mappings, emptySet<Long>())
-			val targetCount = mappingDao.countForJob(job.sourceCalendarId, job.targetCalendarId)
-			return SyncResult(
-				created = 0,
-				updated = 0,
-				deleted = deleted,
-				sourceCount = 0,
-				targetCount = targetCount
-			)
-		}
-
-		val sourceIds = sourceEvents.mapTo(LinkedHashSet()) { it.id }
 		val mappings = mappingDao.getForJob(job.sourceCalendarId, job.targetCalendarId)
 		val targetExists = fetchExistingTargetIds(mappings.map { it.targetEventId })
-		val mappingBySource = mappings.associateBy { it.sourceEventId }.toMutableMap()
-		val missingTargets = mappings.filter { !targetExists.contains(it.targetEventId) }
-		if (missingTargets.isNotEmpty()) {
-			mappingDao.deleteByIds(missingTargets.map { it.id })
-			missingTargets.forEach { mappingBySource.remove(it.sourceEventId) }
-			Log.w(TAG, "Removed ${missingTargets.size} mappings with missing target events.")
+		val plan = buildSyncPlan(sourceEvents, mappings, targetExists)
+		if (plan.missingMappingIds.isNotEmpty()) {
+			mappingDao.deleteByIds(plan.missingMappingIds)
+			Log.w(TAG, "Removed ${plan.missingMappingIds.size} mappings with missing target events.")
 		}
 
 		var created = 0
 		var updated = 0
 
-		sourceEvents.forEach { source ->
-			val existingMapping = mappingBySource[source.id]
-			val existingTargetId = existingMapping?.targetEventId
-			if (existingTargetId == null) {
+		if (sourceEvents.isNotEmpty()) {
+			plan.createSources.forEach { source ->
 				val targetId = insertTargetEvent(job.targetCalendarId, source)
 				if (targetId != null) {
-					upsertMapping(job, source.id, targetId, existingMapping?.id)
+					upsertMapping(job, source.id, targetId, null)
 					created += 1
 				}
-			} else {
-				if (updateTargetEvent(existingTargetId, source)) {
+			}
+			plan.updateTargets.forEach { (targetId, source) ->
+				if (updateTargetEvent(targetId, source)) {
 					updated += 1
 				}
 			}
 		}
 
-		val deleted = deleteOrphans(job, mappingBySource.values, sourceIds)
+		val deleted = deleteTargets(plan.orphanTargetIds)
+		if (plan.orphanMappingIds.isNotEmpty()) {
+			mappingDao.deleteByIds(plan.orphanMappingIds)
+		}
 		val targetCount = mappingDao.countForJob(job.sourceCalendarId, job.targetCalendarId)
 		return SyncResult(
 			created = created,
@@ -234,22 +220,9 @@ class CalendarSyncer(
 		return updated
 	}
 
-	private suspend fun deleteOrphans(
-		job: SyncJob,
-		mappings: Collection<EventMapping>,
-		sourceIds: Set<Long>
-	): Int {
-		val toDelete = ArrayList<Long>()
-		val mappingIds = ArrayList<Long>()
-		mappings.forEach { mapping ->
-			if (!sourceIds.contains(mapping.sourceEventId)) {
-				toDelete.add(mapping.targetEventId)
-				mappingIds.add(mapping.id)
-			}
-		}
-
+	private fun deleteTargets(targetIds: List<Long>): Int {
 		var deleted = 0
-		toDelete.forEach { targetId ->
+		targetIds.forEach { targetId ->
 			val uri = CalendarContract.Events.CONTENT_URI.buildUpon()
 				.appendPath(targetId.toString())
 				.build()
@@ -258,9 +231,6 @@ class CalendarSyncer(
 				Log.w(TAG, "Failed to delete target event $targetId")
 			}
 			deleted += result
-		}
-		if (mappingIds.isNotEmpty()) {
-			mappingDao.deleteByIds(mappingIds)
 		}
 		return deleted
 	}
@@ -364,13 +334,61 @@ class CalendarSyncer(
 	}
 }
 
+internal data class SyncPlan(
+	val missingMappingIds: List<Long>,
+	val createSources: List<SourceEvent>,
+	val updateTargets: List<Pair<Long, SourceEvent>>,
+	val orphanTargetIds: List<Long>,
+	val orphanMappingIds: List<Long>
+)
+
+internal fun buildSyncPlan(
+	sourceEvents: List<SourceEvent>,
+	mappings: List<EventMapping>,
+	existingTargetIds: Set<Long>
+): SyncPlan {
+	val mappingBySource = mappings.associateBy { it.sourceEventId }.toMutableMap()
+	val missingTargets = mappings.filter { !existingTargetIds.contains(it.targetEventId) }
+	if (missingTargets.isNotEmpty()) {
+		missingTargets.forEach { mappingBySource.remove(it.sourceEventId) }
+	}
+
+	val createSources = ArrayList<SourceEvent>()
+	val updateTargets = ArrayList<Pair<Long, SourceEvent>>()
+	sourceEvents.forEach { source ->
+		val mapping = mappingBySource[source.id]
+		if (mapping == null) {
+			createSources.add(source)
+		} else {
+			updateTargets.add(mapping.targetEventId to source)
+		}
+	}
+
+	val sourceIds = sourceEvents.mapTo(HashSet()) { it.id }
+	val orphanTargetIds = ArrayList<Long>()
+	val orphanMappingIds = ArrayList<Long>()
+	mappingBySource.values.forEach { mapping ->
+		if (!sourceIds.contains(mapping.sourceEventId)) {
+			orphanTargetIds.add(mapping.targetEventId)
+			orphanMappingIds.add(mapping.id)
+		}
+	}
+
+	return SyncPlan(
+		missingMappingIds = missingTargets.map { it.id },
+		createSources = createSources,
+		updateTargets = updateTargets,
+		orphanTargetIds = orphanTargetIds,
+		orphanMappingIds = orphanMappingIds
+	)
+}
+
 data class SyncWindow(
 	val startMillis: Long,
 	val endMillis: Long
 ) {
 	companion object {
-		fun fromJob(job: SyncJob): SyncWindow {
-			val now = Instant.now()
+		fun fromJob(job: SyncJob, now: Instant = Instant.now()): SyncWindow {
 			val pastDays = job.windowPastDays.coerceAtLeast(0)
 			val futureDays = job.windowFutureDays.coerceAtLeast(0)
 			val start = now.minus(pastDays.toLong(), ChronoUnit.DAYS).toEpochMilli()
@@ -380,7 +398,7 @@ data class SyncWindow(
 	}
 }
 
-private data class SourceEvent(
+internal data class SourceEvent(
 	val id: Long,
 	val title: String?,
 	val startMillis: Long,
