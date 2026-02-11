@@ -42,14 +42,14 @@ class CalendarSyncer(
 
 		if (sourceEvents.isNotEmpty()) {
 			plan.createSources.forEach { source ->
-				val targetId = insertTargetEvent(job.targetCalendarId, source)
+				val targetId = insertTargetEvent(job, job.targetCalendarId, source)
 				if (targetId != null) {
 					upsertMapping(job, source.id, targetId, null)
 					created += 1
 				}
 			}
 			plan.updateTargets.forEach { (targetId, source) ->
-				if (updateTargetEvent(targetId, source)) {
+				if (updateTargetEvent(job, targetId, source)) {
 					updated += 1
 				}
 			}
@@ -94,7 +94,12 @@ class CalendarSyncer(
 			CalendarContract.Events.ORIGINAL_ALL_DAY,
 			CalendarContract.Events.STATUS,
 			CalendarContract.Events.EVENT_LOCATION,
-			CalendarContract.Events.DESCRIPTION
+			CalendarContract.Events.DESCRIPTION,
+			CalendarContract.Events.AVAILABILITY,
+			CalendarContract.Events.ACCESS_LEVEL,
+			CalendarContract.Events.EVENT_COLOR,
+			CalendarContract.Events.ORGANIZER,
+			CalendarContract.Events.OWNER_ACCOUNT
 		)
 		val querySpec = buildEventQuerySpec(
 			calendarId = sourceCalendarId,
@@ -132,6 +137,11 @@ class CalendarSyncer(
 			val statusIndex = it.getColumnIndexOrThrow(CalendarContract.Events.STATUS)
 			val locationIndex = it.getColumnIndexOrThrow(CalendarContract.Events.EVENT_LOCATION)
 			val descriptionIndex = it.getColumnIndexOrThrow(CalendarContract.Events.DESCRIPTION)
+			val availabilityIndex = it.getColumnIndexOrThrow(CalendarContract.Events.AVAILABILITY)
+			val accessIndex = it.getColumnIndexOrThrow(CalendarContract.Events.ACCESS_LEVEL)
+			val colorIndex = it.getColumnIndexOrThrow(CalendarContract.Events.EVENT_COLOR)
+			val organizerIndex = it.getColumnIndexOrThrow(CalendarContract.Events.ORGANIZER)
+			val ownerIndex = it.getColumnIndexOrThrow(CalendarContract.Events.OWNER_ACCOUNT)
 
 			val events = ArrayList<SourceEvent>(it.count)
 			while (it.moveToNext()) {
@@ -162,7 +172,12 @@ class CalendarSyncer(
 						},
 						status = if (it.isNull(statusIndex)) null else it.getInt(statusIndex),
 						location = it.getString(locationIndex),
-						description = it.getString(descriptionIndex)
+						description = it.getString(descriptionIndex),
+						availability = if (it.isNull(availabilityIndex)) null else it.getInt(availabilityIndex),
+						accessLevel = if (it.isNull(accessIndex)) null else it.getInt(accessIndex),
+						eventColor = if (it.isNull(colorIndex)) null else it.getInt(colorIndex),
+						organizer = it.getString(organizerIndex),
+						ownerAccount = it.getString(ownerIndex)
 					)
 				)
 			}
@@ -192,10 +207,11 @@ class CalendarSyncer(
 	}
 
 	private fun insertTargetEvent(
+		job: SyncJob,
 		targetCalendarId: Long,
 		source: SourceEvent
 	): Long? {
-		val values = buildEventContentValues(targetCalendarId, source)
+		val values = buildEventContentValues(job, targetCalendarId, source)
 		val uri = resolver.insert(eventsUri, values)
 		if (uri == null) {
 			Log.w(TAG, "Insert returned null uri for target calendar $targetCalendarId")
@@ -206,22 +222,184 @@ class CalendarSyncer(
 			Log.w(TAG, "Insert returned invalid event uri: $uri")
 			return null
 		}
+		applyReminders(job, source, eventId)
+		applyAttendees(job, source, eventId)
 		return eventId
 	}
 
 	private fun updateTargetEvent(
+		job: SyncJob,
 		targetEventId: Long,
 		source: SourceEvent
 	): Boolean {
-		val values = buildEventContentValues(null, source)
+		val values = buildEventContentValues(job, null, source)
 		val uri = eventsUri.buildUpon()
 			.appendPath(targetEventId.toString())
 			.build()
 		val updated = resolver.update(uri, values, null, null) > 0
 		if (!updated) {
 			Log.w(TAG, "Failed to update target event $targetEventId")
+		} else {
+			if (job.reminderResyncEnabled) {
+				applyReminders(job, source, targetEventId)
+			}
+			applyAttendees(job, source, targetEventId)
 		}
 		return updated
+	}
+
+	private fun applyReminders(job: SyncJob, source: SourceEvent, targetEventId: Long) {
+		when (ReminderMode.from(job.reminderMode)) {
+			ReminderMode.COPY -> {
+				val reminders = queryReminders(source.id)
+				replaceReminders(targetEventId, reminders)
+			}
+			ReminderMode.NONE -> {
+				deleteReminders(targetEventId)
+			}
+			ReminderMode.CUSTOM -> {
+				if (source.allDay) {
+					if (!job.reminderAllDayEnabled) {
+						deleteReminders(targetEventId)
+						return
+					}
+					val minutes = job.reminderAllDayMinutes.coerceAtLeast(0)
+					replaceReminders(
+						targetEventId,
+						listOf(ReminderEntry(minutes, CalendarContract.Reminders.METHOD_ALERT))
+					)
+				} else {
+					if (!job.reminderTimedEnabled) {
+						deleteReminders(targetEventId)
+						return
+					}
+					val minutes = job.reminderTimedMinutes.coerceAtLeast(0)
+					replaceReminders(
+						targetEventId,
+						listOf(ReminderEntry(minutes, CalendarContract.Reminders.METHOD_ALERT))
+					)
+				}
+			}
+		}
+	}
+
+	private fun applyAttendees(job: SyncJob, source: SourceEvent, targetEventId: Long) {
+		if (!job.copyAttendees) return
+		val attendees = queryAttendees(source.id)
+		replaceAttendees(targetEventId, attendees)
+	}
+
+	private fun queryReminders(eventId: Long): List<ReminderEntry> {
+		val cursor = resolver.query(
+			CalendarContract.Reminders.CONTENT_URI,
+			arrayOf(CalendarContract.Reminders.MINUTES, CalendarContract.Reminders.METHOD),
+			"${CalendarContract.Reminders.EVENT_ID} = ?",
+			arrayOf(eventId.toString()),
+			null
+		) ?: return emptyList()
+		return cursor.use {
+			val minutesIndex = it.getColumnIndexOrThrow(CalendarContract.Reminders.MINUTES)
+			val methodIndex = it.getColumnIndexOrThrow(CalendarContract.Reminders.METHOD)
+			val reminders = ArrayList<ReminderEntry>(it.count)
+			while (it.moveToNext()) {
+				reminders.add(
+					ReminderEntry(
+						minutes = it.getInt(minutesIndex),
+						method = it.getInt(methodIndex)
+					)
+				)
+			}
+			reminders
+		}
+	}
+
+	private fun replaceReminders(eventId: Long, reminders: List<ReminderEntry>) {
+		deleteReminders(eventId)
+		reminders.forEach { reminder ->
+			val values = ContentValues().apply {
+				put(CalendarContract.Reminders.EVENT_ID, eventId)
+				put(CalendarContract.Reminders.MINUTES, reminder.minutes)
+				put(CalendarContract.Reminders.METHOD, reminder.method)
+			}
+			resolver.insert(CalendarContract.Reminders.CONTENT_URI, values)
+		}
+	}
+
+	private fun deleteReminders(eventId: Long) {
+		resolver.delete(
+			CalendarContract.Reminders.CONTENT_URI,
+			"${CalendarContract.Reminders.EVENT_ID} = ?",
+			arrayOf(eventId.toString())
+		)
+	}
+
+	private fun queryAttendees(eventId: Long): List<AttendeeEntry> {
+		val cursor = resolver.query(
+			CalendarContract.Attendees.CONTENT_URI,
+			arrayOf(
+				CalendarContract.Attendees.ATTENDEE_NAME,
+				CalendarContract.Attendees.ATTENDEE_EMAIL,
+				CalendarContract.Attendees.ATTENDEE_TYPE,
+				CalendarContract.Attendees.ATTENDEE_RELATIONSHIP,
+				CalendarContract.Attendees.ATTENDEE_STATUS,
+				CalendarContract.Attendees.ATTENDEE_IDENTITY,
+				CalendarContract.Attendees.ATTENDEE_ID_NAMESPACE
+			),
+			"${CalendarContract.Attendees.EVENT_ID} = ?",
+			arrayOf(eventId.toString()),
+			null
+		) ?: return emptyList()
+		return cursor.use {
+			val nameIndex = it.getColumnIndexOrThrow(CalendarContract.Attendees.ATTENDEE_NAME)
+			val emailIndex = it.getColumnIndexOrThrow(CalendarContract.Attendees.ATTENDEE_EMAIL)
+			val typeIndex = it.getColumnIndexOrThrow(CalendarContract.Attendees.ATTENDEE_TYPE)
+			val relationshipIndex =
+				it.getColumnIndexOrThrow(CalendarContract.Attendees.ATTENDEE_RELATIONSHIP)
+			val statusIndex = it.getColumnIndexOrThrow(CalendarContract.Attendees.ATTENDEE_STATUS)
+			val identityIndex = it.getColumnIndexOrThrow(CalendarContract.Attendees.ATTENDEE_IDENTITY)
+			val namespaceIndex =
+				it.getColumnIndexOrThrow(CalendarContract.Attendees.ATTENDEE_ID_NAMESPACE)
+			val attendees = ArrayList<AttendeeEntry>(it.count)
+			while (it.moveToNext()) {
+				attendees.add(
+					AttendeeEntry(
+						name = it.getString(nameIndex),
+						email = it.getString(emailIndex),
+						type = it.getInt(typeIndex),
+						relationship = it.getInt(relationshipIndex),
+						status = it.getInt(statusIndex),
+						identity = it.getString(identityIndex),
+						namespace = it.getString(namespaceIndex)
+					)
+				)
+			}
+			attendees
+		}
+	}
+
+	private fun replaceAttendees(eventId: Long, attendees: List<AttendeeEntry>) {
+		resolver.delete(
+			CalendarContract.Attendees.CONTENT_URI,
+			"${CalendarContract.Attendees.EVENT_ID} = ?",
+			arrayOf(eventId.toString())
+		)
+		attendees.forEach { attendee ->
+			val values = ContentValues().apply {
+				put(CalendarContract.Attendees.EVENT_ID, eventId)
+				put(CalendarContract.Attendees.ATTENDEE_NAME, attendee.name)
+				put(CalendarContract.Attendees.ATTENDEE_EMAIL, attendee.email)
+				put(CalendarContract.Attendees.ATTENDEE_TYPE, attendee.type)
+				put(CalendarContract.Attendees.ATTENDEE_RELATIONSHIP, attendee.relationship)
+				put(CalendarContract.Attendees.ATTENDEE_STATUS, attendee.status)
+				if (!attendee.identity.isNullOrBlank()) {
+					put(CalendarContract.Attendees.ATTENDEE_IDENTITY, attendee.identity)
+				}
+				if (!attendee.namespace.isNullOrBlank()) {
+					put(CalendarContract.Attendees.ATTENDEE_ID_NAMESPACE, attendee.namespace)
+				}
+			}
+			resolver.insert(CalendarContract.Attendees.CONTENT_URI, values)
+		}
 	}
 
 	private fun deleteTargets(targetIds: List<Long>): Int {
@@ -381,7 +559,27 @@ internal data class SourceEvent(
 	val originalAllDay: Boolean?,
 	val status: Int?,
 	val location: String?,
-	val description: String?
+	val description: String?,
+	val availability: Int?,
+	val accessLevel: Int?,
+	val eventColor: Int?,
+	val organizer: String?,
+	val ownerAccount: String?
+)
+
+private data class ReminderEntry(
+	val minutes: Int,
+	val method: Int
+)
+
+private data class AttendeeEntry(
+	val name: String?,
+	val email: String?,
+	val type: Int,
+	val relationship: Int,
+	val status: Int,
+	val identity: String?,
+	val namespace: String?
 )
 
 internal data class EventTimeFields(
@@ -439,6 +637,7 @@ internal fun resolveEventTimeFields(source: SourceEvent): EventTimeFields {
 }
 
 internal fun buildEventContentValues(
+	job: SyncJob,
 	targetCalendarId: Long?,
 	source: SourceEvent
 ): ContentValues {
@@ -466,6 +665,36 @@ internal fun buildEventContentValues(
 		put(CalendarContract.Events.EXDATE, source.exdate)
 		put(CalendarContract.Events.EXRULE, source.exrule)
 		put(CalendarContract.Events.RDATE, source.rdate)
+		val availabilityMode = AvailabilityMode.from(job.availabilityMode)
+		val forcedAvailability = AvailabilityMode.toAvailabilityValue(availabilityMode)
+		if (forcedAvailability != null) {
+			put(CalendarContract.Events.AVAILABILITY, forcedAvailability)
+		} else if (availabilityMode == AvailabilityMode.COPY) {
+			if (source.availability == null) {
+				putNull(CalendarContract.Events.AVAILABILITY)
+			} else {
+				put(CalendarContract.Events.AVAILABILITY, source.availability)
+			}
+		}
+		if (job.copyPrivacy) {
+			if (source.accessLevel == null) {
+				putNull(CalendarContract.Events.ACCESS_LEVEL)
+			} else {
+				put(CalendarContract.Events.ACCESS_LEVEL, source.accessLevel)
+			}
+		}
+		if (job.copyEventColor) {
+			if (source.eventColor == null) {
+				putNull(CalendarContract.Events.EVENT_COLOR)
+			} else {
+				put(CalendarContract.Events.EVENT_COLOR, source.eventColor)
+			}
+		}
+		if (job.copyOrganizer) {
+			if (!source.organizer.isNullOrBlank()) {
+				put(CalendarContract.Events.ORGANIZER, source.organizer)
+			}
+		}
 		if (source.originalId != null) {
 			put(CalendarContract.Events.ORIGINAL_ID, source.originalId)
 		}

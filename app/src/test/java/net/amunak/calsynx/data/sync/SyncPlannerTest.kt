@@ -79,7 +79,12 @@ class SyncPlannerTest {
 			originalAllDay = null,
 			status = null,
 			location = null,
-			description = null
+			description = null,
+			availability = null,
+			accessLevel = null,
+			eventColor = null,
+			organizer = null,
+			ownerAccount = null
 		)
 	}
 }

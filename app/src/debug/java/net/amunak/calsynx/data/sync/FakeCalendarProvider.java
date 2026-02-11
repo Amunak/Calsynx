@@ -21,6 +21,10 @@ public class FakeCalendarProvider extends ContentProvider {
 
 	private static final int EVENTS = 1;
 	private static final int EVENT_ID = 2;
+	private static final int REMINDERS = 3;
+	private static final int REMINDER_ID = 4;
+	private static final int ATTENDEES = 5;
+	private static final int ATTENDEE_ID = 6;
 
 	private static final String[] DEFAULT_COLUMNS = new String[] {
 		CalendarContract.Events._ID,
@@ -42,17 +46,49 @@ public class FakeCalendarProvider extends ContentProvider {
 		CalendarContract.Events.STATUS,
 		CalendarContract.Events.EVENT_LOCATION,
 		CalendarContract.Events.DESCRIPTION,
+		CalendarContract.Events.AVAILABILITY,
+		CalendarContract.Events.ACCESS_LEVEL,
+		CalendarContract.Events.EVENT_COLOR,
+		CalendarContract.Events.ORGANIZER,
+		CalendarContract.Events.OWNER_ACCOUNT,
 		CalendarContract.Events.DELETED
+	};
+
+	private static final String[] REMINDER_COLUMNS = new String[] {
+		CalendarContract.Reminders._ID,
+		CalendarContract.Reminders.EVENT_ID,
+		CalendarContract.Reminders.MINUTES,
+		CalendarContract.Reminders.METHOD
+	};
+
+	private static final String[] ATTENDEE_COLUMNS = new String[] {
+		CalendarContract.Attendees._ID,
+		CalendarContract.Attendees.EVENT_ID,
+		CalendarContract.Attendees.ATTENDEE_NAME,
+		CalendarContract.Attendees.ATTENDEE_EMAIL,
+		CalendarContract.Attendees.ATTENDEE_TYPE,
+		CalendarContract.Attendees.ATTENDEE_RELATIONSHIP,
+		CalendarContract.Attendees.ATTENDEE_STATUS,
+		CalendarContract.Attendees.ATTENDEE_IDENTITY,
+		CalendarContract.Attendees.ATTENDEE_ID_NAMESPACE
 	};
 
 	private final UriMatcher matcher = new UriMatcher(UriMatcher.NO_MATCH);
 	private final Map<Long, ContentValues> events = new LinkedHashMap<>();
+	private final Map<Long, ContentValues> reminders = new LinkedHashMap<>();
+	private final Map<Long, ContentValues> attendees = new LinkedHashMap<>();
 	private long nextId = 1L;
+	private long nextReminderId = 1L;
+	private long nextAttendeeId = 1L;
 
 	@Override
 	public boolean onCreate() {
 		matcher.addURI(AUTHORITY, "events", EVENTS);
 		matcher.addURI(AUTHORITY, "events/#", EVENT_ID);
+		matcher.addURI(AUTHORITY, "reminders", REMINDERS);
+		matcher.addURI(AUTHORITY, "reminders/#", REMINDER_ID);
+		matcher.addURI(AUTHORITY, "attendees", ATTENDEES);
+		matcher.addURI(AUTHORITY, "attendees/#", ATTENDEE_ID);
 		return true;
 	}
 
@@ -64,50 +100,161 @@ public class FakeCalendarProvider extends ContentProvider {
 		String[] selectionArgs,
 		String sortOrder
 	) {
-		String[] columns = projection != null ? projection : DEFAULT_COLUMNS;
-		MatrixCursor cursor = new MatrixCursor(columns);
-		List<ContentValues> rows = new ArrayList<>(events.values());
-		rows.removeIf(row -> !matches(row, selection, selectionArgs));
-		Collections.sort(rows, Comparator.comparingLong(row ->
-			valueLong(row, CalendarContract.Events.DTSTART, 0L)
-		));
-		for (ContentValues row : rows) {
-			Object[] out = new Object[columns.length];
-			for (int i = 0; i < columns.length; i++) {
-				out[i] = row.get(columns[i]);
+		int match = matcher.match(uri);
+		if (match == EVENTS) {
+			String[] columns = projection != null ? projection : DEFAULT_COLUMNS;
+			MatrixCursor cursor = new MatrixCursor(columns);
+			List<ContentValues> rows = new ArrayList<>(events.values());
+			rows.removeIf(row -> !matches(row, selection, selectionArgs));
+			Collections.sort(rows, Comparator.comparingLong(row ->
+				valueLong(row, CalendarContract.Events.DTSTART, 0L)
+			));
+			for (ContentValues row : rows) {
+				Object[] out = new Object[columns.length];
+				for (int i = 0; i < columns.length; i++) {
+					out[i] = row.get(columns[i]);
+				}
+				cursor.addRow(out);
 			}
-			cursor.addRow(out);
+			return cursor;
 		}
-		return cursor;
+		if (match == REMINDERS) {
+			String[] columns = projection != null ? projection : REMINDER_COLUMNS;
+			MatrixCursor cursor = new MatrixCursor(columns);
+			List<ContentValues> rows = new ArrayList<>(reminders.values());
+			rows.removeIf(row -> !matchesEventId(row, selection, selectionArgs));
+			for (ContentValues row : rows) {
+				Object[] out = new Object[columns.length];
+				for (int i = 0; i < columns.length; i++) {
+					out[i] = row.get(columns[i]);
+				}
+				cursor.addRow(out);
+			}
+			return cursor;
+		}
+		if (match == ATTENDEES) {
+			String[] columns = projection != null ? projection : ATTENDEE_COLUMNS;
+			MatrixCursor cursor = new MatrixCursor(columns);
+			List<ContentValues> rows = new ArrayList<>(attendees.values());
+			rows.removeIf(row -> !matchesEventId(row, selection, selectionArgs));
+			for (ContentValues row : rows) {
+				Object[] out = new Object[columns.length];
+				for (int i = 0; i < columns.length; i++) {
+					out[i] = row.get(columns[i]);
+				}
+				cursor.addRow(out);
+			}
+			return cursor;
+		}
+		return null;
 	}
 
 	@Override
 	public Uri insert(Uri uri, ContentValues values) {
-		if (matcher.match(uri) != EVENTS || values == null) {
+		int match = matcher.match(uri);
+		if (values == null) {
 			return null;
 		}
-		long id = values.containsKey(CalendarContract.Events._ID)
-			? values.getAsLong(CalendarContract.Events._ID)
-			: nextId++;
-		ContentValues record = new ContentValues(values);
-		record.put(CalendarContract.Events._ID, id);
-		if (!record.containsKey(CalendarContract.Events.DELETED)) {
-			record.put(CalendarContract.Events.DELETED, 0);
+		if (match == EVENTS) {
+			long id = values.containsKey(CalendarContract.Events._ID)
+				? values.getAsLong(CalendarContract.Events._ID)
+				: nextId++;
+			ContentValues record = new ContentValues(values);
+			record.put(CalendarContract.Events._ID, id);
+			if (!record.containsKey(CalendarContract.Events.DELETED)) {
+				record.put(CalendarContract.Events.DELETED, 0);
+			}
+			events.put(id, record);
+			return ContentUris.withAppendedId(uri, id);
 		}
-		events.put(id, record);
-		return ContentUris.withAppendedId(uri, id);
+		if (match == REMINDERS) {
+			long id = nextReminderId++;
+			ContentValues record = new ContentValues(values);
+			record.put(CalendarContract.Reminders._ID, id);
+			reminders.put(id, record);
+			return ContentUris.withAppendedId(uri, id);
+		}
+		if (match == ATTENDEES) {
+			long id = nextAttendeeId++;
+			ContentValues record = new ContentValues(values);
+			record.put(CalendarContract.Attendees._ID, id);
+			attendees.put(id, record);
+			return ContentUris.withAppendedId(uri, id);
+		}
+		return null;
 	}
 
 	@Override
 	public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
-		if (matcher.match(uri) != EVENT_ID || values == null) {
+		int match = matcher.match(uri);
+		if (values == null) {
 			return 0;
 		}
-		long id = ContentUris.parseId(uri);
-		ContentValues record = events.get(id);
-		if (record == null) {
-			return 0;
+		if (match == EVENT_ID) {
+			long id = ContentUris.parseId(uri);
+			ContentValues record = events.get(id);
+			if (record == null) {
+				return 0;
+			}
+			applyUpdate(record, values);
+			return 1;
 		}
+		if (match == REMINDER_ID) {
+			long id = ContentUris.parseId(uri);
+			ContentValues record = reminders.get(id);
+			if (record == null) {
+				return 0;
+			}
+			applyUpdate(record, values);
+			return 1;
+		}
+		if (match == ATTENDEE_ID) {
+			long id = ContentUris.parseId(uri);
+			ContentValues record = attendees.get(id);
+			if (record == null) {
+				return 0;
+			}
+			applyUpdate(record, values);
+			return 1;
+		}
+		return 0;
+	}
+
+	@Override
+	public int delete(Uri uri, String selection, String[] selectionArgs) {
+		int match = matcher.match(uri);
+		if (match == EVENT_ID) {
+			long id = ContentUris.parseId(uri);
+			return events.remove(id) != null ? 1 : 0;
+		}
+		if (match == EVENTS) {
+			int count = events.size();
+			events.clear();
+			return count;
+		}
+		if (match == REMINDER_ID) {
+			long id = ContentUris.parseId(uri);
+			return reminders.remove(id) != null ? 1 : 0;
+		}
+		if (match == REMINDERS) {
+			return deleteByEventId(reminders, selection, selectionArgs);
+		}
+		if (match == ATTENDEE_ID) {
+			long id = ContentUris.parseId(uri);
+			return attendees.remove(id) != null ? 1 : 0;
+		}
+		if (match == ATTENDEES) {
+			return deleteByEventId(attendees, selection, selectionArgs);
+		}
+		return 0;
+	}
+
+	@Override
+	public String getType(Uri uri) {
+		return "vnd.android.cursor.item/event";
+	}
+
+	private void applyUpdate(ContentValues record, ContentValues values) {
 		for (String key : values.keySet()) {
 			Object value = values.get(key);
 			if (value == null) {
@@ -124,27 +271,28 @@ public class FakeCalendarProvider extends ContentProvider {
 				record.put(key, value.toString());
 			}
 		}
-		return 1;
 	}
 
-	@Override
-	public int delete(Uri uri, String selection, String[] selectionArgs) {
-		int match = matcher.match(uri);
-		if (match == EVENT_ID) {
-			long id = ContentUris.parseId(uri);
-			return events.remove(id) != null ? 1 : 0;
-		}
-		if (match == EVENTS) {
-			int count = events.size();
-			events.clear();
+	private int deleteByEventId(Map<Long, ContentValues> table, String selection, String[] selectionArgs) {
+		if (selection == null || selectionArgs == null || selectionArgs.length == 0) {
+			int count = table.size();
+			table.clear();
 			return count;
 		}
-		return 0;
-	}
-
-	@Override
-	public String getType(Uri uri) {
-		return "vnd.android.cursor.item/event";
+		long eventId = toLong(selectionArgs[0], -1L);
+		int count = 0;
+		List<Long> toRemove = new ArrayList<>();
+		for (Map.Entry<Long, ContentValues> entry : table.entrySet()) {
+			Long value = entry.getValue().getAsLong(CalendarContract.Reminders.EVENT_ID);
+			if (value != null && value == eventId) {
+				toRemove.add(entry.getKey());
+			}
+		}
+		for (Long key : toRemove) {
+			table.remove(key);
+			count += 1;
+		}
+		return count;
 	}
 
 	private boolean matches(ContentValues row, String selection, String[] selectionArgs) {
@@ -190,6 +338,21 @@ public class FakeCalendarProvider extends ContentProvider {
 			long dtStart = valueLong(row, CalendarContract.Events.DTSTART, Long.MAX_VALUE);
 			Long dtEnd = row.getAsLong(CalendarContract.Events.DTEND);
 			return dtStart <= end && (dtEnd == null || dtEnd >= start);
+		}
+		return true;
+	}
+
+	private boolean matchesEventId(ContentValues row, String selection, String[] selectionArgs) {
+		if (selection == null) {
+			return true;
+		}
+		if (selectionArgs == null || selectionArgs.length == 0) {
+			return false;
+		}
+		if (selection.contains("event_id")) {
+			long expected = toLong(selectionArgs[0], -1L);
+			Long actual = row.getAsLong(CalendarContract.Reminders.EVENT_ID);
+			return actual != null && actual == expected;
 		}
 		return true;
 	}
