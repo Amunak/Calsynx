@@ -18,6 +18,7 @@ you should still probably use a separate calendar for the sync outside of your m
 ### Sync behavior (one-way copy)
 - Source events are copied into the target calendar; target-only events are ignored.
   - If you want to clean the target calendar, you can purge it in the calendar management screen with the "Purge" option.
+- A calendar can be used either as a source or a target across all jobs to avoid circular sync; multiple jobs may target the same calendar.
 - If a source event was already synced before, its target event is updated to match the source.
 - If a saved target event no longer exists, the mapping is dropped and the source is re-synced.
 - If a source event disappears, the previously synced target event is deleted.

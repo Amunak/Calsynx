@@ -439,11 +439,11 @@ private fun validateSelection(
 ): Int? {
 	if (source == null || target == null) return R.string.message_validation_select_both
 	if (source.id == target.id) return R.string.message_validation_source_target_same
-	if (jobs.any { it.targetCalendarId == target.id && it.id != currentJobId }) {
-		return R.string.message_validation_target_in_use
-	}
 	if (jobs.any { it.targetCalendarId == source.id && it.id != currentJobId }) {
 		return R.string.message_validation_source_is_target
+	}
+	if (jobs.any { it.sourceCalendarId == target.id && it.id != currentJobId }) {
+		return R.string.message_validation_target_is_source
 	}
 	return null
 }

@@ -65,8 +65,8 @@
 	<string name="preview_calendar_personal">Personal</string>
 	<string name="message_validation_select_both">Select both calendars.</string>
 	<string name="message_validation_source_target_same">Source and target must be different.</string>
-	<string name="message_validation_target_in_use">Target calendar is already used by another job.</string>
 	<string name="message_validation_source_is_target">Source calendar is already a target in another job.</string>
+	<string name="message_validation_target_is_source">Target calendar is already a source in another job.</string>
 
 	<string name="title_calendar_management">Calendar Management</string>
 	<string name="title_create_calendar">Create calendar</string>

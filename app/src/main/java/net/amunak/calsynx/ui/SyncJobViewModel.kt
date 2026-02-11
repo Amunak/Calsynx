@@ -129,18 +129,26 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 		frequencyMinutes: Int
 	) {
 		viewModelScope.launch(Dispatchers.IO) {
+			if (sourceId == targetId) {
+				Log.w(
+					TAG,
+					"Rejected sync job due to identical calendars: source=$sourceId target=$targetId"
+				)
+				errorMessage.value = app.getString(R.string.message_validation_source_target_same)
+				return@launch
+			}
 			val jobs = syncJobRepository.getAll()
-			val targetConflict = jobs.any { it.targetCalendarId == targetId }
 			val sourceConflict = jobs.any { it.targetCalendarId == sourceId }
-			if (targetConflict || sourceConflict) {
+			val targetConflict = jobs.any { it.sourceCalendarId == targetId }
+			if (sourceConflict || targetConflict) {
 				Log.w(
 					TAG,
 					"Rejected sync job due to calendar conflict: source=$sourceId target=$targetId"
 				)
-				errorMessage.value = if (targetConflict) {
-					app.getString(R.string.message_validation_target_in_use)
-				} else {
+				errorMessage.value = if (sourceConflict) {
 					app.getString(R.string.message_validation_source_is_target)
+				} else {
+					app.getString(R.string.message_validation_target_is_source)
 				}
 				return@launch
 			}
