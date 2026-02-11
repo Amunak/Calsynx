@@ -201,6 +201,93 @@ class CalendarSyncerInstrumentedTest {
 	}
 
 	@Test
+	fun syncCopiesVariedFieldsAcrossEvents() = runBlockingTest {
+		val mappingDao = InMemoryEventMappingDao()
+		val syncer = CalendarSyncer(resolver, mappingDao, eventsUri)
+		val sourceId = 16L
+		val targetId = 26L
+
+		insertEvent(
+			resolver,
+			sourceId,
+			eventValues(
+				title = "Series detail",
+				startMillis = 10_000L,
+				endMillis = 12_000L,
+				duration = null,
+				rrule = "FREQ=WEEKLY;COUNT=4",
+				exdate = "20260215T090000Z",
+				exrule = "FREQ=DAILY;COUNT=2",
+				rdate = "20260220T090000Z",
+				location = "Office",
+				description = "Weekly sync",
+				status = CalendarContract.Events.STATUS_CONFIRMED,
+				allDay = false,
+				timeZone = "UTC",
+				endTimeZone = "UTC"
+			)
+		)
+		insertEvent(
+			resolver,
+			sourceId,
+			eventValues(
+				title = "Override detail",
+				startMillis = 50_000L,
+				endMillis = null,
+				duration = "PT2H",
+				rrule = null,
+				exdate = null,
+				exrule = null,
+				rdate = null,
+				location = "Remote",
+				description = "Override",
+				status = CalendarContract.Events.STATUS_TENTATIVE,
+				allDay = true,
+				timeZone = "Europe/Paris",
+				endTimeZone = "Europe/Paris",
+				originalId = 1234L,
+				originalInstanceTime = 49_000L,
+				originalAllDay = true
+			)
+		)
+
+		val result = syncer.sync(syncJob(sourceId, targetId), SyncWindow(0L, 100_000L))
+		assertEquals(2, result.created)
+
+		val targets = queryEvents(resolver, targetId)
+		assertEquals(2, targets.size)
+		val series = targets.first { it.getAsString(CalendarContract.Events.TITLE) == "Series detail" }
+		assertEquals(10_000L, series.getAsLong(CalendarContract.Events.DTSTART))
+		assertEquals(12_000L, series.getAsLong(CalendarContract.Events.DTEND))
+		assertEquals(null, series.getAsString(CalendarContract.Events.DURATION))
+		assertEquals("FREQ=WEEKLY;COUNT=4", series.getAsString(CalendarContract.Events.RRULE))
+		assertEquals("20260215T090000Z", series.getAsString(CalendarContract.Events.EXDATE))
+		assertEquals("FREQ=DAILY;COUNT=2", series.getAsString(CalendarContract.Events.EXRULE))
+		assertEquals("20260220T090000Z", series.getAsString(CalendarContract.Events.RDATE))
+		assertEquals("Office", series.getAsString(CalendarContract.Events.EVENT_LOCATION))
+		assertEquals("Weekly sync", series.getAsString(CalendarContract.Events.DESCRIPTION))
+		assertEquals(CalendarContract.Events.STATUS_CONFIRMED, series.getAsInteger(CalendarContract.Events.STATUS))
+		assertEquals(0, series.getAsInteger(CalendarContract.Events.ALL_DAY))
+		assertEquals("UTC", series.getAsString(CalendarContract.Events.EVENT_TIMEZONE))
+		assertEquals("UTC", series.getAsString(CalendarContract.Events.EVENT_END_TIMEZONE))
+
+		val override = targets.first { it.getAsString(CalendarContract.Events.TITLE) == "Override detail" }
+		assertEquals(50_000L, override.getAsLong(CalendarContract.Events.DTSTART))
+		assertEquals(null, override.getAsLong(CalendarContract.Events.DTEND))
+		assertEquals("PT2H", override.getAsString(CalendarContract.Events.DURATION))
+		assertEquals(null, override.getAsString(CalendarContract.Events.RRULE))
+		assertEquals("Remote", override.getAsString(CalendarContract.Events.EVENT_LOCATION))
+		assertEquals("Override", override.getAsString(CalendarContract.Events.DESCRIPTION))
+		assertEquals(CalendarContract.Events.STATUS_TENTATIVE, override.getAsInteger(CalendarContract.Events.STATUS))
+		assertEquals(1, override.getAsInteger(CalendarContract.Events.ALL_DAY))
+		assertEquals("Europe/Paris", override.getAsString(CalendarContract.Events.EVENT_TIMEZONE))
+		assertEquals("Europe/Paris", override.getAsString(CalendarContract.Events.EVENT_END_TIMEZONE))
+		assertEquals(1234L, override.getAsLong(CalendarContract.Events.ORIGINAL_ID))
+		assertEquals(49_000L, override.getAsLong(CalendarContract.Events.ORIGINAL_INSTANCE_TIME))
+		assertEquals(1, override.getAsInteger(CalendarContract.Events.ORIGINAL_ALL_DAY))
+	}
+
+	@Test
 	fun deleteSyncedTargetsRemovesMappedEvents() = runBlockingTest {
 		val mappingDao = InMemoryEventMappingDao()
 		val syncer = CalendarSyncer(resolver, mappingDao, eventsUri)
@@ -262,9 +349,19 @@ class CalendarSyncerInstrumentedTest {
 			CalendarContract.Events.DTSTART,
 			CalendarContract.Events.DTEND,
 			CalendarContract.Events.DURATION,
+			CalendarContract.Events.ALL_DAY,
+			CalendarContract.Events.EVENT_TIMEZONE,
+			CalendarContract.Events.EVENT_END_TIMEZONE,
 			CalendarContract.Events.RRULE,
 			CalendarContract.Events.EXDATE,
-			CalendarContract.Events.ORIGINAL_ID
+			CalendarContract.Events.EXRULE,
+			CalendarContract.Events.ORIGINAL_ID,
+			CalendarContract.Events.ORIGINAL_INSTANCE_TIME,
+			CalendarContract.Events.ORIGINAL_ALL_DAY,
+			CalendarContract.Events.STATUS,
+			CalendarContract.Events.EVENT_LOCATION,
+			CalendarContract.Events.DESCRIPTION,
+			CalendarContract.Events.RDATE
 		)
 		val cursor = resolver.query(
 			eventsUri,
@@ -300,8 +397,18 @@ class CalendarSyncerInstrumentedTest {
 		endMillis: Long? = null,
 		duration: String? = null,
 		rrule: String? = null,
+		exdate: String? = null,
+		exrule: String? = null,
+		rdate: String? = null,
+		location: String? = null,
+		description: String? = null,
+		status: Int? = null,
+		allDay: Boolean = false,
+		timeZone: String = "UTC",
+		endTimeZone: String = "UTC",
 		originalId: Long? = null,
-		originalInstanceTime: Long? = null
+		originalInstanceTime: Long? = null,
+		originalAllDay: Boolean? = null
 	): ContentValues {
 		return ContentValues().apply {
 			put(CalendarContract.Events.TITLE, title)
@@ -312,17 +419,38 @@ class CalendarSyncerInstrumentedTest {
 			if (duration != null) {
 				put(CalendarContract.Events.DURATION, duration)
 			}
-			put(CalendarContract.Events.ALL_DAY, 0)
-			put(CalendarContract.Events.EVENT_TIMEZONE, "UTC")
-			put(CalendarContract.Events.EVENT_END_TIMEZONE, "UTC")
+			put(CalendarContract.Events.ALL_DAY, if (allDay) 1 else 0)
+			put(CalendarContract.Events.EVENT_TIMEZONE, timeZone)
+			put(CalendarContract.Events.EVENT_END_TIMEZONE, endTimeZone)
 			if (rrule != null) {
 				put(CalendarContract.Events.RRULE, rrule)
+			}
+			if (exdate != null) {
+				put(CalendarContract.Events.EXDATE, exdate)
+			}
+			if (exrule != null) {
+				put(CalendarContract.Events.EXRULE, exrule)
+			}
+			if (rdate != null) {
+				put(CalendarContract.Events.RDATE, rdate)
+			}
+			if (location != null) {
+				put(CalendarContract.Events.EVENT_LOCATION, location)
+			}
+			if (description != null) {
+				put(CalendarContract.Events.DESCRIPTION, description)
+			}
+			if (status != null) {
+				put(CalendarContract.Events.STATUS, status)
 			}
 			if (originalId != null) {
 				put(CalendarContract.Events.ORIGINAL_ID, originalId)
 			}
 			if (originalInstanceTime != null) {
 				put(CalendarContract.Events.ORIGINAL_INSTANCE_TIME, originalInstanceTime)
+			}
+			if (originalAllDay != null) {
+				put(CalendarContract.Events.ORIGINAL_ALL_DAY, if (originalAllDay) 1 else 0)
 			}
 		}
 	}
