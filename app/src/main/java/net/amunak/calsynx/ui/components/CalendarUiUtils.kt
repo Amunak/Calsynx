@@ -21,3 +21,7 @@ fun groupCalendars(
 fun sanitizeCalendarName(name: String): String {
 	return name.replace(Regex("[\\r\\n]+"), " ").replace(Regex("\\s+"), " ").trim()
 }
+
+fun stripCalendarNewlines(name: String): String {
+	return name.replace(Regex("[\\r\\n]+"), " ")
+}

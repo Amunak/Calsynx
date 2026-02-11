@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import net.amunak.calsynx.R
 import net.amunak.calsynx.ui.components.sanitizeCalendarName
+import net.amunak.calsynx.ui.components.stripCalendarNewlines
 
 @Composable
 	fun CreateCalendarDialog(
@@ -60,7 +61,7 @@ import net.amunak.calsynx.ui.components.sanitizeCalendarName
 			) {
 				OutlinedTextField(
 					value = name,
-					onValueChange = { name = sanitizeCalendarName(it) },
+					onValueChange = { name = stripCalendarNewlines(it) },
 					label = { Text(stringResource(R.string.label_calendar_name)) },
 					modifier = Modifier.fillMaxWidth(),
 					colors = textFieldColors
@@ -108,7 +109,7 @@ fun RenameCalendarDialog(
 			)
 			OutlinedTextField(
 				value = name,
-				onValueChange = { name = sanitizeCalendarName(it) },
+				onValueChange = { name = stripCalendarNewlines(it) },
 				label = { Text(stringResource(R.string.label_calendar_name)) },
 				modifier = Modifier.fillMaxWidth(),
 				colors = textFieldColors
