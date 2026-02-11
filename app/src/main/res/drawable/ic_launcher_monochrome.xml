@@ -11,9 +11,8 @@
 		android:scaleX="0.80"
 		android:scaleY="0.80">
 
-		<!-- Shaft -->
 		<path
-			android:fillColor="#FFFFFFFF"
+			android:fillColor="#FF000000"
 			android:pathData="
                 M8.838,80.99
                 L38.575,51.253
@@ -21,9 +20,8 @@
                 L27.01,99.162
                 Z" />
 
-		<!-- Head -->
 		<path
-			android:fillColor="#FFFFFFFF"
+			android:fillColor="#FF000000"
 			android:pathData="M25.366,40.437 L82.634,25.366 L67.563,82.634 Z" />
 	</group>
 

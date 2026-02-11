@@ -72,7 +72,21 @@ fun SyncJobScreen(
 	Scaffold(
 		topBar = {
 			TopAppBar(
-				title = { Text(stringResource(R.string.app_name)) },
+				title = {
+					Row(
+						verticalAlignment = Alignment.CenterVertically
+					) {
+						Icon(
+							painter = androidx.compose.ui.res.painterResource(R.drawable.ic_app_logo),
+							contentDescription = null,
+							tint = MaterialTheme.colorScheme.primary
+						)
+						Text(
+							text = stringResource(R.string.app_name),
+							modifier = Modifier.padding(start = 8.dp)
+						)
+					}
+				},
 				actions = {
 					if (uiState.hasCalendarPermission) {
 						IconButton(onClick = onOpenCalendarManagement) {
