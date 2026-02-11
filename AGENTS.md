@@ -22,3 +22,6 @@
 ## Project Preferences
 - Prioritize correctness fixes and refactors that improve code separation and Material best practices.
 - Hidden calendars should be selectable and marked with a visibility-off icon in selection/management lists.
+- Advanced copy/reminder options should be hidden behind a toggle by default.
+- Checkbox labels should toggle their checkboxes; icon-only buttons should show tooltips.
+- Battery optimization warnings should appear as a top-of-list card after calendar permissions; log exemption status in exports.

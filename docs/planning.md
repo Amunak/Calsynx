@@ -19,6 +19,8 @@
 - [x] Add targeted tests for update field behavior.
 - [x] Add targeted tests for sync plan behavior.
 - [x] Add tests to cover recurring event window inclusion.
+- [x] Add per-job copy options (availability, privacy, color, organizer, attendees, reminders).
+- [x] Add reminder re-sync toggle and battery optimization warning/log export.
 
 ## Decisions
 - Keep calendar management as a separate utility screen (not embedded in sync job dialogs).
@@ -28,6 +30,13 @@
 - Align UI copy with background scheduling now that WorkManager is in place.
 - Allow hidden calendars in selections; mark them with a visibility-off icon in selection/management lists.
 - Move sync job create/edit to a dedicated activity with sectioned layout.
+- Expose per-job copy controls with safe defaults; attendees remain opt-in with warnings.
+- Hide advanced copy/reminder settings behind an "Advanced" toggle in the editor.
+- Do not write `OWNER_ACCOUNT` to target events; only copy organizer when enabled.
+- Add per-type reminder toggles and all-day time-of-day selection under advanced reminders.
+- All-day reminder timing uses “days before + time of day on the prior day” (e.g., 0 days at 8 PM = 4 hours before).
+- Expose a reminder re-sync toggle so users can keep custom target reminders.
+- Warn about battery optimizations in the job list and log exemption status in exports.
 
 ## Rejected
 - Move “Sync now” into an overflow-only action.

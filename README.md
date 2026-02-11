@@ -11,21 +11,20 @@ Note that while we try to take care to not delete events in the target calendar,
 you should still probably use a separate calendar for the sync outside of your main calendar.
 
 ## What it does
-- Creates sync jobs that copy events from a source calendar into a target calendar.
-- Tracks the last sync time, counts, and any errors per job.
-- Provides convenient calendar management (create local calendars, rename, recolor, purge, delete).
-- Runs background sync for active jobs using WorkManager with a flex window (about one-third of the interval) so Android can batch work.
-- Sync jobs include a "purge synced events" action to remove only events previously created by Calsynx (as a recovery measure).
+- Creates one-way sync jobs between calendars.
+- Tracks last sync time, counts, and errors per job.
+- Includes basic calendar management (create, rename, recolor, purge, delete).
 
 ### Sync behavior (one-way copy)
 - Source events are copied into the target calendar; target-only events are ignored.
-  - If you want to clean the target calendar, you can purge it in the calendar management screen with the "Purge" option.
-- A calendar can be used either as a source or a target across all jobs to avoid circular sync; multiple jobs may target the same calendar.
-- Sync windows are configurable (including an "all events" option) to control how far back and ahead events are synced.
-- If a source event was already synced before, its target event is updated to match the source.
-- If a saved target event no longer exists, the mapping is dropped and the source is re-synced.
-- If a source event disappears, the previously synced target event is deleted.
-- Only events inside the configured sync window are kept in sync; mappings outside the window are removed.
+- Calendars can be used as source or target to avoid circular sync.
+- Sync windows control how far back/ahead events are synced.
+- Synced events are updated or deleted to match the source.
+
+### Sync options (per job)
+- Availability can copy or force busy/free/tentative.
+- Privacy, event color, organizer, and attendees are optional per job.
+- Reminders can copy, disable, or use custom defaults, with optional re-syncing.
 
 ## Permissions
 Calsynx needs `READ_CALENDAR` and `WRITE_CALENDAR` to list calendars and sync events.
