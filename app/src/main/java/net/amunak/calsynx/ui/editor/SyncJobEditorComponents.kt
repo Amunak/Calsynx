@@ -4,20 +4,22 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -30,10 +32,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import net.amunak.calsynx.R
+import net.amunak.calsynx.data.sync.AvailabilityMode
+import net.amunak.calsynx.data.sync.ReminderMode
 import net.amunak.calsynx.ui.components.CalendarLabel
+import net.amunak.calsynx.ui.components.TooltipIconButton
 
 @Composable
 fun SyncDropdown(
@@ -47,12 +56,21 @@ fun SyncDropdown(
 			onClick = { onExpandedChange(true) },
 			modifier = Modifier.fillMaxWidth()
 		) {
-			Text(selectedLabel)
-			Icon(
-				imageVector = Icons.Default.ArrowDropDown,
-				contentDescription = null,
-				modifier = Modifier.padding(start = 6.dp)
-			)
+			Box(modifier = Modifier.fillMaxWidth()) {
+				Text(
+					text = selectedLabel,
+					maxLines = 1,
+					overflow = TextOverflow.Ellipsis,
+					modifier = Modifier.padding(end = 24.dp)
+				)
+				Icon(
+					imageVector = Icons.Default.ArrowDropDown,
+					contentDescription = null,
+					modifier = Modifier
+						.align(Alignment.CenterEnd)
+						.padding(start = 6.dp)
+				)
+			}
 		}
 		DropdownMenu(
 			expanded = isExpanded,
@@ -82,6 +100,7 @@ fun SyncDropdownItem(
 	label: String,
 	color: Int?,
 	isHidden: Boolean,
+	enabled: Boolean = true,
 	onClick: () -> Unit
 ) {
 	DropdownMenuItem(
@@ -89,7 +108,12 @@ fun SyncDropdownItem(
 			Box(modifier = Modifier.fillMaxWidth()) {
 				CalendarLabel(
 					name = label,
-					color = color
+					color = color,
+					textColor = if (enabled) {
+						MaterialTheme.colorScheme.onSurface
+					} else {
+						MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+					}
 				)
 				if (isHidden) {
 					Icon(
@@ -103,7 +127,8 @@ fun SyncDropdownItem(
 				}
 			}
 		},
-		onClick = onClick
+		onClick = onClick,
+		enabled = enabled
 	)
 }
 
@@ -112,7 +137,8 @@ fun <T> OptionPicker(
 	label: String,
 	options: List<T>,
 	selected: T,
-	onSelected: (T) -> Unit
+	onSelected: (T) -> Unit,
+	enabled: Boolean = true
 ) where T : DisplayOption {
 	var expanded by remember { mutableStateOf(false) }
 	Column {
@@ -123,7 +149,8 @@ fun <T> OptionPicker(
 		Box {
 			OutlinedButton(
 				onClick = { expanded = true },
-				modifier = Modifier.fillMaxWidth()
+				modifier = Modifier.fillMaxWidth(),
+				enabled = enabled
 			) {
 				Text(stringResource(selected.displayLabelRes))
 				Icon(
@@ -133,7 +160,7 @@ fun <T> OptionPicker(
 				)
 			}
 			DropdownMenu(
-				expanded = expanded,
+				expanded = expanded && enabled,
 				onDismissRequest = { expanded = false }
 			) {
 				options.forEach { option ->
@@ -155,62 +182,123 @@ fun NumberPickerRow(
 	label: String,
 	value: Int,
 	onValueChange: (Int) -> Unit,
-	enabled: Boolean = true
+	enabled: Boolean = true,
+	suffix: String? = null
 ) {
+	val suffixText = suffix ?: stringResource(R.string.label_window_days_suffix)
 	var textValue by remember(value) { mutableStateOf(value.toString()) }
 	Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
 		Text(
 			text = label,
 			style = MaterialTheme.typography.labelMedium
 		)
-		Row(
+		OutlinedTextField(
+			value = textValue,
+			onValueChange = { raw ->
+				val digits = raw.filter { it.isDigit() }
+				textValue = digits
+				val number = digits.toIntOrNull()
+				if (number != null) {
+					onValueChange(number)
+				}
+			},
+			enabled = enabled,
+			keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
 			modifier = Modifier.fillMaxWidth(),
-			horizontalArrangement = Arrangement.SpaceBetween,
-			verticalAlignment = Alignment.CenterVertically
-		) {
-			IconButton(
-				onClick = { onValueChange((value - 1).coerceAtLeast(0)) },
-				enabled = enabled
-			) {
-				Icon(
-					Icons.Default.Remove,
-					contentDescription = stringResource(R.string.label_decrease)
-				)
+			suffix = { Text(suffixText) },
+			leadingIcon = {
+				TooltipIconButton(
+					tooltip = stringResource(R.string.label_decrease),
+					onClick = { onValueChange((value - 1).coerceAtLeast(0)) },
+					enabled = enabled
+				) {
+					Icon(
+						Icons.Default.Remove,
+						contentDescription = stringResource(R.string.label_decrease)
+					)
+				}
+			},
+			trailingIcon = {
+				TooltipIconButton(
+					tooltip = stringResource(R.string.label_increase),
+					onClick = { onValueChange(value + 1) },
+					enabled = enabled
+				) {
+					Icon(
+						Icons.Default.Add,
+						contentDescription = stringResource(R.string.label_increase)
+					)
+				}
 			}
-			OutlinedTextField(
-				value = textValue,
-				onValueChange = { raw ->
-					val digits = raw.filter { it.isDigit() }
-					textValue = digits
-					val number = digits.toIntOrNull()
-					if (number != null) {
-						onValueChange(number)
-					}
-				},
-				enabled = enabled,
-				keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-				modifier = Modifier.weight(1f),
-				suffix = { Text(stringResource(R.string.label_window_days_suffix)) }
-			)
-			IconButton(onClick = { onValueChange(value + 1) }, enabled = enabled) {
-				Icon(
-					Icons.Default.Add,
-					contentDescription = stringResource(R.string.label_increase)
-				)
-			}
-		}
+		)
 	}
 }
 
 @Composable
 fun SyncCheckbox(
 	checked: Boolean,
-	onCheckedChange: (Boolean) -> Unit
+	onCheckedChange: ((Boolean) -> Unit)?
 ) {
 	Checkbox(
 		checked = checked,
 		onCheckedChange = onCheckedChange
 	)
+}
+
+@Composable
+fun SyncCheckboxRow(
+	checked: Boolean,
+	label: String,
+	onCheckedChange: (Boolean) -> Unit
+) {
+	Row(
+		verticalAlignment = Alignment.CenterVertically,
+		modifier = Modifier
+			.fillMaxWidth()
+			.toggleable(
+				value = checked,
+				onValueChange = onCheckedChange,
+				role = Role.Checkbox
+			)
+	) {
+		SyncCheckbox(
+			checked = checked,
+			onCheckedChange = null
+		)
+		Spacer(modifier = Modifier.size(CHECKBOX_LABEL_SPACING))
+		Text(
+			text = label,
+			style = MaterialTheme.typography.bodySmall
+		)
+	}
+}
+
+@Composable
+fun SyncInlineMessage(
+	message: String,
+	icon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.Info,
+	tint: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
+	startIndent: Dp = 0.dp
+) {
+	Row(
+		verticalAlignment = Alignment.CenterVertically,
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(start = startIndent)
+	) {
+		Icon(
+			imageVector = icon,
+			contentDescription = null,
+			tint = tint,
+			modifier = Modifier.size(16.dp)
+		)
+		Text(
+			text = message,
+			style = MaterialTheme.typography.bodySmall,
+			color = tint,
+			modifier = Modifier.padding(start = 6.dp)
+		)
+	}
 }
 
 interface DisplayOption {
@@ -221,6 +309,17 @@ data class FrequencyOption(
 	val minutes: Int,
 	override val displayLabelRes: Int
 ) : DisplayOption
+
+data class AvailabilityOption(
+	val mode: AvailabilityMode,
+	override val displayLabelRes: Int
+) : DisplayOption
+
+data class ReminderOption(
+	val mode: ReminderMode,
+	override val displayLabelRes: Int
+) : DisplayOption
+
 
 fun frequencyOptions(): List<FrequencyOption> {
 	return listOf(
@@ -235,4 +334,76 @@ fun frequencyOptions(): List<FrequencyOption> {
 		FrequencyOption(10080, R.string.frequency_weekly),
 		FrequencyOption(43200, R.string.frequency_monthly)
 	)
+}
+
+fun availabilityOptions(): List<AvailabilityOption> {
+	return listOf(
+		AvailabilityOption(AvailabilityMode.COPY, R.string.option_availability_copy),
+		AvailabilityOption(AvailabilityMode.FORCE_BUSY, R.string.option_availability_busy),
+		AvailabilityOption(AvailabilityMode.FORCE_FREE, R.string.option_availability_free),
+		AvailabilityOption(AvailabilityMode.FORCE_TENTATIVE, R.string.option_availability_tentative)
+	)
+}
+
+fun reminderOptions(): List<ReminderOption> {
+	return listOf(
+		ReminderOption(ReminderMode.COPY, R.string.option_reminder_copy),
+		ReminderOption(ReminderMode.NONE, R.string.option_reminder_none),
+		ReminderOption(ReminderMode.CUSTOM, R.string.option_reminder_custom)
+	)
+}
+
+
+fun availabilityOptionFor(mode: AvailabilityMode): AvailabilityOption {
+	return availabilityOptions().first { it.mode == mode }
+}
+
+fun reminderOptionFor(mode: ReminderMode): ReminderOption {
+	return reminderOptions().first { it.mode == mode }
+}
+
+private val CHECKBOX_LABEL_SPACING = 8.dp
+
+@Preview(showBackground = true)
+@Composable
+private fun SyncCheckboxRowPreview() {
+	SyncCheckboxRow(
+		checked = true,
+		label = "Copy attendees",
+		onCheckedChange = {}
+	)
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SyncInlineMessagePreview() {
+	SyncInlineMessage(message = "Copying attendees may send invitations.")
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun OptionPickerPreview() {
+	OptionPicker(
+		label = "Frequency",
+		options = frequencyOptions(),
+		selected = frequencyOptions().first(),
+		onSelected = {}
+	)
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SyncDropdownPreview() {
+	SyncDropdown(
+		selectedLabel = "Calendar",
+		isExpanded = false,
+		onExpandedChange = {}
+	) {
+		SyncDropdownItem(
+			label = "Personal",
+			color = null,
+			isHidden = false,
+			onClick = {}
+		)
+	}
 }

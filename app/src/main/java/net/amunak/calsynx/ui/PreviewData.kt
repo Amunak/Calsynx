@@ -1,5 +1,6 @@
 package net.amunak.calsynx.ui
 
+import android.provider.CalendarContract
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import net.amunak.calsynx.R
@@ -17,7 +18,7 @@ object PreviewData {
 				accountType = "com.google",
 				ownerAccount = "work@example.com",
 				color = null,
-				accessLevel = null,
+				accessLevel = 900,
 				isVisible = true,
 				isSynced = true
 			),
@@ -29,7 +30,7 @@ object PreviewData {
 				ownerAccount = "me@example.com",
 				color = null,
 				accessLevel = null,
-				isVisible = true,
+				isVisible = false,
 				isSynced = true
 			)
 		)

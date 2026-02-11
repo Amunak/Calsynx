@@ -17,6 +17,8 @@ import net.amunak.calsynx.data.SyncJob
 import net.amunak.calsynx.data.repository.CalendarRepository
 import net.amunak.calsynx.data.repository.SyncJobRepository
 import net.amunak.calsynx.data.sync.SyncJobScheduler
+import net.amunak.calsynx.data.sync.AvailabilityMode
+import net.amunak.calsynx.data.sync.ReminderMode
 import net.amunak.calsynx.domain.CreateSyncJobUseCase
 import net.amunak.calsynx.domain.UpdateSyncJobUseCase
 
@@ -93,7 +95,18 @@ class SyncJobEditorViewModel(app: Application) : AndroidViewModel(app) {
 		pastDays: Int,
 		futureDays: Int,
 		syncAllEvents: Boolean,
-		frequencyMinutes: Int
+		frequencyMinutes: Int,
+		availabilityMode: AvailabilityMode,
+		copyEventColor: Boolean,
+		copyPrivacy: Boolean,
+		copyAttendees: Boolean,
+		copyOrganizer: Boolean,
+		reminderMode: ReminderMode,
+		reminderAllDayMinutes: Int,
+		reminderTimedMinutes: Int,
+		reminderAllDayEnabled: Boolean,
+		reminderTimedEnabled: Boolean,
+		reminderResyncEnabled: Boolean
 	) {
 		viewModelScope.launch(Dispatchers.IO) {
 			_uiState.update { it.copy(saveState = SaveState.Saving, errorMessage = null) }
@@ -102,12 +115,27 @@ class SyncJobEditorViewModel(app: Application) : AndroidViewModel(app) {
 				val editingJobId = _uiState.value.job?.id
 				val sourceConflict = jobs.any { it.targetCalendarId == sourceId && it.id != editingJobId }
 				val targetConflict = jobs.any { it.sourceCalendarId == targetId && it.id != editingJobId }
+				val duplicatePair = jobs.any {
+					it.sourceCalendarId == sourceId &&
+						it.targetCalendarId == targetId &&
+						it.id != editingJobId
+				}
 				if (sourceId == targetId) {
 					_uiState.update {
 						it.copy(
 							saveState = SaveState.Error,
 							errorMessage = getApplication<Application>()
 								.getString(R.string.message_validation_source_target_same)
+						)
+					}
+					return@launch
+				}
+				if (duplicatePair) {
+					_uiState.update {
+						it.copy(
+							saveState = SaveState.Error,
+							errorMessage = getApplication<Application>()
+								.getString(R.string.message_validation_duplicate_job)
 						)
 					}
 					return@launch
@@ -133,7 +161,18 @@ class SyncJobEditorViewModel(app: Application) : AndroidViewModel(app) {
 							windowPastDays = pastDays,
 							windowFutureDays = futureDays,
 							syncAllEvents = syncAllEvents,
-							frequencyMinutes = frequencyMinutes
+							frequencyMinutes = frequencyMinutes,
+							availabilityMode = availabilityMode.value,
+							copyEventColor = copyEventColor,
+							copyPrivacy = copyPrivacy,
+							copyAttendees = copyAttendees,
+							copyOrganizer = copyOrganizer,
+							reminderMode = reminderMode.value,
+							reminderAllDayMinutes = reminderAllDayMinutes,
+							reminderTimedMinutes = reminderTimedMinutes,
+							reminderAllDayEnabled = reminderAllDayEnabled,
+							reminderTimedEnabled = reminderTimedEnabled,
+							reminderResyncEnabled = reminderResyncEnabled
 						)
 					)
 					val job = SyncJob(
@@ -143,8 +182,19 @@ class SyncJobEditorViewModel(app: Application) : AndroidViewModel(app) {
 						windowPastDays = pastDays,
 						windowFutureDays = futureDays,
 						syncAllEvents = syncAllEvents,
-						frequencyMinutes = frequencyMinutes
-					)
+						frequencyMinutes = frequencyMinutes,
+						availabilityMode = availabilityMode.value,
+						copyEventColor = copyEventColor,
+						copyPrivacy = copyPrivacy,
+						copyAttendees = copyAttendees,
+						copyOrganizer = copyOrganizer,
+						reminderMode = reminderMode.value,
+					reminderAllDayMinutes = reminderAllDayMinutes,
+					reminderTimedMinutes = reminderTimedMinutes,
+					reminderAllDayEnabled = reminderAllDayEnabled,
+					reminderTimedEnabled = reminderTimedEnabled,
+					reminderResyncEnabled = reminderResyncEnabled
+				)
 					scheduler.schedule(job)
 					scheduler.enqueueImmediate(job)
 				} else {
@@ -152,7 +202,18 @@ class SyncJobEditorViewModel(app: Application) : AndroidViewModel(app) {
 						windowPastDays = pastDays,
 						windowFutureDays = futureDays,
 						syncAllEvents = syncAllEvents,
-						frequencyMinutes = frequencyMinutes
+						frequencyMinutes = frequencyMinutes,
+						availabilityMode = availabilityMode.value,
+						copyEventColor = copyEventColor,
+						copyPrivacy = copyPrivacy,
+						copyAttendees = copyAttendees,
+						copyOrganizer = copyOrganizer,
+						reminderMode = reminderMode.value,
+						reminderAllDayMinutes = reminderAllDayMinutes,
+						reminderTimedMinutes = reminderTimedMinutes,
+						reminderAllDayEnabled = reminderAllDayEnabled,
+						reminderTimedEnabled = reminderTimedEnabled,
+						reminderResyncEnabled = reminderResyncEnabled
 					)
 					updateSyncJob(updated)
 					scheduler.schedule(updated)
