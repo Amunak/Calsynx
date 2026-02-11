@@ -1,12 +1,26 @@
 # Calscium
 
-Calscium is an Android app that copies events from one local calendar into another. It focuses on
-simple, one-way synchronization (source → target) without any cloud services, accounts, or servers.
+Calscium is an Android app that copies (synchronizes) events on-device from one calendar into another.
+It does a simple one-way synchronization, (source → target). You need to provide the calendars:
+it does not use any cloud services, accounts, or servers. These can be either local calendars
+or calendars added by other apps / device accounts.
+
+A typical use case would be syncing your work calendar (Outlook, Google Calendar, etc.) with your personal calendar.
+
+Note that while we try to take care to not delete events in the target calendar,
+you should still probably use a separate calendar for the sync outside of your main calendar.
 
 ## What it does
 - Creates sync jobs that copy events from a source calendar into a target calendar.
 - Tracks the last sync time, counts, and any errors per job.
-- Provides calendar management (create local calendars, rename, recolor, purge, delete).
+- Provides convenient calendar management (create local calendars, rename, recolor, purge, delete).
+
+### Sync behavior (one-way copy)
+- Source events are copied into the target calendar; target-only events are ignored.
+  - If you want to clean the target calendar, you can purge it in the calendar management screen with the "Purge" option.
+- If a source event was already synced before, its target event is updated to match the source.
+- If a saved target event no longer exists, the mapping is dropped and the source is re-synced.
+- If a source event disappears, the previously synced target event is deleted.
 
 ## Permissions
 Calscium needs `READ_CALENDAR` and `WRITE_CALENDAR` to list calendars and sync events.
