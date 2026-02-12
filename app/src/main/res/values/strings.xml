@@ -136,6 +136,7 @@
 
 	<string name="text_account_label">Account: %1$s</string>
 	<string name="text_access_level_label">Access level: %1$s</string>
+	<string name="text_additional_sources">+%1$d</string>
 	<string name="text_additional_targets">+%1$d</string>
 	<string name="text_events">Events: %1$d</string>
 	<string name="text_events_synced">Events: %1$d · Synced: %2$d</string>

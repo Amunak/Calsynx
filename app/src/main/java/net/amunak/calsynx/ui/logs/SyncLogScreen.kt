@@ -28,9 +28,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import net.amunak.calsynx.R
 import net.amunak.calsynx.ui.components.ScrollIndicator
 import net.amunak.calsynx.ui.components.TooltipIconButton
@@ -116,13 +121,24 @@ fun SyncLogScreen(
 				}
 			} else {
 				val listState = rememberLazyListState()
+				val layoutDirection = LocalLayoutDirection.current
+				val density = LocalDensity.current
+				val navBarInsets = WindowInsets.navigationBars
+				val navBarBottom = with(density) { navBarInsets.getBottom(this).toDp() }
+				val navBarStart = with(density) { navBarInsets.getLeft(this, layoutDirection).toDp() }
+				val navBarEnd = with(density) { navBarInsets.getRight(this, layoutDirection).toDp() }
 				Box(modifier = Modifier.fillMaxSize()) {
 					LazyColumn(
 						state = listState,
 						modifier = Modifier
 							.fillMaxSize()
 							.padding(padding),
-						contentPadding = PaddingValues(16.dp),
+						contentPadding = PaddingValues(
+							start = 16.dp,
+							end = 16.dp,
+							top = 16.dp,
+							bottom = 16.dp + navBarBottom
+						),
 						verticalArrangement = Arrangement.spacedBy(8.dp)
 					) {
 						items(state.lines.asReversed()) { line ->
@@ -139,7 +155,9 @@ fun SyncLogScreen(
 						state = listState,
 						modifier = Modifier
 							.align(Alignment.CenterEnd)
-							.padding(end = 6.dp)
+							.padding(top = padding.calculateTopPadding())
+							.padding(bottom = navBarBottom)
+							.padding(end = navBarEnd + 2.dp)
 					)
 				}
 			}

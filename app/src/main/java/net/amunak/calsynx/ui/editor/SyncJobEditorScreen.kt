@@ -36,6 +36,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import net.amunak.calsynx.R
 import net.amunak.calsynx.calendar.CalendarInfo
 import net.amunak.calsynx.data.SyncJob
@@ -505,7 +508,13 @@ fun SyncJobEditorScreen(
 			state = listState,
 			modifier = Modifier
 				.align(Alignment.CenterEnd)
-				.padding(end = 6.dp)
+				.padding(top = padding.calculateTopPadding())
+				.padding(
+					bottom = WindowInsets.navigationBars
+						.asPaddingValues()
+						.calculateBottomPadding()
+				)
+				.padding(end = 2.dp)
 		)
 	}
 	}

@@ -44,6 +44,8 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
@@ -104,8 +106,14 @@ fun SyncJobScreen(
 	}
 
 	val bottomPadding = if (uiState.hasCalendarPermission) 96.dp else 16.dp
-	val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-	val contentBottomPadding = bottomPadding + navBarPadding
+	val layoutDirection = LocalLayoutDirection.current
+	val density = LocalDensity.current
+	val navBarInsets = WindowInsets.navigationBars
+	val navBarPaddingValues = navBarInsets.asPaddingValues()
+	val navBarBottom = with(density) { navBarInsets.getBottom(this).toDp() }
+	val navBarStart = with(density) { navBarInsets.getLeft(this, layoutDirection).toDp() }
+	val navBarEnd = with(density) { navBarInsets.getRight(this, layoutDirection).toDp() }
+	val contentBottomPadding = bottomPadding + navBarBottom
 
 	Scaffold(
 		topBar = {
@@ -152,7 +160,8 @@ fun SyncJobScreen(
 		floatingActionButton = {
 			if (uiState.hasCalendarPermission) {
 				ExtendedFloatingActionButton(
-					onClick = { context.startActivity(SyncJobEditorActivity.newIntent(context)) }
+					onClick = { context.startActivity(SyncJobEditorActivity.newIntent(context)) },
+					modifier = Modifier.padding(bottom = navBarBottom, end = navBarEnd)
 				) {
 					Icon(
 						imageVector = Icons.Default.Add,
@@ -308,7 +317,9 @@ fun SyncJobScreen(
 					state = listState,
 					modifier = Modifier
 						.align(Alignment.CenterEnd)
-						.padding(end = 6.dp)
+						.padding(top = padding.calculateTopPadding())
+						.padding(bottom = navBarBottom)
+						.padding(end = navBarEnd + 2.dp)
 				)
 			}
 		}

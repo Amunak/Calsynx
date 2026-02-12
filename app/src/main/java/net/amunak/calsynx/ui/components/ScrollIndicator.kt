@@ -1,6 +1,7 @@
 package net.amunak.calsynx.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +26,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.max
+import kotlin.math.min
 
 @Composable
 fun ScrollIndicator(
@@ -67,13 +69,64 @@ fun ScrollIndicator(
 		val viewportHeight = size.height
 		val effectiveContentHeight = max(totalContentHeight, viewportHeight + 1f)
 
-		val scrollOffset =
+		val scrollOffsetRaw =
 			state.firstVisibleItemIndex * (averageItemSize + averageSpacing) +
 				state.firstVisibleItemScrollOffset
+		val maxScroll = (effectiveContentHeight - viewportHeight).coerceAtLeast(1f)
+		val scrollOffset = scrollOffsetRaw.coerceIn(0f, maxScroll)
 		val rawThumbHeight = (viewportHeight / effectiveContentHeight) * viewportHeight
-		val thumbHeight = rawThumbHeight.coerceAtLeast(minThumbPx)
+		val maxThumbHeight = viewportHeight * 0.9f
+		val thumbHeight = min(rawThumbHeight.coerceAtLeast(minThumbPx), maxThumbHeight)
 		val maxOffset = (viewportHeight - thumbHeight).coerceAtLeast(0f)
-		val thumbOffset = ((scrollOffset / effectiveContentHeight) * viewportHeight)
+		val thumbOffset = when {
+			!state.canScrollBackward -> 0f
+			!state.canScrollForward -> maxOffset
+			else -> ((scrollOffset / maxScroll) * maxOffset)
+		}.coerceIn(0f, maxOffset)
+		val radius = size.width / 2f
+
+		drawRoundRect(
+			color = trackColor,
+			topLeft = Offset(x = 0f, y = 0f),
+			size = Size(width = size.width, height = viewportHeight),
+			cornerRadius = CornerRadius(radius, radius)
+		)
+		drawRoundRect(
+			color = thumbColor,
+			topLeft = Offset(x = 0f, y = thumbOffset),
+			size = Size(width = size.width, height = thumbHeight),
+			cornerRadius = CornerRadius(radius, radius)
+		)
+	}
+}
+
+@Composable
+fun ScrollIndicator(
+	state: ScrollState,
+	modifier: Modifier = Modifier,
+	minThumbHeight: Dp = 24.dp
+) {
+	val maxScroll = state.maxValue.toFloat()
+	if (maxScroll <= 0f) return
+	val alpha = if (state.isScrollInProgress) 0.85f else 0.35f
+	val thumbColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha)
+	val trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.08f)
+	val minThumbPx = with(LocalDensity.current) { minThumbHeight.toPx() }
+
+	Canvas(
+		modifier = modifier
+			.fillMaxHeight()
+			.width(5.dp)
+			.padding(vertical = 4.dp)
+	) {
+		val viewportHeight = size.height
+		val totalContentHeight = viewportHeight + maxScroll
+		val rawThumbHeight = (viewportHeight / totalContentHeight) * viewportHeight
+		val maxThumbHeight = viewportHeight * 0.9f
+		val thumbHeight = min(rawThumbHeight.coerceAtLeast(minThumbPx), maxThumbHeight)
+		val maxOffset = (viewportHeight - thumbHeight).coerceAtLeast(0f)
+		val scrollOffset = state.value.toFloat().coerceIn(0f, maxScroll)
+		val thumbOffset = ((scrollOffset / maxScroll) * maxOffset)
 			.coerceIn(0f, maxOffset)
 		val radius = size.width / 2f
 

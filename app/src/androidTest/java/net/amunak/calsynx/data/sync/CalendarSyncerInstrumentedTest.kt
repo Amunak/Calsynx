@@ -23,6 +23,8 @@ import org.junit.runner.RunWith
 class CalendarSyncerInstrumentedTest {
 	private lateinit var resolver: android.content.ContentResolver
 	private val eventsUri = Uri.parse("content://${FakeCalendarProvider.AUTHORITY}/events")
+	private val remindersUri = eventsUri.buildUpon().path("reminders").build()
+	private val attendeesUri = eventsUri.buildUpon().path("attendees").build()
 
 	@Before
 	fun setUp() {
@@ -528,7 +530,7 @@ class CalendarSyncerInstrumentedTest {
 		val targetEvent = queryEvents(resolver, targetId).first()
 		val targetEventId = targetEvent.getAsLong(CalendarContract.Events._ID)
 		resolver.delete(
-			CalendarContract.Reminders.CONTENT_URI,
+			remindersUri,
 			"${CalendarContract.Reminders.EVENT_ID} = ?",
 			arrayOf(targetEventId.toString())
 		)
@@ -723,7 +725,7 @@ class CalendarSyncerInstrumentedTest {
 			put(CalendarContract.Reminders.MINUTES, minutes)
 			put(CalendarContract.Reminders.METHOD, method)
 		}
-		resolver.insert(CalendarContract.Reminders.CONTENT_URI, values)
+		resolver.insert(remindersUri, values)
 	}
 
 	private fun queryReminders(
@@ -736,7 +738,7 @@ class CalendarSyncerInstrumentedTest {
 			CalendarContract.Reminders.METHOD
 		)
 		val cursor = resolver.query(
-			CalendarContract.Reminders.CONTENT_URI,
+			remindersUri,
 			projection,
 			"${CalendarContract.Reminders.EVENT_ID} = ?",
 			arrayOf(eventId.toString()),
@@ -774,7 +776,7 @@ class CalendarSyncerInstrumentedTest {
 			put(CalendarContract.Attendees.ATTENDEE_TYPE, CalendarContract.Attendees.TYPE_REQUIRED)
 			put(CalendarContract.Attendees.ATTENDEE_RELATIONSHIP, CalendarContract.Attendees.RELATIONSHIP_ATTENDEE)
 		}
-		resolver.insert(CalendarContract.Attendees.CONTENT_URI, values)
+		resolver.insert(attendeesUri, values)
 	}
 
 	private fun queryAttendees(
@@ -788,7 +790,7 @@ class CalendarSyncerInstrumentedTest {
 			CalendarContract.Attendees.ATTENDEE_STATUS
 		)
 		val cursor = resolver.query(
-			CalendarContract.Attendees.CONTENT_URI,
+			attendeesUri,
 			projection,
 			"${CalendarContract.Attendees.EVENT_ID} = ?",
 			arrayOf(eventId.toString()),

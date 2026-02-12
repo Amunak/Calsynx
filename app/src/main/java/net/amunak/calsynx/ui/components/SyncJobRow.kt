@@ -218,7 +218,7 @@ fun SyncJobRow(
 				}
 			} else {
 				BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-					val isCompact = maxWidth < 360.dp
+					val isCompact = maxWidth < 320.dp
 					Row(
 						modifier = Modifier.fillMaxWidth(),
 						horizontalArrangement = Arrangement.spacedBy(10.dp),

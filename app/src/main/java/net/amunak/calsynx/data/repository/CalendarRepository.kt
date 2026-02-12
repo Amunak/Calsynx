@@ -63,16 +63,25 @@ class CalendarRepository(
 		resolver: ContentResolver,
 		calendar: CalendarInfo
 	): Boolean {
-		val uri = asSyncAdapter(
-			CalendarContract.Calendars.CONTENT_URI,
-			calendar.accountName,
-			calendar.accountType
-		)
-		val deleted = resolver.delete(uri, null, null)
+		val (selection, selectionArgs) = buildDeleteSelection(calendar.id)
+		val uri = buildCalendarDeleteUri(calendar)
+		val deleted = resolver.delete(uri, selection, selectionArgs)
 		if (deleted <= 0) {
 			Log.w(TAG, "Failed to delete calendar ${calendar.id}")
 		}
 		return deleted > 0
+	}
+
+	internal fun buildCalendarDeleteUri(calendar: CalendarInfo): Uri {
+		return asSyncAdapter(
+			CalendarContract.Calendars.CONTENT_URI,
+			calendar.accountName,
+			calendar.accountType
+		)
+	}
+
+	internal fun buildDeleteSelection(calendarId: Long): Pair<String, Array<String>> {
+		return "${CalendarContract.Calendars._ID} = ?" to arrayOf(calendarId.toString())
 	}
 
 	fun createLocalCalendar(
@@ -142,6 +151,6 @@ class CalendarRepository(
 
 	companion object {
 		private const val TAG = "CalendarRepository"
-		private const val LOCAL_ACCOUNT_NAME = "Local"
+	private const val LOCAL_ACCOUNT_NAME = "Offline Calendar"
 	}
 }

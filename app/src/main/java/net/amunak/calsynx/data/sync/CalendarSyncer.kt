@@ -24,6 +24,8 @@ class CalendarSyncer(
 	private val mappingDao: EventMappingDao,
 	private val eventsUri: android.net.Uri = CalendarContract.Events.CONTENT_URI
 ) {
+	private val remindersUri = eventsUri.buildUpon().path("reminders").build()
+	private val attendeesUri = eventsUri.buildUpon().path("attendees").build()
 	suspend fun sync(
 		job: SyncJob,
 		window: SyncWindow = SyncWindow.fromJob(job)
@@ -291,7 +293,7 @@ class CalendarSyncer(
 
 	private fun queryReminders(eventId: Long): List<ReminderEntry> {
 		val cursor = resolver.query(
-			CalendarContract.Reminders.CONTENT_URI,
+			remindersUri,
 			arrayOf(CalendarContract.Reminders.MINUTES, CalendarContract.Reminders.METHOD),
 			"${CalendarContract.Reminders.EVENT_ID} = ?",
 			arrayOf(eventId.toString()),
@@ -321,13 +323,13 @@ class CalendarSyncer(
 				put(CalendarContract.Reminders.MINUTES, reminder.minutes)
 				put(CalendarContract.Reminders.METHOD, reminder.method)
 			}
-			resolver.insert(CalendarContract.Reminders.CONTENT_URI, values)
+			resolver.insert(remindersUri, values)
 		}
 	}
 
 	private fun deleteReminders(eventId: Long) {
 		resolver.delete(
-			CalendarContract.Reminders.CONTENT_URI,
+			remindersUri,
 			"${CalendarContract.Reminders.EVENT_ID} = ?",
 			arrayOf(eventId.toString())
 		)
@@ -335,7 +337,7 @@ class CalendarSyncer(
 
 	private fun queryAttendees(eventId: Long): List<AttendeeEntry> {
 		val cursor = resolver.query(
-			CalendarContract.Attendees.CONTENT_URI,
+			attendeesUri,
 			arrayOf(
 				CalendarContract.Attendees.ATTENDEE_NAME,
 				CalendarContract.Attendees.ATTENDEE_EMAIL,
@@ -379,7 +381,7 @@ class CalendarSyncer(
 
 	private fun replaceAttendees(eventId: Long, attendees: List<AttendeeEntry>) {
 		resolver.delete(
-			CalendarContract.Attendees.CONTENT_URI,
+			attendeesUri,
 			"${CalendarContract.Attendees.EVENT_ID} = ?",
 			arrayOf(eventId.toString())
 		)
@@ -398,7 +400,7 @@ class CalendarSyncer(
 					put(CalendarContract.Attendees.ATTENDEE_ID_NAMESPACE, attendee.namespace)
 				}
 			}
-			resolver.insert(CalendarContract.Attendees.CONTENT_URI, values)
+			resolver.insert(attendeesUri, values)
 		}
 	}
 

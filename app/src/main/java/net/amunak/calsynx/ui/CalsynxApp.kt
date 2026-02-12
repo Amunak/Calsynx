@@ -100,7 +100,11 @@ fun CalsynxAppRoute() {
 		onUpdateCalendarName = calendarViewModel::updateCalendarName,
 		onUpdateCalendarColor = calendarViewModel::updateCalendarColor,
 		onPurgeCalendar = calendarViewModel::purgeCalendar,
-		onDeleteCalendar = calendarViewModel::deleteCalendar,
+		onDeleteCalendar = {
+			calendarViewModel.deleteCalendar(it)
+			calendarViewModel.clearSelection()
+			currentScreen = AppScreen.CalendarManagement
+		},
 	onCreateCalendar = calendarViewModel::createCalendar,
 	onCalendarToastShown = calendarViewModel::clearToast,
 	onOpenLogs = { currentScreen = AppScreen.SyncLogs },

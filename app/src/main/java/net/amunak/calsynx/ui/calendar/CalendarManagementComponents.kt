@@ -80,22 +80,30 @@ fun CalendarRowCard(
 					color = MaterialTheme.colorScheme.onSurfaceVariant
 				)
 			}
-			if (incomingCalendar != null) {
-				Row(verticalAlignment = Alignment.CenterVertically) {
-					Text(
-						text = stringResource(R.string.text_synced_input),
-						style = MaterialTheme.typography.bodySmall,
-						color = MaterialTheme.colorScheme.onSurfaceVariant,
-						modifier = Modifier.padding(end = 6.dp)
-					)
-					CalendarLabel(
-						name = incomingCalendar.displayName,
-						color = incomingCalendar.color,
-						textStyle = MaterialTheme.typography.bodySmall,
-						textColor = MaterialTheme.colorScheme.onSurfaceVariant
-					)
-				}
+	if (incomingCalendar != null) {
+		val extraSources = row.incomingCalendars.size - 1
+		Row(verticalAlignment = Alignment.CenterVertically) {
+			Text(
+				text = stringResource(R.string.text_synced_input),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				modifier = Modifier.padding(end = 6.dp)
+			)
+			CalendarLabel(
+				name = incomingCalendar.displayName,
+				color = incomingCalendar.color,
+				textStyle = MaterialTheme.typography.bodySmall,
+				textColor = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+			if (extraSources > 0) {
+				Text(
+					text = stringResource(R.string.text_additional_sources, extraSources),
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.onSurfaceVariant
+				)
 			}
+		}
+	}
 			if (outgoingCalendars.isNotEmpty()) {
 				val target = outgoingCalendars.first()
 				val extraCount = outgoingCalendars.size - 1
@@ -156,21 +164,21 @@ fun CalendarMetaSection(
 			style = MaterialTheme.typography.bodySmall,
 			color = MaterialTheme.colorScheme.onSurfaceVariant
 		)
-		val source = sourceCalendars.firstOrNull()
-		if (source != null) {
-			Row(verticalAlignment = Alignment.CenterVertically) {
-				Text(
-					text = stringResource(R.string.text_synced_input),
-					style = MaterialTheme.typography.bodySmall,
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-					modifier = Modifier.padding(end = 6.dp)
-				)
-				CalendarLabel(
-					name = source.displayName,
-					color = source.color,
-					textStyle = MaterialTheme.typography.bodySmall,
-					textColor = MaterialTheme.colorScheme.onSurfaceVariant
-				)
+		if (sourceCalendars.isNotEmpty()) {
+			Text(
+				text = stringResource(R.string.text_synced_input),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant
+			)
+			Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+				sourceCalendars.distinctBy { it.id }.forEach { source ->
+					CalendarLabel(
+						name = source.displayName,
+						color = source.color,
+						textStyle = MaterialTheme.typography.bodySmall,
+						textColor = MaterialTheme.colorScheme.onSurfaceVariant
+					)
+				}
 			}
 		}
 		if (targetCalendars.isNotEmpty()) {

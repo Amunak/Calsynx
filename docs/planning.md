@@ -37,6 +37,8 @@
 - All-day reminder timing uses “days before + time of day on the prior day” (e.g., 0 days at 8 PM = 4 hours before).
 - Expose a reminder re-sync toggle so users can keep custom target reminders.
 - Warn about battery optimizations in the job list and log exemption status in exports.
+- Match calendar management scroll indicator padding to the job list layout and surface additional input sources in list rows.
+- Align list content, scroll indicators, and FABs with navigation bar insets; keep pause button visible on slightly narrower cards.
 
 ## Rejected
 - Move “Sync now” into an overflow-only action.

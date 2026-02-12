@@ -2,14 +2,18 @@ package net.amunak.calsynx.ui.calendar
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -24,11 +28,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import net.amunak.calsynx.R
+import net.amunak.calsynx.ui.components.ScrollIndicator
 import net.amunak.calsynx.ui.components.sanitizeCalendarName
 import net.amunak.calsynx.ui.components.stripCalendarNewlines
 
@@ -55,10 +61,7 @@ import net.amunak.calsynx.ui.components.stripCalendarNewlines
 				focusedLabelColor = MaterialTheme.colorScheme.primary,
 				cursorColor = MaterialTheme.colorScheme.primary
 			)
-			Column(
-				verticalArrangement = Arrangement.spacedBy(12.dp),
-				modifier = Modifier.verticalScroll(rememberScrollState())
-			) {
+			Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 				OutlinedTextField(
 					value = name,
 					onValueChange = { name = stripCalendarNewlines(it) },
@@ -160,22 +163,51 @@ fun ColorPickerRow(
 	val colorRows = remember { defaultCalendarColorRows() }
 	Column(
 		verticalArrangement = Arrangement.spacedBy(6.dp),
-		modifier = Modifier.verticalScroll(rememberScrollState())
+		modifier = Modifier
+			.fillMaxWidth()
+			.heightIn(max = 240.dp)
 	) {
-		colorRows.forEach { row ->
-			Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-				row.forEach { color ->
-					val isSelected = selectedColor == color
-					Surface(
-						color = Color(color),
-						shape = MaterialTheme.shapes.small,
-						modifier = Modifier
-							.size(28.dp)
-							.clickable { onSelect(color) },
-						tonalElevation = if (isSelected) 6.dp else 0.dp
-					) {}
+		val scrollState = rememberScrollState()
+		Box(
+			modifier = Modifier
+				.fillMaxWidth()
+				.heightIn(max = 240.dp)
+		) {
+			Column(
+				verticalArrangement = Arrangement.spacedBy(6.dp),
+				modifier = Modifier
+					.fillMaxWidth()
+					.verticalScroll(scrollState)
+					.padding(end = 10.dp)
+			) {
+				colorRows.forEach { row ->
+					Row(
+						modifier = Modifier.fillMaxWidth(),
+						horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
+					) {
+						row.forEach { color ->
+							val isSelected = selectedColor == color
+							Surface(
+								color = Color(color),
+								shape = MaterialTheme.shapes.small,
+								modifier = Modifier
+									.size(28.dp)
+									.clickable { onSelect(color) },
+								border = if (isSelected) {
+									BorderStroke(2.dp, MaterialTheme.colorScheme.onSurface)
+								} else {
+									null
+								},
+								tonalElevation = if (isSelected) 6.dp else 0.dp
+							) {}
+						}
+					}
 				}
 			}
+			ScrollIndicator(
+				state = scrollState,
+				modifier = Modifier.align(androidx.compose.ui.Alignment.CenterEnd)
+			)
 		}
 	}
 }

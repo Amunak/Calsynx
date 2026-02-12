@@ -39,8 +39,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import net.amunak.calsynx.calendar.CalendarInfo
 import net.amunak.calsynx.ui.PreviewData
 import net.amunak.calsynx.ui.components.groupCalendars
@@ -83,7 +88,15 @@ fun CalendarManagementScreen(
 			)
 		},
 		floatingActionButton = {
-			ExtendedFloatingActionButton(onClick = { showCreateDialog = true }) {
+			val layoutDirection = LocalLayoutDirection.current
+			val density = LocalDensity.current
+			val navBarInsets = WindowInsets.navigationBars
+			val navBarBottom = with(density) { navBarInsets.getBottom(this).toDp() }
+			val navBarEnd = with(density) { navBarInsets.getRight(this, layoutDirection).toDp() }
+			ExtendedFloatingActionButton(
+				onClick = { showCreateDialog = true },
+				modifier = Modifier.padding(bottom = navBarBottom, end = navBarEnd)
+			) {
 				Icon(Icons.Default.Add, contentDescription = null)
 				Text(
 					text = stringResource(R.string.label_create_calendar),
@@ -97,79 +110,88 @@ fun CalendarManagementScreen(
 			color = MaterialTheme.colorScheme.surfaceContainerLowest
 		) {
 			val listState = rememberLazyListState()
-			Column(
-				modifier = Modifier
-					.fillMaxSize()
-					.padding(padding)
-					.padding(16.dp)
-			) {
-				state.errorMessage?.let { message ->
-					Text(
-						text = message,
-						color = MaterialTheme.colorScheme.error,
-						style = MaterialTheme.typography.bodySmall
-					)
-					Spacer(modifier = Modifier.height(8.dp))
-				}
-				if (state.isLoading) {
-					Text(
-						text = stringResource(R.string.label_loading_calendars),
-						style = MaterialTheme.typography.bodySmall,
-						color = MaterialTheme.colorScheme.onSurfaceVariant
-					)
-				}
-				if (!state.isLoading && state.calendars.isEmpty()) {
-					Text(
-						text = stringResource(R.string.label_no_calendars_available),
-						style = MaterialTheme.typography.bodySmall,
-						color = MaterialTheme.colorScheme.onSurfaceVariant
-					)
-				}
-
-				val grouped = groupCalendars(
-					state.calendars.map { it.calendar },
-					onDeviceLabel = stringResource(R.string.text_on_device),
-					externalLabel = stringResource(R.string.text_external)
-				)
-				Box(
+			val layoutDirection = LocalLayoutDirection.current
+			val density = LocalDensity.current
+			val navBarInsets = WindowInsets.navigationBars
+			val navBarBottom = with(density) { navBarInsets.getBottom(this).toDp() }
+			val navBarStart = with(density) { navBarInsets.getLeft(this, layoutDirection).toDp() }
+			val navBarEnd = with(density) { navBarInsets.getRight(this, layoutDirection).toDp() }
+			val grouped = groupCalendars(
+				state.calendars.map { it.calendar },
+				onDeviceLabel = stringResource(R.string.text_on_device),
+				externalLabel = stringResource(R.string.text_external)
+			)
+			Box(modifier = Modifier.fillMaxSize()) {
+				LazyColumn(
+					state = listState,
 					modifier = Modifier
-						.fillMaxWidth()
-						.weight(1f)
+						.fillMaxSize()
+						.padding(padding),
+					contentPadding = PaddingValues(
+						start = 16.dp,
+						end = 16.dp,
+						top = 16.dp,
+						bottom = 96.dp + navBarBottom
+					),
+					verticalArrangement = Arrangement.spacedBy(12.dp)
 				) {
-					LazyColumn(
-						state = listState,
-						contentPadding = PaddingValues(end = 12.dp, bottom = 96.dp),
-						verticalArrangement = Arrangement.spacedBy(12.dp)
-					) {
-						grouped.forEach { (group, calendars) ->
-							item {
-								Text(
-									text = group,
-									style = MaterialTheme.typography.titleSmall,
-									color = MaterialTheme.colorScheme.onSurfaceVariant
+					state.errorMessage?.let { message ->
+						item {
+							Text(
+								text = message,
+								color = MaterialTheme.colorScheme.error,
+								style = MaterialTheme.typography.bodySmall
+							)
+						}
+					}
+					if (state.isLoading) {
+						item {
+							Text(
+								text = stringResource(R.string.label_loading_calendars),
+								style = MaterialTheme.typography.bodySmall,
+								color = MaterialTheme.colorScheme.onSurfaceVariant
+							)
+						}
+					}
+					if (!state.isLoading && state.calendars.isEmpty()) {
+						item {
+							Text(
+								text = stringResource(R.string.label_no_calendars_available),
+								style = MaterialTheme.typography.bodySmall,
+								color = MaterialTheme.colorScheme.onSurfaceVariant
+							)
+						}
+					}
+					grouped.forEach { (group, calendars) ->
+						item {
+							Text(
+								text = group,
+								style = MaterialTheme.typography.titleSmall,
+								color = MaterialTheme.colorScheme.onSurfaceVariant
+							)
+						}
+						items(
+							items = calendars,
+							key = { it.id }
+						) { calendar ->
+							val row = state.calendars.firstOrNull { it.calendar.id == calendar.id }
+							if (row != null) {
+								CalendarRowCard(
+									row = row,
+									onClick = { onSelectCalendar(calendar.id) }
 								)
-							}
-							items(
-								items = calendars,
-								key = { it.id }
-							) { calendar ->
-								val row = state.calendars.firstOrNull { it.calendar.id == calendar.id }
-								if (row != null) {
-									CalendarRowCard(
-										row = row,
-										onClick = { onSelectCalendar(calendar.id) }
-									)
-								}
 							}
 						}
 					}
-					ScrollIndicator(
-						state = listState,
-						modifier = Modifier
-							.align(Alignment.CenterEnd)
-							.padding(end = 6.dp)
-					)
 				}
+				ScrollIndicator(
+					state = listState,
+					modifier = Modifier
+						.align(Alignment.CenterEnd)
+						.padding(top = padding.calculateTopPadding())
+						.padding(bottom = navBarBottom)
+						.padding(end = navBarEnd + 2.dp)
+				)
 			}
 		}
 	}
