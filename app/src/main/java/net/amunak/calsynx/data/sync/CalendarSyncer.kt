@@ -388,7 +388,10 @@ class CalendarSyncer(
 	}
 
 	private fun applyAttendees(job: SyncJob, source: SourceEvent, targetEventId: Long) {
-		if (!job.copyAttendees) return
+		if (!job.copyAttendees) {
+			deleteAttendees(targetEventId)
+			return
+		}
 		val attendees = queryAttendees(source.id)
 		replaceAttendees(targetEventId, attendees)
 	}
@@ -513,11 +516,7 @@ class CalendarSyncer(
 	}
 
 	private fun replaceAttendees(eventId: Long, attendees: List<AttendeeEntry>) {
-		resolver.delete(
-			attendeesUri,
-			"${CalendarContract.Attendees.EVENT_ID} = ?",
-			arrayOf(eventId.toString())
-		)
+		deleteAttendees(eventId)
 		attendees.forEach { attendee ->
 			val values = ContentValues().apply {
 				put(CalendarContract.Attendees.EVENT_ID, eventId)
@@ -535,6 +534,14 @@ class CalendarSyncer(
 			}
 			resolver.insert(attendeesUri, values)
 		}
+	}
+
+	private fun deleteAttendees(eventId: Long) {
+		resolver.delete(
+			attendeesUri,
+			"${CalendarContract.Attendees.EVENT_ID} = ?",
+			arrayOf(eventId.toString())
+		)
 	}
 
 	private fun deleteTargets(targetIds: List<Long>): Int {
@@ -870,6 +877,8 @@ internal fun buildEventContentValues(
 			} else {
 				put(CalendarContract.Events.ACCESS_LEVEL, source.accessLevel)
 			}
+		} else {
+			putNull(CalendarContract.Events.ACCESS_LEVEL)
 		}
 		if (job.copyEventColor) {
 			if (source.eventColor == null) {
@@ -877,11 +886,17 @@ internal fun buildEventContentValues(
 			} else {
 				put(CalendarContract.Events.EVENT_COLOR, source.eventColor)
 			}
+		} else {
+			putNull(CalendarContract.Events.EVENT_COLOR)
 		}
 		if (job.copyOrganizer) {
-			if (!source.organizer.isNullOrBlank()) {
+			if (source.organizer.isNullOrBlank()) {
+				putNull(CalendarContract.Events.ORGANIZER)
+			} else {
 				put(CalendarContract.Events.ORGANIZER, source.organizer)
 			}
+		} else {
+			putNull(CalendarContract.Events.ORGANIZER)
 		}
 		if (source.originalId != null) {
 			put(CalendarContract.Events.ORIGINAL_ID, source.originalId)
