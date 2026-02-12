@@ -21,21 +21,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
+import net.amunak.calsynx.ui.components.ScreenSurface
+import net.amunak.calsynx.ui.components.rememberNavBarPadding
 import net.amunak.calsynx.R
 import net.amunak.calsynx.ui.components.ScrollIndicator
 import net.amunak.calsynx.ui.components.TooltipIconButton
@@ -53,6 +49,7 @@ fun SyncLogScreen(
 	LaunchedEffect(Unit) {
 		onRefresh()
 	}
+	val navBar = rememberNavBarPadding()
 
 	Scaffold(
 		topBar = {
@@ -101,10 +98,7 @@ fun SyncLogScreen(
 			)
 		}
 	) { padding ->
-		Surface(
-			modifier = Modifier.fillMaxSize(),
-			color = MaterialTheme.colorScheme.surfaceContainerLowest
-		) {
+		ScreenSurface {
 			if (state.lines.isEmpty() && !state.isLoading) {
 				Column(
 					modifier = Modifier
@@ -121,12 +115,6 @@ fun SyncLogScreen(
 				}
 			} else {
 				val listState = rememberLazyListState()
-				val layoutDirection = LocalLayoutDirection.current
-				val density = LocalDensity.current
-				val navBarInsets = WindowInsets.navigationBars
-				val navBarBottom = with(density) { navBarInsets.getBottom(this).toDp() }
-				val navBarStart = with(density) { navBarInsets.getLeft(this, layoutDirection).toDp() }
-				val navBarEnd = with(density) { navBarInsets.getRight(this, layoutDirection).toDp() }
 				Box(modifier = Modifier.fillMaxSize()) {
 					LazyColumn(
 						state = listState,
@@ -137,7 +125,7 @@ fun SyncLogScreen(
 							start = 16.dp,
 							end = 16.dp,
 							top = 16.dp,
-							bottom = 16.dp + navBarBottom
+							bottom = 16.dp + navBar.bottom
 						),
 						verticalArrangement = Arrangement.spacedBy(8.dp)
 					) {
@@ -156,8 +144,8 @@ fun SyncLogScreen(
 						modifier = Modifier
 							.align(Alignment.CenterEnd)
 							.padding(top = padding.calculateTopPadding())
-							.padding(bottom = navBarBottom)
-							.padding(end = navBarEnd + 2.dp)
+							.padding(bottom = navBar.bottom)
+							.padding(end = navBar.end + 2.dp)
 					)
 				}
 			}

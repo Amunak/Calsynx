@@ -39,6 +39,7 @@
 - Warn about battery optimizations in the job list and log exemption status in exports.
 - Match calendar management scroll indicator padding to the job list layout and surface additional input sources in list rows.
 - Align list content, scroll indicators, and FABs with navigation bar insets; keep pause button visible on slightly narrower cards.
+- Extracted shared nav bar padding and screen surface helpers to keep layout code consistent.
 
 ## Rejected
 - Move “Sync now” into an overflow-only action.

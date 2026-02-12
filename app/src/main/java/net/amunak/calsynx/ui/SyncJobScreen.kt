@@ -12,14 +12,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
-import androidx.compose.material3.Surface
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.MaterialTheme
@@ -44,8 +40,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
@@ -54,9 +48,11 @@ import net.amunak.calsynx.R
 import net.amunak.calsynx.data.SyncJob
 import net.amunak.calsynx.ui.components.SyncJobRow
 import net.amunak.calsynx.ui.components.ScrollIndicator
+import net.amunak.calsynx.ui.components.ScreenSurface
 import net.amunak.calsynx.ui.components.sanitizeCalendarName
 import net.amunak.calsynx.ui.components.TooltipIconButton
 import net.amunak.calsynx.ui.components.WarningCard
+import net.amunak.calsynx.ui.components.rememberNavBarPadding
 import androidx.compose.material3.TextButton
 import android.os.Build
 import android.os.PowerManager
@@ -106,13 +102,9 @@ fun SyncJobScreen(
 	}
 
 	val bottomPadding = if (uiState.hasCalendarPermission) 96.dp else 16.dp
-	val layoutDirection = LocalLayoutDirection.current
-	val density = LocalDensity.current
-	val navBarInsets = WindowInsets.navigationBars
-	val navBarPaddingValues = navBarInsets.asPaddingValues()
-	val navBarBottom = with(density) { navBarInsets.getBottom(this).toDp() }
-	val navBarStart = with(density) { navBarInsets.getLeft(this, layoutDirection).toDp() }
-	val navBarEnd = with(density) { navBarInsets.getRight(this, layoutDirection).toDp() }
+	val navBar = rememberNavBarPadding()
+	val navBarBottom = navBar.bottom
+	val navBarEnd = navBar.end
 	val contentBottomPadding = bottomPadding + navBarBottom
 
 	Scaffold(
@@ -175,10 +167,7 @@ fun SyncJobScreen(
 			}
 		}
 	) { padding ->
-		Surface(
-			modifier = Modifier.fillMaxSize(),
-			color = MaterialTheme.colorScheme.surfaceContainerLowest
-		) {
+		ScreenSurface {
 			Box(modifier = Modifier.fillMaxSize()) {
 				LazyColumn(
 					state = listState,

@@ -28,7 +28,6 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -39,19 +38,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
+import net.amunak.calsynx.ui.components.ScreenSurface
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.navigationBars
 import net.amunak.calsynx.calendar.CalendarInfo
 import net.amunak.calsynx.ui.PreviewData
 import net.amunak.calsynx.ui.components.groupCalendars
 import net.amunak.calsynx.ui.components.sanitizeCalendarName
 import net.amunak.calsynx.ui.components.TooltipIconButton
 import net.amunak.calsynx.ui.components.ScrollIndicator
+import net.amunak.calsynx.ui.components.rememberNavBarPadding
 import androidx.compose.ui.res.stringResource
 import net.amunak.calsynx.R
 
@@ -65,6 +61,7 @@ fun CalendarManagementScreen(
 	onCreateCalendar: (String, Int) -> Unit
 ) {
 	var showCreateDialog by remember { mutableStateOf(false) }
+	val navBar = rememberNavBarPadding()
 
 	LaunchedEffect(Unit) {
 		onRefresh()
@@ -88,14 +85,9 @@ fun CalendarManagementScreen(
 			)
 		},
 		floatingActionButton = {
-			val layoutDirection = LocalLayoutDirection.current
-			val density = LocalDensity.current
-			val navBarInsets = WindowInsets.navigationBars
-			val navBarBottom = with(density) { navBarInsets.getBottom(this).toDp() }
-			val navBarEnd = with(density) { navBarInsets.getRight(this, layoutDirection).toDp() }
 			ExtendedFloatingActionButton(
 				onClick = { showCreateDialog = true },
-				modifier = Modifier.padding(bottom = navBarBottom, end = navBarEnd)
+				modifier = Modifier.padding(bottom = navBar.bottom, end = navBar.end)
 			) {
 				Icon(Icons.Default.Add, contentDescription = null)
 				Text(
@@ -105,17 +97,8 @@ fun CalendarManagementScreen(
 			}
 		}
 	) { padding ->
-		Surface(
-			modifier = Modifier.fillMaxSize(),
-			color = MaterialTheme.colorScheme.surfaceContainerLowest
-		) {
+		ScreenSurface {
 			val listState = rememberLazyListState()
-			val layoutDirection = LocalLayoutDirection.current
-			val density = LocalDensity.current
-			val navBarInsets = WindowInsets.navigationBars
-			val navBarBottom = with(density) { navBarInsets.getBottom(this).toDp() }
-			val navBarStart = with(density) { navBarInsets.getLeft(this, layoutDirection).toDp() }
-			val navBarEnd = with(density) { navBarInsets.getRight(this, layoutDirection).toDp() }
 			val grouped = groupCalendars(
 				state.calendars.map { it.calendar },
 				onDeviceLabel = stringResource(R.string.text_on_device),
@@ -131,7 +114,7 @@ fun CalendarManagementScreen(
 						start = 16.dp,
 						end = 16.dp,
 						top = 16.dp,
-						bottom = 96.dp + navBarBottom
+						bottom = 96.dp + navBar.bottom
 					),
 					verticalArrangement = Arrangement.spacedBy(12.dp)
 				) {
@@ -189,8 +172,8 @@ fun CalendarManagementScreen(
 					modifier = Modifier
 						.align(Alignment.CenterEnd)
 						.padding(top = padding.calculateTopPadding())
-						.padding(bottom = navBarBottom)
-						.padding(end = navBarEnd + 2.dp)
+						.padding(bottom = navBar.bottom)
+						.padding(end = navBar.end + 2.dp)
 				)
 			}
 		}
@@ -251,14 +234,11 @@ fun CalendarDetailScreen(
 			)
 		}
 	) { padding ->
-		Surface(
-			modifier = Modifier.fillMaxSize(),
-			color = MaterialTheme.colorScheme.surfaceContainerLowest
-		) {
-			Column(
-				modifier = Modifier
-					.fillMaxSize()
-					.padding(padding)
+	ScreenSurface {
+		Column(
+			modifier = Modifier
+				.fillMaxSize()
+				.padding(padding)
 					.padding(16.dp),
 				verticalArrangement = Arrangement.spacedBy(12.dp)
 			) {
