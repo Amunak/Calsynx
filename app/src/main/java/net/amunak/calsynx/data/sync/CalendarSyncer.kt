@@ -993,19 +993,15 @@ internal fun buildEventContentValues(
 		} else {
 			putNull(CalendarContract.Events.ORGANIZER)
 		}
-		if (source.originalId != null) {
-			if (targetOriginalId == null) {
-				putNull(CalendarContract.Events.ORIGINAL_ID)
-			} else {
-				put(CalendarContract.Events.ORIGINAL_ID, targetOriginalId)
-			}
+		if (source.originalId != null && targetOriginalId != null) {
+			put(CalendarContract.Events.ORIGINAL_ID, targetOriginalId)
 			if (source.originalInstanceTime != null) {
 				put(CalendarContract.Events.ORIGINAL_INSTANCE_TIME, source.originalInstanceTime)
 			}
 			if (source.originalAllDay != null) {
 				put(CalendarContract.Events.ORIGINAL_ALL_DAY, if (source.originalAllDay) 1 else 0)
 			}
-		} else {
+		} else if (targetCalendarId == null) {
 			putNull(CalendarContract.Events.ORIGINAL_ID)
 			putNull(CalendarContract.Events.ORIGINAL_INSTANCE_TIME)
 			putNull(CalendarContract.Events.ORIGINAL_ALL_DAY)

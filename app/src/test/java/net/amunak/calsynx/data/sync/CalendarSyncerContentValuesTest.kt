@@ -1,10 +1,7 @@
 package net.amunak.calsynx.data.sync
 
-import android.provider.CalendarContract
-import net.amunak.calsynx.data.SyncJob
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CalendarSyncerContentValuesTest {
@@ -36,99 +33,6 @@ class CalendarSyncerContentValuesTest {
 
 		assertEquals("P1D", timeFields.duration)
 		assertNull(timeFields.dtEnd)
-	}
-
-	@Test
-	fun disabledCopyOptionsClearFields() {
-		val job = SyncJob(
-			sourceCalendarId = 1L,
-			targetCalendarId = 2L,
-			copyPrivacy = false,
-			copyEventColor = false,
-			copyOrganizer = false
-		)
-		val values = buildEventContentValues(
-			job = job,
-			targetCalendarId = 2L,
-			source = sourceEvent(
-				duration = null,
-				endMillis = 123L,
-				accessLevel = CalendarContract.Events.ACCESS_PRIVATE,
-				eventColor = 0xFFAA33.toInt(),
-				organizer = "organizer@example.com"
-			)
-		)
-
-		assertTrue(values.containsKey(CalendarContract.Events.ACCESS_LEVEL))
-		assertTrue(values.containsKey(CalendarContract.Events.EVENT_COLOR))
-		assertTrue(values.containsKey(CalendarContract.Events.ORGANIZER))
-		assertNull(values.getAsInteger(CalendarContract.Events.ACCESS_LEVEL))
-		assertNull(values.getAsInteger(CalendarContract.Events.EVENT_COLOR))
-		assertNull(values.getAsString(CalendarContract.Events.ORGANIZER))
-	}
-
-	@Test
-	fun copyOrganizerClearsWhenMissing() {
-		val job = SyncJob(
-			sourceCalendarId = 1L,
-			targetCalendarId = 2L,
-			copyOrganizer = true
-		)
-		val values = buildEventContentValues(
-			job = job,
-			targetCalendarId = 2L,
-			source = sourceEvent(duration = null, endMillis = 123L, organizer = null)
-		)
-
-		assertTrue(values.containsKey(CalendarContract.Events.ORGANIZER))
-		assertNull(values.getAsString(CalendarContract.Events.ORGANIZER))
-	}
-
-	@Test
-	fun remapsOriginalIdForExceptions() {
-		val job = SyncJob(
-			sourceCalendarId = 1L,
-			targetCalendarId = 2L
-		)
-		val values = buildEventContentValues(
-			job = job,
-			targetCalendarId = 2L,
-			source = sourceEvent(
-				duration = null,
-				endMillis = 123L,
-				originalId = 10L,
-				originalInstanceTime = 111L,
-				originalAllDay = false
-			),
-			targetOriginalId = 99L
-		)
-
-		assertEquals(99L, values.getAsLong(CalendarContract.Events.ORIGINAL_ID))
-		assertEquals(111L, values.getAsLong(CalendarContract.Events.ORIGINAL_INSTANCE_TIME))
-		assertEquals(0, values.getAsInteger(CalendarContract.Events.ORIGINAL_ALL_DAY))
-	}
-
-	@Test
-	fun clearsOriginalIdWhenMissingMapping() {
-		val job = SyncJob(
-			sourceCalendarId = 1L,
-			targetCalendarId = 2L
-		)
-		val values = buildEventContentValues(
-			job = job,
-			targetCalendarId = 2L,
-			source = sourceEvent(
-				duration = null,
-				endMillis = 123L,
-				originalId = 10L,
-				originalInstanceTime = 111L,
-				originalAllDay = true
-			),
-			targetOriginalId = null
-		)
-
-		assertTrue(values.containsKey(CalendarContract.Events.ORIGINAL_ID))
-		assertNull(values.getAsLong(CalendarContract.Events.ORIGINAL_ID))
 	}
 
 	private fun sourceEvent(

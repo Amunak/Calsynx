@@ -56,11 +56,13 @@
 - Disabling copy options clears organizer/privacy/color values and removes attendees on sync updates.
 - Background sync errors reuse existing string resources for consistency.
 - Calendar management stats use batched event counts and precomputed job mappings.
+- Remap recurring exceptions to the target master event and attempt to repair missing mappings before creating new targets.
 
 ## Rejected
 - Move “Sync now” into an overflow-only action.
 - Introduce a full DI framework for now; stick to lightweight constructors/providers.
 - Preserve previously copied organizer/privacy/color/attendees when copy options are disabled.
+- Skip recurring exceptions entirely to avoid duplicate rendering.
 
 ## Open Questions
 - None.

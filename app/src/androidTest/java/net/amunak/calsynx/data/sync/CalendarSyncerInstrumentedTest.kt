@@ -1,5 +1,6 @@
 package net.amunak.calsynx.data.sync
 
+import android.Manifest
 import android.content.ContentUris
 import android.content.ContentValues
 import android.database.Cursor
@@ -7,6 +8,8 @@ import android.net.Uri
 import android.provider.CalendarContract
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.rule.GrantPermissionRule
+import net.amunak.calsynx.data.CalendarMappingCount
 import net.amunak.calsynx.data.EventMapping
 import net.amunak.calsynx.data.EventMappingDao
 import net.amunak.calsynx.data.SyncJob
@@ -16,11 +19,18 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class CalendarSyncerInstrumentedTest {
+	@get:Rule
+	val permissionRule: GrantPermissionRule = GrantPermissionRule.grant(
+		Manifest.permission.READ_CALENDAR,
+		Manifest.permission.WRITE_CALENDAR
+	)
+
 	private lateinit var resolver: android.content.ContentResolver
 	private val eventsUri = Uri.parse("content://${FakeCalendarProvider.AUTHORITY}/events")
 	private val remindersUri = eventsUri.buildUpon().path("reminders").build()
@@ -100,7 +110,7 @@ class CalendarSyncerInstrumentedTest {
 				put(CalendarContract.Events.EXDATE, splitStart.toString())
 			}
 		)
-		insertEvent(
+		val seriesSourceId = insertEvent(
 			resolver,
 			sourceId,
 			eventValues(
@@ -119,8 +129,11 @@ class CalendarSyncerInstrumentedTest {
 
 		val targets = queryEvents(resolver, targetId)
 		assertEquals(2, targets.size)
+		val targetMasterId = mappingDao.getForJob(sourceId, targetId)
+			.first { it.sourceEventId == originalId }
+			.targetEventId
 		assertTrue(targets.any { it.getAsString(CalendarContract.Events.EXDATE) == splitStart.toString() })
-		assertTrue(targets.any { it.getAsLong(CalendarContract.Events.ORIGINAL_ID) == originalId })
+		assertTrue(targets.any { it.getAsLong(CalendarContract.Events.ORIGINAL_ID) == targetMasterId })
 	}
 
 	@Test
@@ -181,7 +194,7 @@ class CalendarSyncerInstrumentedTest {
 		val sourceId = 15L
 		val targetId = 25L
 
-		insertEvent(
+		val seriesSourceId = insertEvent(
 			resolver,
 			sourceId,
 			eventValues(
@@ -211,7 +224,7 @@ class CalendarSyncerInstrumentedTest {
 		val sourceId = 16L
 		val targetId = 26L
 
-		insertEvent(
+		val seriesSourceId = insertEvent(
 			resolver,
 			sourceId,
 			eventValues(
@@ -249,7 +262,7 @@ class CalendarSyncerInstrumentedTest {
 				allDay = true,
 				timeZone = "Europe/Paris",
 				endTimeZone = "Europe/Paris",
-				originalId = 1234L,
+				originalId = seriesSourceId,
 				originalInstanceTime = 49_000L,
 				originalAllDay = true
 			)
@@ -276,6 +289,9 @@ class CalendarSyncerInstrumentedTest {
 		assertEquals("UTC", series.getAsString(CalendarContract.Events.EVENT_END_TIMEZONE))
 
 		val override = targets.first { it.getAsString(CalendarContract.Events.TITLE) == "Override detail" }
+		val targetMasterId = mappingDao.getForJob(sourceId, targetId)
+			.first { it.sourceEventId == seriesSourceId }
+			.targetEventId
 		assertEquals(50_000L, override.getAsLong(CalendarContract.Events.DTSTART))
 		assertEquals(null, override.getAsLong(CalendarContract.Events.DTEND))
 		assertEquals("PT2H", override.getAsString(CalendarContract.Events.DURATION))
@@ -286,7 +302,7 @@ class CalendarSyncerInstrumentedTest {
 		assertEquals(1, override.getAsInteger(CalendarContract.Events.ALL_DAY))
 		assertEquals("Europe/Paris", override.getAsString(CalendarContract.Events.EVENT_TIMEZONE))
 		assertEquals("Europe/Paris", override.getAsString(CalendarContract.Events.EVENT_END_TIMEZONE))
-		assertEquals(1234L, override.getAsLong(CalendarContract.Events.ORIGINAL_ID))
+		assertEquals(targetMasterId, override.getAsLong(CalendarContract.Events.ORIGINAL_ID))
 		assertEquals(49_000L, override.getAsLong(CalendarContract.Events.ORIGINAL_INSTANCE_TIME))
 		assertEquals(1, override.getAsInteger(CalendarContract.Events.ORIGINAL_ALL_DAY))
 	}
@@ -932,6 +948,13 @@ private class InMemoryEventMappingDao : EventMappingDao {
 
 	override suspend fun countSyncedTargets(calendarId: Long): Int {
 		return mappings.count { it.targetCalendarId == calendarId }
+	}
+
+	override suspend fun countSyncedTargetsByCalendar(): List<CalendarMappingCount> {
+		return mappings.groupBy { it.targetCalendarId }
+			.map { (calendarId, entries) ->
+				CalendarMappingCount(calendarId = calendarId, count = entries.size)
+			}
 	}
 
 	override suspend fun getTargetEventIdsForCalendar(calendarId: Long): List<Long> {

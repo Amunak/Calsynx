@@ -27,3 +27,5 @@
 - Battery optimization warnings should appear as a top-of-list card after calendar permissions; log exemption status in exports.
 - Disabling copy options should clear organizer/privacy/color values and remove attendees on sync updates.
 - Background sync errors should reuse existing string resources for consistent copy.
+- Recurring exceptions should remap to target master events; attempt to repair missing mappings before creating new targets.
+- Do not run connected instrumented tests unless there is a clear risk of breakage; they wipe app storage.
