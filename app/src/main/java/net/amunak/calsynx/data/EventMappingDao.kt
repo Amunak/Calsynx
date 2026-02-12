@@ -47,6 +47,15 @@ interface EventMappingDao {
 
 	@Query(
 		"""
+		SELECT targetCalendarId as calendarId, COUNT(*) as count
+		FROM event_mappings
+		GROUP BY targetCalendarId
+		"""
+	)
+	suspend fun countSyncedTargetsByCalendar(): List<CalendarMappingCount>
+
+	@Query(
+		"""
 		SELECT targetEventId FROM event_mappings
 		WHERE targetCalendarId = :calendarId
 		"""

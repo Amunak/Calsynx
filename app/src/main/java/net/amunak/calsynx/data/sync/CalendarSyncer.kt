@@ -7,6 +7,7 @@ import android.util.Log
 import net.amunak.calsynx.data.EventMapping
 import net.amunak.calsynx.data.EventMappingDao
 import net.amunak.calsynx.data.SyncJob
+import net.amunak.calsynx.data.countEvents
 import java.time.Instant
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
@@ -294,20 +295,12 @@ class CalendarSyncer(
 		window: SyncWindow,
 		syncAllEvents: Boolean
 	): Int {
-		val projection = arrayOf(CalendarContract.Events._ID)
 		val querySpec = buildEventQuerySpec(
 			calendarId = calendarId,
 			window = window,
 			syncAllEvents = syncAllEvents
 		)
-		val cursor = resolver.query(
-			eventsUri,
-			projection,
-			querySpec.selection,
-			querySpec.selectionArgs,
-			null
-		) ?: return 0
-		return cursor.use { it.count }
+		return countEvents(resolver, querySpec.selection, querySpec.selectionArgs)
 	}
 
 	private fun insertTargetEvent(

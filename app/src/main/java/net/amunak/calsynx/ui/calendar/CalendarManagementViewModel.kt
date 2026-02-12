@@ -66,18 +66,24 @@ class CalendarManagementViewModel(app: Application) : AndroidViewModel(app) {
 				val calendars = calendarRepository.getCalendars(getApplication(), onlyVisible = false)
 				val calendarById = calendars.associateBy { it.id }
 				val jobs = syncJobRepository.getAll()
+				val resolver = getApplication<Application>().contentResolver
+				val eventCounts = calendarRepository.countEventsByCalendar(
+					resolver,
+					calendars.map { it.id }
+				)
+				val syncedCounts = mappingDao.countSyncedTargetsByCalendar()
+					.associate { it.calendarId to it.count }
+				val incomingByTarget = jobs.groupBy { it.targetCalendarId }
+				val outgoingBySource = jobs.groupBy { it.sourceCalendarId }
 				val rows = calendars.map { calendar ->
-					val incoming = jobs.filter { it.targetCalendarId == calendar.id }
+					val incoming = incomingByTarget[calendar.id].orEmpty()
 						.mapNotNull { job -> calendarById[job.sourceCalendarId] }
-					val outgoing = jobs.filter { it.sourceCalendarId == calendar.id }
+					val outgoing = outgoingBySource[calendar.id].orEmpty()
 						.mapNotNull { job -> calendarById[job.targetCalendarId] }
 					CalendarRowUi(
 						calendar = calendar,
-						eventCount = calendarRepository.countEvents(
-							getApplication<Application>().contentResolver,
-							calendar.id
-						),
-						syncedCount = mappingDao.countSyncedTargets(calendar.id),
+						eventCount = eventCounts[calendar.id] ?: 0,
+						syncedCount = syncedCounts[calendar.id] ?: 0,
 						incomingCalendars = incoming,
 						outgoingCalendars = outgoing
 					)

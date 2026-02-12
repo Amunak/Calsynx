@@ -8,6 +8,7 @@ import android.provider.CalendarContract
 import android.util.Log
 import net.amunak.calsynx.calendar.CalendarInfo
 import net.amunak.calsynx.calendar.CalendarProvider
+import net.amunak.calsynx.data.countEvents
 import java.util.TimeZone
 
 class CalendarRepository(
@@ -18,17 +19,38 @@ class CalendarRepository(
 	}
 
 	fun countEvents(resolver: ContentResolver, calendarId: Long): Int {
-		val projection = arrayOf(CalendarContract.Events._ID)
 		val selection = "${CalendarContract.Events.CALENDAR_ID} = ? AND ${CalendarContract.Events.DELETED} = 0"
-		val args = arrayOf(calendarId.toString())
-		val cursor = resolver.query(
-			CalendarContract.Events.CONTENT_URI,
-			projection,
-			selection,
-			args,
-			null
-		) ?: return 0
-		return cursor.use { it.count }
+		return countEvents(resolver, selection, arrayOf(calendarId.toString()))
+	}
+
+	fun countEventsByCalendar(
+		resolver: ContentResolver,
+		calendarIds: List<Long>
+	): Map<Long, Int> {
+		if (calendarIds.isEmpty()) return emptyMap()
+		val counts = HashMap<Long, Int>(calendarIds.size)
+		calendarIds.distinct().chunked(500).forEach { chunk ->
+			val placeholders = chunk.joinToString(",") { "?" }
+			val selection = buildString {
+				append("${CalendarContract.Events.CALENDAR_ID} IN ($placeholders)")
+				append(" AND ${CalendarContract.Events.DELETED} = 0")
+			}
+			val cursor = resolver.query(
+				CalendarContract.Events.CONTENT_URI,
+				arrayOf(CalendarContract.Events.CALENDAR_ID),
+				selection,
+				chunk.map { it.toString() }.toTypedArray(),
+				null
+			) ?: return@forEach
+			cursor.use {
+				val idIndex = it.getColumnIndexOrThrow(CalendarContract.Events.CALENDAR_ID)
+				while (it.moveToNext()) {
+					val id = it.getLong(idIndex)
+					counts[id] = (counts[id] ?: 0) + 1
+				}
+			}
+		}
+		return counts
 	}
 
 	fun purgeEvents(resolver: ContentResolver, calendarId: Long): Int {
