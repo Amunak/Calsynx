@@ -81,7 +81,27 @@ class CalendarSyncer(
 		}
 		val initialPairCount = if (initialPairAttempted) seededMappings.size else 0
 		val targetExists = fetchExistingTargetIds(seededMappings.map { it.targetEventId })
-		val plan = buildSyncPlan(sourceEvents, seededMappings, targetExists)
+		val repairedMappings = if (targetExists.size < seededMappings.size) {
+			repairMissingTargetMappings(job, sourceEvents, seededMappings, targetExists, window)
+		} else {
+			seededMappings
+		}
+		val mappingBySourceId = repairedMappings.associateBy { it.sourceEventId }.toMutableMap()
+		val missingOriginalCount = sourceEvents.count { source ->
+			source.originalId != null && !mappingBySourceId.containsKey(source.originalId)
+		}
+		if (missingOriginalCount > 0) {
+			Log.w(
+				TAG,
+				"Missing ${missingOriginalCount} original mappings for recurring exceptions in job ${job.id}"
+			)
+		}
+		val refreshedTargetExists = if (repairedMappings === seededMappings) {
+			targetExists
+		} else {
+			fetchExistingTargetIds(repairedMappings.map { it.targetEventId })
+		}
+		val plan = buildSyncPlan(sourceEvents, repairedMappings, refreshedTargetExists)
 		if (plan.missingMappingIds.isNotEmpty()) {
 			mappingDao.deleteByIds(plan.missingMappingIds)
 			Log.w(TAG, "Removed ${plan.missingMappingIds.size} mappings with missing target events.")
@@ -92,14 +112,22 @@ class CalendarSyncer(
 
 		if (sourceEvents.isNotEmpty()) {
 			plan.createSources.forEach { source ->
-				val targetId = insertTargetEvent(job, job.targetCalendarId, source)
+				val targetOriginalId = resolveTargetOriginalId(source, mappingBySourceId)
+				val targetId = insertTargetEvent(job, job.targetCalendarId, source, targetOriginalId)
 				if (targetId != null) {
 					upsertMapping(job, source.id, targetId, null)
+					mappingBySourceId[source.id] = EventMapping(
+						sourceEventId = source.id,
+						targetEventId = targetId,
+						sourceCalendarId = job.sourceCalendarId,
+						targetCalendarId = job.targetCalendarId
+					)
 					created += 1
 				}
 			}
 			plan.updateTargets.forEach { (targetId, source) ->
-				if (updateTargetEvent(job, targetId, source)) {
+				val targetOriginalId = resolveTargetOriginalId(source, mappingBySourceId)
+				if (updateTargetEvent(job, targetId, source, targetOriginalId)) {
 					updated += 1
 				}
 			}
@@ -306,9 +334,10 @@ class CalendarSyncer(
 	private fun insertTargetEvent(
 		job: SyncJob,
 		targetCalendarId: Long,
-		source: SourceEvent
+		source: SourceEvent,
+		targetOriginalId: Long?
 	): Long? {
-		val values = buildEventContentValues(job, targetCalendarId, source)
+		val values = buildEventContentValues(job, targetCalendarId, source, targetOriginalId)
 		val uri = resolver.insert(eventsUri, values)
 		if (uri == null) {
 			Log.w(TAG, "Insert returned null uri for target calendar $targetCalendarId")
@@ -327,9 +356,10 @@ class CalendarSyncer(
 	private fun updateTargetEvent(
 		job: SyncJob,
 		targetEventId: Long,
-		source: SourceEvent
+		source: SourceEvent,
+		targetOriginalId: Long?
 	): Boolean {
-		val values = buildEventContentValues(job, null, source)
+		val values = buildEventContentValues(job, null, source, targetOriginalId)
 		val uri = eventsUri.buildUpon()
 			.appendPath(targetEventId.toString())
 			.build()
@@ -607,10 +637,64 @@ class CalendarSyncer(
 		return existing
 	}
 
+	private suspend fun repairMissingTargetMappings(
+		job: SyncJob,
+		sourceEvents: List<SourceEvent>,
+		mappings: List<EventMapping>,
+		existingTargetIds: Set<Long>,
+		window: SyncWindow
+	): List<EventMapping> {
+		val missing = mappings.filter { !existingTargetIds.contains(it.targetEventId) }
+		if (missing.isEmpty()) return mappings
+		val sourceById = sourceEvents.associateBy { it.id }
+		val targetEvents = queryTargetEvents(job.targetCalendarId, window, job.syncAllEvents)
+		val targetIndex = buildTargetMatchIndex(targetEvents)
+		var repaired = 0
+		val updatedMappings = mappings.toMutableList()
+		val mappingIndex = updatedMappings.withIndex().associate { it.value.id to it.index }
+
+		for (mapping in missing) {
+			val source = sourceById[mapping.sourceEventId] ?: continue
+			val key = buildEventMatchKey(source.title, source.startMillis, source.allDay) ?: continue
+			val candidates = targetIndex[key] ?: continue
+			if (candidates.isEmpty()) continue
+			val target = candidates.removeAt(0)
+			val updated = mapping.copy(targetEventId = target.id)
+			mappingDao.upsert(updated)
+			val index = mappingIndex[mapping.id]
+			if (index != null) {
+				updatedMappings[index] = updated
+			}
+			repaired += 1
+		}
+		if (repaired > 0) {
+			Log.i(TAG, "Repaired $repaired missing mappings for job ${job.id}")
+		}
+		val remaining = missing.size - repaired
+		if (remaining > 0) {
+			Log.w(TAG, "Unable to repair $remaining missing mappings for job ${job.id}")
+		}
+		return updatedMappings
+	}
+
+	private fun resolveTargetOriginalId(
+		source: SourceEvent,
+		mappingBySourceId: Map<Long, EventMapping>
+	): Long? {
+		val originalId = source.originalId ?: return null
+		return mappingBySourceId[originalId]?.targetEventId
+	}
+
 	companion object {
 		private const val TAG = "CalendarSyncer"
 	}
 }
+
+private data class EventMatchKey(
+	val title: String,
+	val startMillis: Long,
+	val allDay: Boolean
+)
 
 internal data class SyncPlan(
 	val missingMappingIds: List<Long>,
@@ -780,6 +864,23 @@ private fun normalizeEventTitle(title: String?): String? {
 	return cleaned.takeIf { it.isNotBlank() }?.lowercase()
 }
 
+private fun buildEventMatchKey(title: String?, startMillis: Long, allDay: Boolean): EventMatchKey? {
+	val normalized = normalizeEventTitle(title) ?: return null
+	return EventMatchKey(normalized, startMillis, allDay)
+}
+
+private fun buildTargetMatchIndex(
+	targets: List<TargetEvent>
+): MutableMap<EventMatchKey, MutableList<TargetEvent>> {
+	val index = mutableMapOf<EventMatchKey, MutableList<TargetEvent>>()
+	for (event in targets) {
+		val key = buildEventMatchKey(event.title, event.startMillis, event.allDay) ?: continue
+		val bucket = index.getOrPut(key) { mutableListOf() }
+		bucket.add(event)
+	}
+	return index
+}
+
 internal fun buildEventQuerySpec(
 	calendarId: Long,
 	window: SyncWindow,
@@ -827,7 +928,8 @@ internal fun resolveEventTimeFields(source: SourceEvent): EventTimeFields {
 internal fun buildEventContentValues(
 	job: SyncJob,
 	targetCalendarId: Long?,
-	source: SourceEvent
+	source: SourceEvent,
+	targetOriginalId: Long? = null
 ): ContentValues {
 	return ContentValues().apply {
 		if (targetCalendarId != null) {
@@ -892,13 +994,21 @@ internal fun buildEventContentValues(
 			putNull(CalendarContract.Events.ORGANIZER)
 		}
 		if (source.originalId != null) {
-			put(CalendarContract.Events.ORIGINAL_ID, source.originalId)
-		}
-		if (source.originalInstanceTime != null) {
-			put(CalendarContract.Events.ORIGINAL_INSTANCE_TIME, source.originalInstanceTime)
-		}
-		if (source.originalAllDay != null) {
-			put(CalendarContract.Events.ORIGINAL_ALL_DAY, if (source.originalAllDay) 1 else 0)
+			if (targetOriginalId == null) {
+				putNull(CalendarContract.Events.ORIGINAL_ID)
+			} else {
+				put(CalendarContract.Events.ORIGINAL_ID, targetOriginalId)
+			}
+			if (source.originalInstanceTime != null) {
+				put(CalendarContract.Events.ORIGINAL_INSTANCE_TIME, source.originalInstanceTime)
+			}
+			if (source.originalAllDay != null) {
+				put(CalendarContract.Events.ORIGINAL_ALL_DAY, if (source.originalAllDay) 1 else 0)
+			}
+		} else {
+			putNull(CalendarContract.Events.ORIGINAL_ID)
+			putNull(CalendarContract.Events.ORIGINAL_INSTANCE_TIME)
+			putNull(CalendarContract.Events.ORIGINAL_ALL_DAY)
 		}
 		if (source.status != null) {
 			put(CalendarContract.Events.STATUS, source.status)
