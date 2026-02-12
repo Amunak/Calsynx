@@ -23,6 +23,8 @@
 	<string name="action_sync">Sync</string>
 	<string name="action_share">Share</string>
 	<string name="action_clear_logs">Clear logs</string>
+	<string name="title_clear_logs">Clear logs?</string>
+	<string name="message_clear_logs">This will permanently delete all sync logs.</string>
 	<string name="action_repair_existing">Re-pair existing events</string>
 	<string name="action_update">Update</string>
 

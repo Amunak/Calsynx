@@ -18,13 +18,19 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -50,6 +56,7 @@ fun SyncLogScreen(
 		onRefresh()
 	}
 	val navBar = rememberNavBarPadding()
+	var showClearDialog by remember { mutableStateOf(false) }
 
 	Scaffold(
 		topBar = {
@@ -87,7 +94,7 @@ fun SyncLogScreen(
 					}
 					TooltipIconButton(
 						tooltip = stringResource(R.string.action_clear_logs),
-						onClick = onClearLogs
+						onClick = { showClearDialog = true }
 					) {
 						Icon(
 							imageVector = Icons.Default.Delete,
@@ -150,6 +157,29 @@ fun SyncLogScreen(
 				}
 			}
 		}
+	}
+
+	if (showClearDialog) {
+		AlertDialog(
+			onDismissRequest = { showClearDialog = false },
+			title = { Text(stringResource(R.string.title_clear_logs)) },
+			text = { Text(stringResource(R.string.message_clear_logs)) },
+			confirmButton = {
+				TextButton(
+					onClick = {
+						showClearDialog = false
+						onClearLogs()
+					}
+				) {
+					Text(stringResource(R.string.action_clear_logs))
+				}
+			},
+			dismissButton = {
+				TextButton(onClick = { showClearDialog = false }) {
+					Text(stringResource(R.string.action_cancel))
+				}
+			}
+		)
 	}
 }
 
