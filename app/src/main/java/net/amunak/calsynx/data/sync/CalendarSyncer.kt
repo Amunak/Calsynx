@@ -8,6 +8,7 @@ import net.amunak.calsynx.data.EventMapping
 import net.amunak.calsynx.data.EventMappingDao
 import net.amunak.calsynx.data.SyncJob
 import java.time.Instant
+import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 
 data class SyncResult(
@@ -32,8 +33,19 @@ class CalendarSyncer(
 	): SyncResult {
 		val sourceEvents = querySourceEvents(job.sourceCalendarId, window, job.syncAllEvents)
 		val mappings = mappingDao.getForJob(job.sourceCalendarId, job.targetCalendarId)
-		val targetExists = fetchExistingTargetIds(mappings.map { it.targetEventId })
-		val plan = buildSyncPlan(sourceEvents, mappings, targetExists)
+		val seededMappings = if (
+			job.pairExistingOnFirstSync &&
+			job.lastSyncTimestamp == null &&
+			mappings.isEmpty() &&
+			sourceEvents.isNotEmpty()
+		) {
+			val targetEvents = queryTargetEvents(job.targetCalendarId, window, job.syncAllEvents)
+			seedInitialMappings(job, sourceEvents, targetEvents)
+		} else {
+			mappings
+		}
+		val targetExists = fetchExistingTargetIds(seededMappings.map { it.targetEventId })
+		val plan = buildSyncPlan(sourceEvents, seededMappings, targetExists)
 		if (plan.missingMappingIds.isNotEmpty()) {
 			mappingDao.deleteByIds(plan.missingMappingIds)
 			Log.w(TAG, "Removed ${plan.missingMappingIds.size} mappings with missing target events.")
@@ -187,6 +199,50 @@ class CalendarSyncer(
 		}
 	}
 
+	private fun queryTargetEvents(
+		targetCalendarId: Long,
+		window: SyncWindow,
+		syncAllEvents: Boolean
+	): List<TargetEvent> {
+		val projection = arrayOf(
+			CalendarContract.Events._ID,
+			CalendarContract.Events.TITLE,
+			CalendarContract.Events.DTSTART,
+			CalendarContract.Events.ALL_DAY
+		)
+		val querySpec = buildEventQuerySpec(
+			calendarId = targetCalendarId,
+			window = window,
+			syncAllEvents = syncAllEvents
+		)
+		val sortOrder = "${CalendarContract.Events.DTSTART} ASC"
+		val cursor = resolver.query(
+			eventsUri,
+			projection,
+			querySpec.selection,
+			querySpec.selectionArgs,
+			sortOrder
+		) ?: return emptyList()
+		return cursor.use { it ->
+			val idIndex = it.getColumnIndexOrThrow(CalendarContract.Events._ID)
+			val titleIndex = it.getColumnIndexOrThrow(CalendarContract.Events.TITLE)
+			val startIndex = it.getColumnIndexOrThrow(CalendarContract.Events.DTSTART)
+			val allDayIndex = it.getColumnIndexOrThrow(CalendarContract.Events.ALL_DAY)
+			val events = ArrayList<TargetEvent>(it.count)
+			while (it.moveToNext()) {
+				events.add(
+					TargetEvent(
+						id = it.getLong(idIndex),
+						title = it.getString(titleIndex),
+						startMillis = it.getLong(startIndex),
+						allDay = it.getInt(allDayIndex) == 1
+					)
+				)
+			}
+			events
+		}
+	}
+
 	private fun countEvents(
 		calendarId: Long,
 		window: SyncWindow,
@@ -289,6 +345,37 @@ class CalendarSyncer(
 		if (!job.copyAttendees) return
 		val attendees = queryAttendees(source.id)
 		replaceAttendees(targetEventId, attendees)
+	}
+
+	private suspend fun seedInitialMappings(
+		job: SyncJob,
+		sourceEvents: List<SourceEvent>,
+		targetEvents: List<TargetEvent>
+	): List<EventMapping> {
+		val pairs = pairExistingEventsByTitleAndDate(sourceEvents, targetEvents)
+		if (pairs.isEmpty()) return emptyList()
+		val mappings = mutableListOf<EventMapping>()
+		for ((sourceId, targetId) in pairs) {
+			val mappingId = mappingDao.upsert(
+				EventMapping(
+					sourceEventId = sourceId,
+					targetEventId = targetId,
+					sourceCalendarId = job.sourceCalendarId,
+					targetCalendarId = job.targetCalendarId
+				)
+			)
+			val id = mappingId.takeIf { it > 0L } ?: 0L
+			mappings.add(
+				EventMapping(
+					id = id,
+					sourceEventId = sourceId,
+					targetEventId = targetId,
+					sourceCalendarId = job.sourceCalendarId,
+					targetCalendarId = job.targetCalendarId
+				)
+			)
+		}
+		return mappings
 	}
 
 	private fun queryReminders(eventId: Long): List<ReminderEntry> {
@@ -569,6 +656,13 @@ internal data class SourceEvent(
 	val ownerAccount: String?
 )
 
+internal data class TargetEvent(
+	val id: Long,
+	val title: String?,
+	val startMillis: Long,
+	val allDay: Boolean
+)
+
 private data class ReminderEntry(
 	val minutes: Int,
 	val method: Int
@@ -593,6 +687,44 @@ internal data class EventQuerySpec(
 	val selection: String,
 	val selectionArgs: Array<String>
 )
+
+internal fun pairExistingEventsByTitleAndDate(
+	sources: List<SourceEvent>,
+	targets: List<TargetEvent>,
+	zoneId: ZoneId = ZoneId.systemDefault()
+): List<Pair<Long, Long>> {
+	val sourceGroups = sources
+		.mapNotNull { event ->
+			val title = normalizeEventTitle(event.title) ?: return@mapNotNull null
+			val date = Instant.ofEpochMilli(event.startMillis).atZone(zoneId).toLocalDate()
+			Triple(title, date, event.allDay) to event
+		}
+		.groupBy({ it.first }, { it.second })
+	val targetGroups = targets
+		.mapNotNull { event ->
+			val title = normalizeEventTitle(event.title) ?: return@mapNotNull null
+			val date = Instant.ofEpochMilli(event.startMillis).atZone(zoneId).toLocalDate()
+			Triple(title, date, event.allDay) to event
+		}
+		.groupBy({ it.first }, { it.second })
+
+	val pairs = mutableListOf<Pair<Long, Long>>()
+	for ((key, sourceEvents) in sourceGroups) {
+		val targetEvents = targetGroups[key] ?: continue
+		val sortedSources = sourceEvents.sortedBy { it.startMillis }
+		val sortedTargets = targetEvents.sortedBy { it.startMillis }
+		val limit = minOf(sortedSources.size, sortedTargets.size)
+		for (index in 0 until limit) {
+			pairs.add(sortedSources[index].id to sortedTargets[index].id)
+		}
+	}
+	return pairs
+}
+
+private fun normalizeEventTitle(title: String?): String? {
+	val cleaned = title?.replace(Regex("\\s+"), " ")?.trim().orEmpty()
+	return cleaned.takeIf { it.isNotBlank() }?.lowercase()
+}
 
 internal fun buildEventQuerySpec(
 	calendarId: Long,

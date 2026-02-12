@@ -36,6 +36,7 @@
 	<string name="label_show_advanced">Show advanced options</string>
 	<string name="label_hide_advanced">Hide advanced options</string>
 	<string name="label_section_copy_options">Copy options</string>
+	<string name="label_section_initial_sync">Initial sync</string>
 	<string name="label_section_reminders">Reminders</string>
 	<string name="label_availability">Availability</string>
 	<string name="label_copy_privacy">Copy event privacy</string>
@@ -45,6 +46,7 @@
 	<string name="label_reminder_mode">Reminders</string>
 	<string name="label_reminder_mode_choice">Mode</string>
 	<string name="label_reminder_resync">Always sync reminders (overwrite target changes)</string>
+	<string name="label_pair_existing_events">Pair existing target events on first sync</string>
 	<string name="label_reminder_all_day_days">All-day reminder (days before)</string>
 	<string name="label_reminder_all_day_time">Notify at</string>
 	<string name="label_reminder_timed_minutes">Timed reminder (minutes before)</string>
@@ -95,6 +97,7 @@
 	<string name="message_saved">Saved.</string>
 	<string name="message_sync_error">Sync failed.</string>
 	<string name="message_copy_attendees_warning">Copying attendees may send invitations.</string>
+	<string name="message_pair_existing_events">Matches by title and start date (all-day vs timed).</string>
 	<string name="message_battery_optimization_warning">To keep background sync reliable, you can exclude Calsynx from battery optimizations. Without it, syncs may be delayed.</string>
 	<string name="message_share_logs_failed">Unable to share logs.</string>
 	<string name="message_sync_job_save_failed">Unable to save sync job.</string>

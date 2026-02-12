@@ -70,6 +70,7 @@ fun SyncJobEditorScreen(
 		Int,
 		Boolean,
 		Boolean,
+		Boolean,
 		Boolean
 	) -> Unit
 ) {
@@ -125,6 +126,9 @@ fun SyncJobEditorScreen(
 	var reminderResyncEnabled by rememberSaveable(state.job?.id) {
 		mutableStateOf(state.job?.reminderResyncEnabled ?: true)
 	}
+	var pairExistingOnFirstSync by rememberSaveable(state.job?.id) {
+		mutableStateOf(state.job?.pairExistingOnFirstSync ?: false)
+	}
 	var showAdvanced by rememberSaveable(state.job?.id) {
 		mutableStateOf(state.job?.let(::jobUsesAdvancedOptions) ?: false)
 	}
@@ -167,7 +171,8 @@ fun SyncJobEditorScreen(
 		reminderTimedMinutes = reminderTimedMinutes,
 		reminderAllDayEnabled = reminderAllDayEnabled,
 		reminderTimedEnabled = reminderTimedEnabled,
-		reminderResyncEnabled = reminderResyncEnabled
+		reminderResyncEnabled = reminderResyncEnabled,
+		pairExistingOnFirstSync = pairExistingOnFirstSync
 	)
 	val hasUnsavedChanges = initialSnapshot != currentSnapshot
 	val requestClose = {
@@ -228,7 +233,8 @@ fun SyncJobEditorScreen(
 								reminderTimedMinutes.coerceAtLeast(0),
 								reminderAllDayEnabled,
 								reminderTimedEnabled,
-								reminderResyncEnabled
+								reminderResyncEnabled,
+								pairExistingOnFirstSync
 							)
 						},
 						enabled = canSave
@@ -338,6 +344,16 @@ fun SyncJobEditorScreen(
 							tint = MaterialTheme.colorScheme.error
 						)
 					}
+					Spacer(modifier = Modifier.height(8.dp))
+					SyncCheckboxRow(
+						checked = pairExistingOnFirstSync,
+						label = stringResource(R.string.label_pair_existing_events),
+						onCheckedChange = { pairExistingOnFirstSync = it }
+					)
+					SyncInlineMessage(
+						message = stringResource(R.string.message_pair_existing_events),
+						startIndent = CHECKBOX_MESSAGE_INDENT
+					)
 				}
 			}
 
@@ -585,7 +601,8 @@ private fun jobUsesAdvancedOptions(job: SyncJob): Boolean {
 		!job.reminderTimedEnabled ||
 		!job.reminderResyncEnabled ||
 		job.reminderAllDayMinutes != defaultAllDayReminderMinutes() ||
-		job.reminderTimedMinutes != DEFAULT_TIMED_REMINDER_MINUTES
+		job.reminderTimedMinutes != DEFAULT_TIMED_REMINDER_MINUTES ||
+		job.pairExistingOnFirstSync
 }
 
 private data class EditorSnapshot(
@@ -605,7 +622,8 @@ private data class EditorSnapshot(
 	val reminderTimedMinutes: Int,
 	val reminderAllDayEnabled: Boolean,
 	val reminderTimedEnabled: Boolean,
-	val reminderResyncEnabled: Boolean
+	val reminderResyncEnabled: Boolean,
+	val pairExistingOnFirstSync: Boolean
 ) {
 	companion object {
 		fun fromJob(job: SyncJob?): EditorSnapshot {
@@ -630,7 +648,8 @@ private data class EditorSnapshot(
 				reminderTimedMinutes = job?.reminderTimedMinutes ?: DEFAULT_TIMED_REMINDER_MINUTES,
 				reminderAllDayEnabled = job?.reminderAllDayEnabled ?: true,
 				reminderTimedEnabled = job?.reminderTimedEnabled ?: true,
-				reminderResyncEnabled = job?.reminderResyncEnabled ?: true
+				reminderResyncEnabled = job?.reminderResyncEnabled ?: true,
+				pairExistingOnFirstSync = job?.pairExistingOnFirstSync ?: false
 			)
 		}
 
@@ -651,7 +670,8 @@ private data class EditorSnapshot(
 			reminderTimedMinutes: Int,
 			reminderAllDayEnabled: Boolean,
 			reminderTimedEnabled: Boolean,
-			reminderResyncEnabled: Boolean
+			reminderResyncEnabled: Boolean,
+			pairExistingOnFirstSync: Boolean
 		): EditorSnapshot {
 			return EditorSnapshot(
 				sourceId = sourceId,
@@ -670,7 +690,8 @@ private data class EditorSnapshot(
 				reminderTimedMinutes = reminderTimedMinutes,
 				reminderAllDayEnabled = reminderAllDayEnabled,
 				reminderTimedEnabled = reminderTimedEnabled,
-				reminderResyncEnabled = reminderResyncEnabled
+				reminderResyncEnabled = reminderResyncEnabled,
+				pairExistingOnFirstSync = pairExistingOnFirstSync
 			)
 		}
 	}

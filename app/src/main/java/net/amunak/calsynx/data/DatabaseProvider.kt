@@ -16,7 +16,13 @@ object DatabaseProvider {
 				AppDatabase::class.java,
 				"calsynx.db"
 			)
-				.addMigrations(MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+				.addMigrations(
+					MIGRATION_5_6,
+					MIGRATION_6_7,
+					MIGRATION_7_8,
+					MIGRATION_8_9,
+					MIGRATION_9_10
+				)
 				.build()
 				.also { instance = it }
 		}
@@ -56,6 +62,17 @@ object DatabaseProvider {
 	private val MIGRATION_8_9 = object : Migration(8, 9) {
 		override fun migrate(db: SupportSQLiteDatabase) {
 			db.execSQL("ALTER TABLE sync_jobs ADD COLUMN reminderResyncEnabled INTEGER NOT NULL DEFAULT 1")
+		}
+	}
+
+	private val MIGRATION_9_10 = object : Migration(9, 10) {
+		override fun migrate(db: SupportSQLiteDatabase) {
+			db.execSQL(
+				"""
+				ALTER TABLE sync_jobs
+				ADD COLUMN pairExistingOnFirstSync INTEGER NOT NULL DEFAULT 0
+				""".trimIndent()
+			)
 		}
 	}
 }

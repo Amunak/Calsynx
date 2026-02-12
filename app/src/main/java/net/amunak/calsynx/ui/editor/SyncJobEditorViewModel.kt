@@ -106,7 +106,8 @@ class SyncJobEditorViewModel(app: Application) : AndroidViewModel(app) {
 		reminderTimedMinutes: Int,
 		reminderAllDayEnabled: Boolean,
 		reminderTimedEnabled: Boolean,
-		reminderResyncEnabled: Boolean
+		reminderResyncEnabled: Boolean,
+		pairExistingOnFirstSync: Boolean
 	) {
 		viewModelScope.launch(Dispatchers.IO) {
 			_uiState.update { it.copy(saveState = SaveState.Saving, errorMessage = null) }
@@ -172,7 +173,8 @@ class SyncJobEditorViewModel(app: Application) : AndroidViewModel(app) {
 							reminderTimedMinutes = reminderTimedMinutes,
 							reminderAllDayEnabled = reminderAllDayEnabled,
 							reminderTimedEnabled = reminderTimedEnabled,
-							reminderResyncEnabled = reminderResyncEnabled
+							reminderResyncEnabled = reminderResyncEnabled,
+							pairExistingOnFirstSync = pairExistingOnFirstSync
 						)
 					)
 					val job = SyncJob(
@@ -189,12 +191,13 @@ class SyncJobEditorViewModel(app: Application) : AndroidViewModel(app) {
 						copyAttendees = copyAttendees,
 						copyOrganizer = copyOrganizer,
 						reminderMode = reminderMode.value,
-					reminderAllDayMinutes = reminderAllDayMinutes,
-					reminderTimedMinutes = reminderTimedMinutes,
-					reminderAllDayEnabled = reminderAllDayEnabled,
-					reminderTimedEnabled = reminderTimedEnabled,
-					reminderResyncEnabled = reminderResyncEnabled
-				)
+						reminderAllDayMinutes = reminderAllDayMinutes,
+						reminderTimedMinutes = reminderTimedMinutes,
+						reminderAllDayEnabled = reminderAllDayEnabled,
+						reminderTimedEnabled = reminderTimedEnabled,
+						reminderResyncEnabled = reminderResyncEnabled,
+						pairExistingOnFirstSync = pairExistingOnFirstSync
+					)
 					scheduler.schedule(job)
 					scheduler.enqueueImmediate(job)
 				} else {
@@ -213,7 +216,8 @@ class SyncJobEditorViewModel(app: Application) : AndroidViewModel(app) {
 						reminderTimedMinutes = reminderTimedMinutes,
 						reminderAllDayEnabled = reminderAllDayEnabled,
 						reminderTimedEnabled = reminderTimedEnabled,
-						reminderResyncEnabled = reminderResyncEnabled
+						reminderResyncEnabled = reminderResyncEnabled,
+						pairExistingOnFirstSync = pairExistingOnFirstSync
 					)
 					updateSyncJob(updated)
 					scheduler.schedule(updated)
