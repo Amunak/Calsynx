@@ -933,6 +933,10 @@ private class InMemoryEventMappingDao : EventMappingDao {
 	override suspend fun countSyncedTargets(calendarId: Long): Int {
 		return mappings.count { it.targetCalendarId == calendarId }
 	}
+
+	override suspend fun getTargetEventIdsForCalendar(calendarId: Long): List<Long> {
+		return mappings.filter { it.targetCalendarId == calendarId }.map { it.targetEventId }
+	}
 }
 
 private fun <T> runBlockingTest(block: suspend () -> T): T {
