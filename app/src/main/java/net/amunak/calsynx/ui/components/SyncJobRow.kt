@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LayersClear
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -72,6 +73,7 @@ fun SyncJobRow(
 	onToggleActive: (SyncJob, Boolean) -> Unit,
 	onDeleteJob: (SyncJob) -> Unit,
 	onDeleteSyncedTargets: (SyncJob) -> Unit,
+	onRePairExisting: (SyncJob) -> Unit,
 	onEditJob: (SyncJob) -> Unit,
 	onManualSync: (SyncJob) -> Unit
 ) {
@@ -301,6 +303,16 @@ fun SyncJobRow(
 									}
 								)
 								DropdownMenuItem(
+									text = { Text(stringResource(R.string.action_repair_existing)) },
+									leadingIcon = {
+										Icon(Icons.Default.Link, contentDescription = null)
+									},
+									onClick = {
+										menuExpanded = false
+										onRePairExisting(job)
+									}
+								)
+								DropdownMenuItem(
 									text = { Text(stringResource(R.string.action_purge_synced)) },
 									leadingIcon = {
 										Icon(Icons.Default.LayersClear, contentDescription = null)
@@ -447,6 +459,7 @@ private fun SyncJobRowPreview() {
 			onToggleActive = { _, _ -> },
 			onDeleteJob = {},
 			onDeleteSyncedTargets = {},
+			onRePairExisting = {},
 			onEditJob = {},
 			onManualSync = {}
 		)

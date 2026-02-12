@@ -72,6 +72,7 @@ fun SyncJobScreen(
 	onDeleteJob: (SyncJob) -> Unit,
 	onDeleteSyncedTargets: (SyncJob) -> Unit,
 	onManualSync: (SyncJob) -> Unit,
+	onRePairExisting: (SyncJob) -> Unit,
 	onOpenCalendarManagement: () -> Unit,
 	onOpenLogs: () -> Unit
 ) {
@@ -295,6 +296,7 @@ fun SyncJobScreen(
 									onToggleActive = onToggleActive,
 									onDeleteJob = onDeleteJob,
 									onDeleteSyncedTargets = onDeleteSyncedTargets,
+									onRePairExisting = onRePairExisting,
 									onEditJob = {
 										context.startActivity(
 											SyncJobEditorActivity.newIntent(context, job.id)
@@ -335,6 +337,7 @@ private fun SyncJobScreenPreview() {
 			onDeleteJob = {},
 			onDeleteSyncedTargets = {},
 			onManualSync = {},
+			onRePairExisting = {},
 			onOpenCalendarManagement = {},
 			onOpenLogs = {}
 		)

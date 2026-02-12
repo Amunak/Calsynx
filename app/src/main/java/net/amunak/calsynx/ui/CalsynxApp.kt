@@ -91,6 +91,7 @@ fun CalsynxAppRoute() {
 		},
 		onDeleteSyncedTargets = viewModel::deleteSyncedTargets,
 		onManualSync = viewModel::runManualSync,
+		onRePairExisting = viewModel::rePairExisting,
 		onRefreshCalendarsManagement = calendarViewModel::refreshCalendars,
 		onSelectCalendar = {
 			calendarViewModel.selectCalendar(it)
@@ -127,6 +128,7 @@ fun CalsynxApp(
 	onDeleteJob: (SyncJob) -> Unit,
 	onDeleteSyncedTargets: (SyncJob) -> Unit,
 	onManualSync: (SyncJob) -> Unit,
+	onRePairExisting: (SyncJob) -> Unit,
 	onRefreshCalendarsManagement: () -> Unit,
 	onSelectCalendar: (Long) -> Unit,
 	onClearCalendarSelection: () -> Unit,
@@ -189,9 +191,10 @@ fun CalsynxApp(
 						onToggleActive = onToggleActive,
 						onDeleteJob = onDeleteJob,
 						onDeleteSyncedTargets = onDeleteSyncedTargets,
-					onManualSync = onManualSync,
-					onOpenCalendarManagement = { onNavigate(AppScreen.CalendarManagement) },
-					onOpenLogs = onOpenLogs
+						onManualSync = onManualSync,
+						onRePairExisting = onRePairExisting,
+						onOpenCalendarManagement = { onNavigate(AppScreen.CalendarManagement) },
+						onOpenLogs = onOpenLogs
 				)
 			}
 			AppScreen.CalendarManagement -> {
@@ -247,6 +250,7 @@ private fun CalsynxAppPreview() {
 			onDeleteJob = {},
 			onDeleteSyncedTargets = {},
 			onManualSync = {},
+			onRePairExisting = {},
 			onRefreshCalendarsManagement = {},
 			onSelectCalendar = {},
 			onClearCalendarSelection = {},

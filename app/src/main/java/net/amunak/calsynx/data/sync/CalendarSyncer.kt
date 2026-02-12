@@ -29,6 +29,35 @@ class CalendarSyncer(
 ) {
 	private val remindersUri = eventsUri.buildUpon().path("reminders").build()
 	private val attendeesUri = eventsUri.buildUpon().path("attendees").build()
+
+	suspend fun repairExistingMappings(
+		job: SyncJob,
+		window: SyncWindow = SyncWindow.fromJob(job)
+	): Int {
+		val sourceEvents = querySourceEvents(job.sourceCalendarId, window, job.syncAllEvents)
+		if (sourceEvents.isEmpty()) return 0
+		val existingMappings = mappingDao.getForJob(job.sourceCalendarId, job.targetCalendarId)
+		val mappedSourceIds = existingMappings.map { it.sourceEventId }.toSet()
+		val eligibleSources = sourceEvents.filter { it.id !in mappedSourceIds }
+		if (eligibleSources.isEmpty()) return 0
+		val targetEvents = queryTargetEvents(job.targetCalendarId, window, job.syncAllEvents)
+		val mappedTargets = mappingDao.getTargetEventIdsForCalendar(job.targetCalendarId).toSet()
+		val eligibleTargets = excludeMappedTargets(targetEvents, mappedTargets)
+		val pairs = pairExistingEventsByTitleAndDate(eligibleSources, eligibleTargets)
+		if (pairs.isEmpty()) return 0
+		for ((sourceId, targetId) in pairs) {
+			mappingDao.upsert(
+				EventMapping(
+					sourceEventId = sourceId,
+					targetEventId = targetId,
+					sourceCalendarId = job.sourceCalendarId,
+					targetCalendarId = job.targetCalendarId
+				)
+			)
+		}
+		return pairs.size
+	}
+
 	suspend fun sync(
 		job: SyncJob,
 		window: SyncWindow = SyncWindow.fromJob(job)

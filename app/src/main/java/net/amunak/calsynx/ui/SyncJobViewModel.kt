@@ -277,6 +277,21 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 		}
 	}
 
+	fun rePairExisting(job: SyncJob) {
+		viewModelScope.launch(Dispatchers.IO) {
+			try {
+				val paired = calendarSyncer.repairExistingMappings(job)
+				logStore.append("Re-pair matched $paired existing target events for ${jobLabel(job)}")
+			} catch (e: SecurityException) {
+				Log.e(TAG, "Re-pair permission denied for job ${job.id}", e)
+				logStore.append("Re-pair permission denied for ${jobLabel(job)}")
+			} catch (e: RuntimeException) {
+				Log.e(TAG, "Re-pair failed for job ${job.id}", e)
+				logStore.append("Re-pair failed for ${jobLabel(job)}: ${e.message ?: "unknown error"}")
+			}
+		}
+	}
+
 	private fun jobLabel(job: SyncJob): String {
 		return formatJobLabel(job, calendars.value)
 	}
