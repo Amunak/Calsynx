@@ -45,7 +45,13 @@ class CalendarSyncWorker(
 		val label = buildJobLabel(job, calendarRepository)
 
 		return try {
-			runner.invoke(job)
+			val result = runner.invoke(job)
+			logStore.append(formatSyncSummary("Background sync", label, result))
+			if (result.initialPairAttempted) {
+				logStore.append(
+					"Initial sync paired ${result.initialPairCount} existing target events for $label"
+				)
+			}
 			logStore.append("Background sync completed for $label")
 			Result.success()
 		} catch (e: SecurityException) {
@@ -68,6 +74,16 @@ class CalendarSyncWorker(
 		} catch (e: RuntimeException) {
 			"job ${job.id}"
 		}
+	}
+
+	private fun formatSyncSummary(
+		prefix: String,
+		label: String,
+		result: SyncResult
+	): String {
+		return "$prefix summary for $label: " +
+			"created=${result.created}, updated=${result.updated}, deleted=${result.deleted}, " +
+			"source=${result.sourceCount}, targets=${result.targetCount}, totalTargets=${result.targetTotalCount}"
 	}
 
 	companion object {

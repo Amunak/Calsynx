@@ -251,7 +251,13 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 			syncingJobIds.value = syncingJobIds.value + job.id
 			errorMessage.value = null
 			try {
-				runManualSync.invoke(job)
+				val result = runManualSync.invoke(job)
+				logStore.append(formatSyncSummary("Manual sync", jobLabel(job), result))
+				if (result.initialPairAttempted) {
+					logStore.append(
+						"Initial sync paired ${result.initialPairCount} existing target events for ${jobLabel(job)}"
+					)
+				}
 				logStore.append("Manual sync completed for ${jobLabel(job)}")
 			} catch (e: SecurityException) {
 				Log.e(TAG, "Calendar permission denied during manual sync", e)
@@ -273,6 +279,12 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 
 	private fun jobLabel(job: SyncJob): String {
 		return formatJobLabel(job, calendars.value)
+	}
+
+	private fun formatSyncSummary(prefix: String, label: String, result: net.amunak.calsynx.data.sync.SyncResult): String {
+		return "$prefix summary for $label: " +
+			"created=${result.created}, updated=${result.updated}, deleted=${result.deleted}, " +
+			"source=${result.sourceCount}, targets=${result.targetCount}, totalTargets=${result.targetTotalCount}"
 	}
 
 	companion object {

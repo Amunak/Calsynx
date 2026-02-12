@@ -41,6 +41,8 @@
 - Align list content, scroll indicators, and FABs with navigation bar insets; keep pause button visible on slightly narrower cards.
 - Extracted shared nav bar padding and screen surface helpers to keep layout code consistent.
 - Add an optional initial sync pairing that matches existing target events by title/date (all-day aware).
+- Exclude already-mapped target events from initial pairing and add an optional cleanup to delete unmapped targets in the sync window.
+- Log per-sync stats (created/updated/deleted/targets) for manual and background runs.
 
 ## Rejected
 - Move “Sync now” into an overflow-only action.
