@@ -10,6 +10,7 @@ import net.amunak.calsynx.data.repository.SyncJobRepository
 import net.amunak.calsynx.domain.RunManualSyncUseCase
 import net.amunak.calsynx.domain.UpdateSyncErrorUseCase
 import net.amunak.calsynx.domain.UpdateSyncStatsUseCase
+import net.amunak.calsynx.R
 import net.amunak.calsynx.ui.logs.SyncLogStore
 import net.amunak.calsynx.ui.formatters.formatJobLabel
 
@@ -57,12 +58,12 @@ class CalendarSyncWorker(
 		} catch (e: SecurityException) {
 			Log.e(TAG, "Background sync permission denied for job $jobId", e)
 			logStore.append("Background sync permission denied for $label")
-			updateError(job, "Calendar permission denied")
+			updateError(job, applicationContext.getString(R.string.message_calendar_permission_denied))
 			Result.success()
 		} catch (e: RuntimeException) {
 			Log.e(TAG, "Background sync failed for job $jobId", e)
 			logStore.append("Background sync failed for $label: ${e.message ?: "unknown error"}")
-			updateError(job, "Background sync failed")
+			updateError(job, applicationContext.getString(R.string.message_sync_error))
 			Result.retry()
 		}
 	}
