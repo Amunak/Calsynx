@@ -374,6 +374,8 @@ fun SyncJobEditorScreen(
 					)
 					SyncInlineMessage(
 						message = stringResource(R.string.message_delete_unmapped_targets),
+						icon = Icons.Default.Warning,
+						tint = MaterialTheme.colorScheme.onSurfaceVariant,
 						startIndent = CHECKBOX_MESSAGE_INDENT
 					)
 				}
