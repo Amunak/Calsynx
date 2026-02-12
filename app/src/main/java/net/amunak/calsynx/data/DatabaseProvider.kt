@@ -21,7 +21,8 @@ object DatabaseProvider {
 					MIGRATION_6_7,
 					MIGRATION_7_8,
 					MIGRATION_8_9,
-					MIGRATION_9_10
+					MIGRATION_9_10,
+					MIGRATION_10_11
 				)
 				.build()
 				.also { instance = it }
@@ -71,6 +72,17 @@ object DatabaseProvider {
 				"""
 				ALTER TABLE sync_jobs
 				ADD COLUMN pairExistingOnFirstSync INTEGER NOT NULL DEFAULT 0
+				""".trimIndent()
+			)
+		}
+	}
+
+	private val MIGRATION_10_11 = object : Migration(10, 11) {
+		override fun migrate(db: SupportSQLiteDatabase) {
+			db.execSQL(
+				"""
+				ALTER TABLE sync_jobs
+				ADD COLUMN deleteUnmappedTargets INTEGER NOT NULL DEFAULT 0
 				""".trimIndent()
 			)
 		}

@@ -237,11 +237,13 @@ fun NumberPickerRow(
 @Composable
 fun SyncCheckbox(
 	checked: Boolean,
-	onCheckedChange: ((Boolean) -> Unit)?
+	onCheckedChange: ((Boolean) -> Unit)?,
+	enabled: Boolean = true
 ) {
 	Checkbox(
 		checked = checked,
-		onCheckedChange = onCheckedChange
+		onCheckedChange = onCheckedChange,
+		enabled = enabled
 	)
 }
 
@@ -249,7 +251,8 @@ fun SyncCheckbox(
 fun SyncCheckboxRow(
 	checked: Boolean,
 	label: String,
-	onCheckedChange: (Boolean) -> Unit
+	onCheckedChange: (Boolean) -> Unit,
+	enabled: Boolean = true
 ) {
 	Row(
 		verticalAlignment = Alignment.CenterVertically,
@@ -258,17 +261,24 @@ fun SyncCheckboxRow(
 			.toggleable(
 				value = checked,
 				onValueChange = onCheckedChange,
-				role = Role.Checkbox
+				role = Role.Checkbox,
+				enabled = enabled
 			)
 	) {
 		SyncCheckbox(
 			checked = checked,
-			onCheckedChange = null
+			onCheckedChange = null,
+			enabled = enabled
 		)
 		Spacer(modifier = Modifier.size(CHECKBOX_LABEL_SPACING))
 		Text(
 			text = label,
-			style = MaterialTheme.typography.bodySmall
+			style = MaterialTheme.typography.bodySmall,
+			color = if (enabled) {
+				MaterialTheme.colorScheme.onSurface
+			} else {
+				MaterialTheme.colorScheme.onSurfaceVariant
+			}
 		)
 	}
 }

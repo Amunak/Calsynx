@@ -230,6 +230,19 @@ class InitialPairingTest {
 		assertEquals(listOf(1L to 10L, 3L to 12L), pairs)
 	}
 
+	@Test
+	fun excludeMappedTargets_filtersMappedIds() {
+		val targets = listOf(
+			TargetEvent(id = 1L, title = "A", startMillis = 1L, allDay = false),
+			TargetEvent(id = 2L, title = "B", startMillis = 2L, allDay = false),
+			TargetEvent(id = 3L, title = "C", startMillis = 3L, allDay = true)
+		)
+
+		val filtered = excludeMappedTargets(targets, setOf(2L, 3L))
+
+		assertEquals(listOf(targets[0]), filtered)
+	}
+
 	private fun sourceEvent(
 		id: Long,
 		title: String,

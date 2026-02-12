@@ -25,6 +25,7 @@ data class SyncJob(
 	val reminderTimedEnabled: Boolean = true,
 	val reminderResyncEnabled: Boolean = true,
 	val pairExistingOnFirstSync: Boolean = false,
+	val deleteUnmappedTargets: Boolean = false,
 	val lastSyncTimestamp: Long? = null,
 	val lastSyncCreated: Int = 0,
 	val lastSyncUpdated: Int = 0,

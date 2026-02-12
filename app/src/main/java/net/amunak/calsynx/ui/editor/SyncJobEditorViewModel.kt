@@ -107,7 +107,8 @@ class SyncJobEditorViewModel(app: Application) : AndroidViewModel(app) {
 		reminderAllDayEnabled: Boolean,
 		reminderTimedEnabled: Boolean,
 		reminderResyncEnabled: Boolean,
-		pairExistingOnFirstSync: Boolean
+		pairExistingOnFirstSync: Boolean,
+		deleteUnmappedTargets: Boolean
 	) {
 		viewModelScope.launch(Dispatchers.IO) {
 			_uiState.update { it.copy(saveState = SaveState.Saving, errorMessage = null) }
@@ -174,7 +175,8 @@ class SyncJobEditorViewModel(app: Application) : AndroidViewModel(app) {
 							reminderAllDayEnabled = reminderAllDayEnabled,
 							reminderTimedEnabled = reminderTimedEnabled,
 							reminderResyncEnabled = reminderResyncEnabled,
-							pairExistingOnFirstSync = pairExistingOnFirstSync
+							pairExistingOnFirstSync = pairExistingOnFirstSync,
+							deleteUnmappedTargets = deleteUnmappedTargets
 						)
 					)
 					val job = SyncJob(
@@ -196,7 +198,8 @@ class SyncJobEditorViewModel(app: Application) : AndroidViewModel(app) {
 						reminderAllDayEnabled = reminderAllDayEnabled,
 						reminderTimedEnabled = reminderTimedEnabled,
 						reminderResyncEnabled = reminderResyncEnabled,
-						pairExistingOnFirstSync = pairExistingOnFirstSync
+						pairExistingOnFirstSync = pairExistingOnFirstSync,
+						deleteUnmappedTargets = deleteUnmappedTargets
 					)
 					scheduler.schedule(job)
 					scheduler.enqueueImmediate(job)
@@ -217,7 +220,8 @@ class SyncJobEditorViewModel(app: Application) : AndroidViewModel(app) {
 						reminderAllDayEnabled = reminderAllDayEnabled,
 						reminderTimedEnabled = reminderTimedEnabled,
 						reminderResyncEnabled = reminderResyncEnabled,
-						pairExistingOnFirstSync = pairExistingOnFirstSync
+						pairExistingOnFirstSync = pairExistingOnFirstSync,
+						deleteUnmappedTargets = deleteUnmappedTargets
 					)
 					updateSyncJob(updated)
 					scheduler.schedule(updated)

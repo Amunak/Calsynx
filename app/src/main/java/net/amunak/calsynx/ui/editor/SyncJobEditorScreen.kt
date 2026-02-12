@@ -71,6 +71,7 @@ fun SyncJobEditorScreen(
 		Boolean,
 		Boolean,
 		Boolean,
+		Boolean,
 		Boolean
 	) -> Unit
 ) {
@@ -129,6 +130,9 @@ fun SyncJobEditorScreen(
 	var pairExistingOnFirstSync by rememberSaveable(state.job?.id) {
 		mutableStateOf(state.job?.pairExistingOnFirstSync ?: false)
 	}
+	var deleteUnmappedTargets by rememberSaveable(state.job?.id) {
+		mutableStateOf(state.job?.deleteUnmappedTargets ?: false)
+	}
 	var showAdvanced by rememberSaveable(state.job?.id) {
 		mutableStateOf(state.job?.let(::jobUsesAdvancedOptions) ?: false)
 	}
@@ -172,7 +176,8 @@ fun SyncJobEditorScreen(
 		reminderAllDayEnabled = reminderAllDayEnabled,
 		reminderTimedEnabled = reminderTimedEnabled,
 		reminderResyncEnabled = reminderResyncEnabled,
-		pairExistingOnFirstSync = pairExistingOnFirstSync
+		pairExistingOnFirstSync = pairExistingOnFirstSync,
+		deleteUnmappedTargets = deleteUnmappedTargets
 	)
 	val hasUnsavedChanges = initialSnapshot != currentSnapshot
 	val requestClose = {
@@ -234,7 +239,8 @@ fun SyncJobEditorScreen(
 								reminderAllDayEnabled,
 								reminderTimedEnabled,
 								reminderResyncEnabled,
-								pairExistingOnFirstSync
+								pairExistingOnFirstSync,
+								deleteUnmappedTargets
 							)
 						},
 						enabled = canSave
@@ -348,10 +354,26 @@ fun SyncJobEditorScreen(
 					SyncCheckboxRow(
 						checked = pairExistingOnFirstSync,
 						label = stringResource(R.string.label_pair_existing_events),
-						onCheckedChange = { pairExistingOnFirstSync = it }
+						onCheckedChange = { pairExistingOnFirstSync = it },
+						enabled = !isEdit
 					)
 					SyncInlineMessage(
-						message = stringResource(R.string.message_pair_existing_events),
+						message = stringResource(
+							if (isEdit) {
+								R.string.message_pair_existing_events_disabled
+							} else {
+								R.string.message_pair_existing_events
+							}
+						),
+						startIndent = CHECKBOX_MESSAGE_INDENT
+					)
+					SyncCheckboxRow(
+						checked = deleteUnmappedTargets,
+						label = stringResource(R.string.label_delete_unmapped_targets),
+						onCheckedChange = { deleteUnmappedTargets = it }
+					)
+					SyncInlineMessage(
+						message = stringResource(R.string.message_delete_unmapped_targets),
 						startIndent = CHECKBOX_MESSAGE_INDENT
 					)
 				}
@@ -602,7 +624,8 @@ private fun jobUsesAdvancedOptions(job: SyncJob): Boolean {
 		!job.reminderResyncEnabled ||
 		job.reminderAllDayMinutes != defaultAllDayReminderMinutes() ||
 		job.reminderTimedMinutes != DEFAULT_TIMED_REMINDER_MINUTES ||
-		job.pairExistingOnFirstSync
+		job.pairExistingOnFirstSync ||
+		job.deleteUnmappedTargets
 }
 
 private data class EditorSnapshot(
@@ -623,7 +646,8 @@ private data class EditorSnapshot(
 	val reminderAllDayEnabled: Boolean,
 	val reminderTimedEnabled: Boolean,
 	val reminderResyncEnabled: Boolean,
-	val pairExistingOnFirstSync: Boolean
+	val pairExistingOnFirstSync: Boolean,
+	val deleteUnmappedTargets: Boolean
 ) {
 	companion object {
 		fun fromJob(job: SyncJob?): EditorSnapshot {
@@ -649,7 +673,8 @@ private data class EditorSnapshot(
 				reminderAllDayEnabled = job?.reminderAllDayEnabled ?: true,
 				reminderTimedEnabled = job?.reminderTimedEnabled ?: true,
 				reminderResyncEnabled = job?.reminderResyncEnabled ?: true,
-				pairExistingOnFirstSync = job?.pairExistingOnFirstSync ?: false
+				pairExistingOnFirstSync = job?.pairExistingOnFirstSync ?: false,
+				deleteUnmappedTargets = job?.deleteUnmappedTargets ?: false
 			)
 		}
 
@@ -671,7 +696,8 @@ private data class EditorSnapshot(
 			reminderAllDayEnabled: Boolean,
 			reminderTimedEnabled: Boolean,
 			reminderResyncEnabled: Boolean,
-			pairExistingOnFirstSync: Boolean
+			pairExistingOnFirstSync: Boolean,
+			deleteUnmappedTargets: Boolean
 		): EditorSnapshot {
 			return EditorSnapshot(
 				sourceId = sourceId,
@@ -691,7 +717,8 @@ private data class EditorSnapshot(
 				reminderAllDayEnabled = reminderAllDayEnabled,
 				reminderTimedEnabled = reminderTimedEnabled,
 				reminderResyncEnabled = reminderResyncEnabled,
-				pairExistingOnFirstSync = pairExistingOnFirstSync
+				pairExistingOnFirstSync = pairExistingOnFirstSync,
+				deleteUnmappedTargets = deleteUnmappedTargets
 			)
 		}
 	}

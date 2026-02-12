@@ -44,4 +44,12 @@ interface EventMappingDao {
 
 	@Query("SELECT COUNT(*) FROM event_mappings WHERE targetCalendarId = :calendarId")
 	suspend fun countSyncedTargets(calendarId: Long): Int
+
+	@Query(
+		"""
+		SELECT targetEventId FROM event_mappings
+		WHERE targetCalendarId = :calendarId
+		"""
+	)
+	suspend fun getTargetEventIdsForCalendar(calendarId: Long): List<Long>
 }

@@ -17,7 +17,9 @@ data class SyncResult(
 	val deleted: Int,
 	val sourceCount: Int,
 	val targetCount: Int,
-	val targetTotalCount: Int
+	val targetTotalCount: Int,
+	val initialPairCount: Int = 0,
+	val initialPairAttempted: Boolean = false
 )
 
 class CalendarSyncer(
@@ -33,17 +35,21 @@ class CalendarSyncer(
 	): SyncResult {
 		val sourceEvents = querySourceEvents(job.sourceCalendarId, window, job.syncAllEvents)
 		val mappings = mappingDao.getForJob(job.sourceCalendarId, job.targetCalendarId)
-		val seededMappings = if (
-			job.pairExistingOnFirstSync &&
+		val initialPairAttempted = job.pairExistingOnFirstSync &&
 			job.lastSyncTimestamp == null &&
 			mappings.isEmpty() &&
 			sourceEvents.isNotEmpty()
-		) {
+		val seededMappings = if (initialPairAttempted) {
 			val targetEvents = queryTargetEvents(job.targetCalendarId, window, job.syncAllEvents)
-			seedInitialMappings(job, sourceEvents, targetEvents)
+			val mappedTargets = mappingDao
+				.getTargetEventIdsForCalendar(job.targetCalendarId)
+				.toSet()
+			val eligibleTargets = excludeMappedTargets(targetEvents, mappedTargets)
+			seedInitialMappings(job, sourceEvents, eligibleTargets)
 		} else {
 			mappings
 		}
+		val initialPairCount = if (initialPairAttempted) seededMappings.size else 0
 		val targetExists = fetchExistingTargetIds(seededMappings.map { it.targetEventId })
 		val plan = buildSyncPlan(sourceEvents, seededMappings, targetExists)
 		if (plan.missingMappingIds.isNotEmpty()) {
@@ -73,15 +79,26 @@ class CalendarSyncer(
 		if (plan.orphanMappingIds.isNotEmpty()) {
 			mappingDao.deleteByIds(plan.orphanMappingIds)
 		}
+		var cleaned = 0
+		if (job.deleteUnmappedTargets) {
+			val mappedTargets = mappingDao
+				.getTargetEventIdsForCalendar(job.targetCalendarId)
+				.toSet()
+			val targetEvents = queryTargetEvents(job.targetCalendarId, window, job.syncAllEvents)
+			val unmappedTargets = excludeMappedTargets(targetEvents, mappedTargets)
+			cleaned = deleteTargets(unmappedTargets.map { it.id })
+		}
 		val targetCount = mappingDao.countForJob(job.sourceCalendarId, job.targetCalendarId)
 		val targetTotalCount = countEvents(job.targetCalendarId, window, job.syncAllEvents)
 		return SyncResult(
 			created = created,
 			updated = updated,
-			deleted = deleted,
+			deleted = deleted + cleaned,
 			sourceCount = sourceEvents.size,
 			targetCount = targetCount,
-			targetTotalCount = targetTotalCount
+			targetTotalCount = targetTotalCount,
+			initialPairCount = initialPairCount,
+			initialPairAttempted = initialPairAttempted
 		)
 	}
 
@@ -719,6 +736,14 @@ internal fun pairExistingEventsByTitleAndDate(
 		}
 	}
 	return pairs
+}
+
+internal fun excludeMappedTargets(
+	targets: List<TargetEvent>,
+	mappedTargetIds: Set<Long>
+): List<TargetEvent> {
+	if (mappedTargetIds.isEmpty()) return targets
+	return targets.filter { it.id !in mappedTargetIds }
 }
 
 private fun normalizeEventTitle(title: String?): String? {
