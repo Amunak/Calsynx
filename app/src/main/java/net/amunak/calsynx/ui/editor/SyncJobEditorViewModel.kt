@@ -114,43 +114,19 @@ class SyncJobEditorViewModel(app: Application) : AndroidViewModel(app) {
 			_uiState.update { it.copy(saveState = SaveState.Saving, errorMessage = null) }
 			try {
 				val jobs = syncJobRepository.getAll()
-				val editingJobId = _uiState.value.job?.id
-				val sourceConflict = jobs.any { it.targetCalendarId == sourceId && it.id != editingJobId }
-				val targetConflict = jobs.any { it.sourceCalendarId == targetId && it.id != editingJobId }
-				val duplicatePair = jobs.any {
-					it.sourceCalendarId == sourceId &&
-						it.targetCalendarId == targetId &&
-						it.id != editingJobId
-				}
-				if (sourceId == targetId) {
+				val validationError = validateSyncJobSelection(
+					sourceId,
+					targetId,
+					jobs,
+					_uiState.value.job?.id
+				)
+				if (validationError != null) {
 					_uiState.update {
 						it.copy(
 							saveState = SaveState.Error,
-							errorMessage = getApplication<Application>()
-								.getString(R.string.message_validation_source_target_same)
+							errorMessage = getApplication<Application>().getString(validationError)
 						)
 					}
-					return@launch
-				}
-				if (duplicatePair) {
-					_uiState.update {
-						it.copy(
-							saveState = SaveState.Error,
-							errorMessage = getApplication<Application>()
-								.getString(R.string.message_validation_duplicate_job)
-						)
-					}
-					return@launch
-				}
-				if (sourceConflict || targetConflict) {
-					val message = if (sourceConflict) {
-						getApplication<Application>()
-							.getString(R.string.message_validation_source_is_target)
-					} else {
-						getApplication<Application>()
-							.getString(R.string.message_validation_target_is_source)
-					}
-					_uiState.update { it.copy(saveState = SaveState.Error, errorMessage = message) }
 					return@launch
 				}
 

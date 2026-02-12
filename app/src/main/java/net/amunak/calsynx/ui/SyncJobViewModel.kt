@@ -20,7 +20,6 @@ import net.amunak.calsynx.data.sync.CalendarSyncer
 import net.amunak.calsynx.data.sync.SyncJobScheduler
 import net.amunak.calsynx.ui.logs.SyncLogStore
 import net.amunak.calsynx.ui.formatters.formatJobLabel
-import net.amunak.calsynx.domain.CreateSyncJobUseCase
 import net.amunak.calsynx.domain.DeleteSyncJobUseCase
 import net.amunak.calsynx.domain.ObserveSyncJobsUseCase
 import net.amunak.calsynx.domain.RunManualSyncUseCase
@@ -46,7 +45,6 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 		DatabaseProvider.get(app).eventMappingDao()
 	)
 	private val observeSyncJobs = ObserveSyncJobsUseCase(syncJobRepository)
-	private val createSyncJob = CreateSyncJobUseCase(syncJobRepository)
 	private val updateSyncJob = UpdateSyncJobUseCase(syncJobRepository)
 	private val deleteSyncJob = DeleteSyncJobUseCase(
 		syncJobRepository,
@@ -133,82 +131,6 @@ class SyncJobViewModel(private val app: Application) : AndroidViewModel(app) {
 			} finally {
 				isRefreshing.value = false
 			}
-		}
-	}
-
-	fun createJob(
-		sourceId: Long,
-		targetId: Long,
-		pastDays: Int,
-		futureDays: Int,
-		syncAllEvents: Boolean,
-		frequencyMinutes: Int
-	) {
-		viewModelScope.launch(Dispatchers.IO) {
-			if (sourceId == targetId) {
-				Log.w(
-					TAG,
-					"Rejected sync job due to identical calendars: source=$sourceId target=$targetId"
-				)
-				errorMessage.value = app.getString(R.string.message_validation_source_target_same)
-				return@launch
-			}
-			val jobs = syncJobRepository.getAll()
-			val sourceConflict = jobs.any { it.targetCalendarId == sourceId }
-			val targetConflict = jobs.any { it.sourceCalendarId == targetId }
-			if (sourceConflict || targetConflict) {
-				Log.w(
-					TAG,
-					"Rejected sync job due to calendar conflict: source=$sourceId target=$targetId"
-				)
-				errorMessage.value = if (sourceConflict) {
-					app.getString(R.string.message_validation_source_is_target)
-				} else {
-					app.getString(R.string.message_validation_target_is_source)
-				}
-				return@launch
-			}
-			createSyncJob(
-				SyncJob(
-					sourceCalendarId = sourceId,
-					targetCalendarId = targetId,
-					windowPastDays = pastDays,
-					windowFutureDays = futureDays,
-					syncAllEvents = syncAllEvents,
-					frequencyMinutes = frequencyMinutes
-				)
-			).also { id ->
-				val job = SyncJob(
-					id = id,
-					sourceCalendarId = sourceId,
-					targetCalendarId = targetId,
-					windowPastDays = pastDays,
-					windowFutureDays = futureDays,
-					syncAllEvents = syncAllEvents,
-					frequencyMinutes = frequencyMinutes
-				)
-				scheduler.schedule(job)
-				scheduler.enqueueImmediate(job)
-			}
-		}
-	}
-
-	fun updateJobOptions(
-		job: SyncJob,
-		pastDays: Int,
-		futureDays: Int,
-		syncAllEvents: Boolean,
-		frequencyMinutes: Int
-	) {
-		viewModelScope.launch(Dispatchers.IO) {
-			val updated = job.copy(
-				windowPastDays = pastDays,
-				windowFutureDays = futureDays,
-				syncAllEvents = syncAllEvents,
-				frequencyMinutes = frequencyMinutes
-			)
-			updateSyncJob(updated)
-			scheduler.schedule(updated)
 		}
 	}
 

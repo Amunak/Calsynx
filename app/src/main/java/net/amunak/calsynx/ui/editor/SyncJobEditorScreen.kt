@@ -151,7 +151,7 @@ fun SyncJobEditorScreen(
 	}
 
 	val validationError = remember(source, target, state.jobs, state.job?.id) {
-		validateSelection(source, target, state.jobs, state.job?.id)
+		validateSyncJobSelection(source?.id, target?.id, state.jobs, state.job?.id)
 	}
 	val canSave = validationError == null && !state.isLoading && state.saveState != SaveState.Saving
 	val initialSnapshot = remember(state.job?.id) { EditorSnapshot.fromJob(state.job) }
@@ -588,30 +588,6 @@ fun SyncJobEditorScreen(
 			}
 		)
 	}
-}
-
-private fun validateSelection(
-	source: CalendarInfo?,
-	target: CalendarInfo?,
-	jobs: List<SyncJob>,
-	currentJobId: Long?
-): Int? {
-	if (source == null || target == null) return R.string.message_validation_select_both
-	if (source.id == target.id) return R.string.message_validation_source_target_same
-	if (jobs.any { it.targetCalendarId == source.id && it.id != currentJobId }) {
-		return R.string.message_validation_source_is_target
-	}
-	if (jobs.any { it.sourceCalendarId == target.id && it.id != currentJobId }) {
-		return R.string.message_validation_target_is_source
-	}
-	if (jobs.any {
-			it.sourceCalendarId == source.id &&
-				it.targetCalendarId == target.id &&
-				it.id != currentJobId
-		}) {
-		return R.string.message_validation_duplicate_job
-	}
-	return null
 }
 
 private fun jobUsesAdvancedOptions(job: SyncJob): Boolean {
