@@ -8,13 +8,13 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SyncJobDao {
-	@Query("SELECT * FROM sync_jobs ORDER BY id DESC")
+	@Query("SELECT * FROM sync_jobs ORDER BY id ASC")
 	fun getAllFlow(): Flow<List<SyncJob>>
 
-	@Query("SELECT * FROM sync_jobs ORDER BY id DESC")
+	@Query("SELECT * FROM sync_jobs ORDER BY id ASC")
 	suspend fun getAll(): List<SyncJob>
 
-	@Query("SELECT * FROM sync_jobs WHERE isActive = 1 ORDER BY id DESC")
+	@Query("SELECT * FROM sync_jobs WHERE isActive = 1 ORDER BY id ASC")
 	suspend fun getActive(): List<SyncJob>
 
 	@Query("SELECT * FROM sync_jobs WHERE id = :id LIMIT 1")
