@@ -1,23 +1,23 @@
 # Calsynx
 
-Calsynx is an Android app that copies (synchronizes) events on-device from one calendar into another.
-It does a simple one-way synchronization, (source → target). You need to provide the calendars:
-it does not use any cloud services, accounts, or servers. These can be either local calendars
-or calendars added by other apps / device accounts.
-
-A typical use case would be syncing your work calendar (Outlook, Google Calendar, etc.) with your personal calendar.
-
-Note that while we try to take care to not delete events in the target calendar,
-you should still probably use a separate calendar for the sync outside of your main calendar.
+Calsynx is an Android app that copies events from one calendar into another, on your device.
+It runs a simple one-way sync (source → target) and does not use any servers or cloud accounts.
 
 ## What it does
-- Creates one-way sync jobs between calendars.
+- One-way sync jobs between calendars.
 - Tracks last sync time, counts, and errors per job.
-- Includes basic calendar management (create, rename, recolor, purge, delete).
+- Basic calendar management (create, rename, recolor, purge, delete).
 
-### Sync behavior (one-way copy)
+## Quick start
+1. Grant calendar permissions when prompted.
+2. Create a sync job: pick a source and target calendar.
+3. Set a sync window (how far back and ahead to copy events).
+4. Run a manual sync or let background sync run on its schedule.
+
+Tip: use a dedicated target calendar rather than your main one.
+
+### Sync behavior
 - Source events are copied into the target calendar; target-only events are ignored.
-- Calendars can be used as source or target to avoid circular sync.
 - Sync windows control how far back/ahead events are synced.
 - Synced events are updated or deleted to match the source.
 
@@ -28,9 +28,11 @@ you should still probably use a separate calendar for the sync outside of your m
 
 ## Permissions
 Calsynx needs `READ_CALENDAR` and `WRITE_CALENDAR` to list calendars and sync events.
-It may also request a battery optimization exemption to improve background sync reliability; the app still works without it.
+It may request a battery optimization exemption to improve background sync reliability; the app still works without it.
 
-## Build (CLI)
+## For developers
+
+### Build (CLI)
 Prerequisites:
 - JDK 17+
 - Android SDK with platform tools installed
@@ -46,7 +48,7 @@ Release build (unsigned):
 ./gradlew --no-daemon :app:assembleRelease
 ```
 
-## Tests (CLI)
+### Tests (CLI)
 Unit tests:
 ```bash
 ./gradlew --no-daemon test

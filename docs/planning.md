@@ -14,13 +14,19 @@
 - [x] Update UI copy that still claims "manual sync only" now that WorkManager scheduling exists.
 - [x] Decide how to treat hidden calendars in job creation/listing (show all vs. visible-only).
 - [x] Move sync job create/edit into a dedicated screen with sections.
-- [ ] Reduce repeated calendar/event queries when building calendar management stats.
+- [x] Reduce repeated calendar/event queries when building calendar management stats.
 - [x] Centralize job label formatting to avoid duplicate logic in ViewModel/Worker/Log export.
 - [x] Add targeted tests for update field behavior.
 - [x] Add targeted tests for sync plan behavior.
 - [x] Add tests to cover recurring event window inclusion.
 - [x] Add per-job copy options (availability, privacy, color, organizer, attendees, reminders).
 - [x] Add reminder re-sync toggle and battery optimization warning/log export.
+- [x] Consolidate sync job validation between editor UI and ViewModel.
+- [x] Remove or re-route unused SyncJobViewModel create/update helpers.
+- [x] Decide how toggling copy options should handle previously copied fields (clear vs. preserve).
+- [x] Use string resources for background sync errors to keep copy consistent.
+- [x] Centralize event count queries (avoid duplicate logic in repository/syncer).
+- [x] Update README to be user-first and move technical details later.
 
 ## Decisions
 - Keep calendar management as a separate utility screen (not embedded in sync job dialogs).
@@ -46,7 +52,15 @@
 - Order sync jobs by creation time and provide a manual re-pair action from the job overflow menu.
 - Require confirmation before clearing logs.
 - Document battery optimization exemption in README permissions.
+- Consolidate sync job validation in a shared helper used by the editor UI and ViewModel.
+- Disabling copy options clears organizer/privacy/color values and removes attendees on sync updates.
+- Background sync errors reuse existing string resources for consistency.
+- Calendar management stats use batched event counts and precomputed job mappings.
 
 ## Rejected
 - Move “Sync now” into an overflow-only action.
 - Introduce a full DI framework for now; stick to lightweight constructors/providers.
+- Preserve previously copied organizer/privacy/color/attendees when copy options are disabled.
+
+## Open Questions
+- None.

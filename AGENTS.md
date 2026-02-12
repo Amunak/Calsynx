@@ -25,3 +25,5 @@
 - Advanced copy/reminder options should be hidden behind a toggle by default.
 - Checkbox labels should toggle their checkboxes; icon-only buttons should show tooltips.
 - Battery optimization warnings should appear as a top-of-list card after calendar permissions; log exemption status in exports.
+- Disabling copy options should clear organizer/privacy/color values and remove attendees on sync updates.
+- Background sync errors should reuse existing string resources for consistent copy.
