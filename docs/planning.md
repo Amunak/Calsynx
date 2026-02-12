@@ -45,6 +45,7 @@
 - Log per-sync stats (created/updated/deleted/targets) for manual and background runs.
 - Order sync jobs by creation time and provide a manual re-pair action from the job overflow menu.
 - Require confirmation before clearing logs.
+- Document battery optimization exemption in README permissions.
 
 ## Rejected
 - Move “Sync now” into an overflow-only action.

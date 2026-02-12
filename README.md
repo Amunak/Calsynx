@@ -28,6 +28,7 @@ you should still probably use a separate calendar for the sync outside of your m
 
 ## Permissions
 Calsynx needs `READ_CALENDAR` and `WRITE_CALENDAR` to list calendars and sync events.
+It may also request a battery optimization exemption to improve background sync reliability; the app still works without it.
 
 ## Build (CLI)
 Prerequisites:
