@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import net.amunak.calsynx.ui.components.ScreenSurface
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import net.amunak.calsynx.calendar.CalendarInfo
@@ -68,6 +70,7 @@ fun CalendarManagementScreen(
 	}
 
 	Scaffold(
+		contentWindowInsets = WindowInsets(0, 0, 0, 0),
 		topBar = {
 			TopAppBar(
 				title = { Text(stringResource(R.string.title_calendar_management)) },
@@ -85,9 +88,11 @@ fun CalendarManagementScreen(
 			)
 		},
 		floatingActionButton = {
+			val fabBottomPadding = navBar.bottom + 12.dp
 			ExtendedFloatingActionButton(
 				onClick = { showCreateDialog = true },
-				modifier = Modifier.padding(bottom = navBar.bottom, end = navBar.end)
+				modifier = Modifier
+					.padding(bottom = fabBottomPadding, end = navBar.end)
 			) {
 				Icon(Icons.Default.Add, contentDescription = null)
 				Text(
@@ -219,7 +224,13 @@ fun CalendarDetailScreen(
 	Scaffold(
 		topBar = {
 			TopAppBar(
-				title = { Text(calendarTitle) },
+				title = {
+					Text(
+						text = sanitizeCalendarName(calendar.displayName),
+						maxLines = 1,
+						overflow = TextOverflow.Ellipsis
+					)
+				},
 				navigationIcon = {
 					TooltipIconButton(
 						tooltip = stringResource(R.string.action_back),

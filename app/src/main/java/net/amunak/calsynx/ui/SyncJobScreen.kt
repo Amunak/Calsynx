@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
@@ -108,6 +109,7 @@ fun SyncJobScreen(
 	val contentBottomPadding = bottomPadding + navBarBottom
 
 	Scaffold(
+		contentWindowInsets = WindowInsets(0, 0, 0, 0),
 		topBar = {
 			TopAppBar(
 				title = {
@@ -151,9 +153,11 @@ fun SyncJobScreen(
 		},
 		floatingActionButton = {
 			if (uiState.hasCalendarPermission) {
+				val fabBottomPadding = navBar.bottom + 12.dp
 				ExtendedFloatingActionButton(
 					onClick = { context.startActivity(SyncJobEditorActivity.newIntent(context)) },
-					modifier = Modifier.padding(bottom = navBarBottom, end = navBarEnd)
+					modifier = Modifier
+						.padding(bottom = fabBottomPadding, end = navBarEnd)
 				) {
 					Icon(
 						imageVector = Icons.Default.Add,

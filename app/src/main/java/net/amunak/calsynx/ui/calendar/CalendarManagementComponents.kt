@@ -2,6 +2,7 @@ package net.amunak.calsynx.ui.calendar
 
 import android.provider.CalendarContract
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
@@ -80,54 +82,17 @@ fun CalendarRowCard(
 					color = MaterialTheme.colorScheme.onSurfaceVariant
 				)
 			}
-	if (incomingCalendar != null) {
-		val extraSources = row.incomingCalendars.size - 1
-		Row(verticalAlignment = Alignment.CenterVertically) {
-			Text(
-				text = stringResource(R.string.text_synced_input),
-				style = MaterialTheme.typography.bodySmall,
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-				modifier = Modifier.padding(end = 6.dp)
-			)
-			CalendarLabel(
-				name = incomingCalendar.displayName,
-				color = incomingCalendar.color,
-				textStyle = MaterialTheme.typography.bodySmall,
-				textColor = MaterialTheme.colorScheme.onSurfaceVariant
-			)
-			if (extraSources > 0) {
-				Text(
-					text = stringResource(R.string.text_additional_sources, extraSources),
-					style = MaterialTheme.typography.bodySmall,
-					color = MaterialTheme.colorScheme.onSurfaceVariant
+			if (incomingCalendar != null) {
+				CalendarLinkRow(
+					label = stringResource(R.string.text_synced_input),
+					calendars = row.incomingCalendars
 				)
 			}
-		}
-	}
 			if (outgoingCalendars.isNotEmpty()) {
-				val target = outgoingCalendars.first()
-				val extraCount = outgoingCalendars.size - 1
-				Row(verticalAlignment = Alignment.CenterVertically) {
-					Text(
-						text = stringResource(R.string.text_synced_output),
-						style = MaterialTheme.typography.bodySmall,
-						color = MaterialTheme.colorScheme.onSurfaceVariant,
-						modifier = Modifier.padding(end = 6.dp)
-					)
-					CalendarLabel(
-						name = target.displayName,
-						color = target.color,
-						textStyle = MaterialTheme.typography.bodySmall,
-						textColor = MaterialTheme.colorScheme.onSurfaceVariant
-					)
-					if (extraCount > 0) {
-						Text(
-							text = stringResource(R.string.text_additional_targets, extraCount),
-							style = MaterialTheme.typography.bodySmall,
-							color = MaterialTheme.colorScheme.onSurfaceVariant
-						)
-					}
-				}
+				CalendarLinkRow(
+					label = stringResource(R.string.text_synced_output),
+					calendars = outgoingCalendars
+				)
 			}
 		}
 	}
@@ -164,42 +129,20 @@ fun CalendarMetaSection(
 			style = MaterialTheme.typography.bodySmall,
 			color = MaterialTheme.colorScheme.onSurfaceVariant
 		)
-		if (sourceCalendars.isNotEmpty()) {
-			Text(
-				text = stringResource(R.string.text_synced_input),
-				style = MaterialTheme.typography.bodySmall,
-				color = MaterialTheme.colorScheme.onSurfaceVariant
-			)
-			Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-				sourceCalendars.distinctBy { it.id }.forEach { source ->
-					CalendarLabel(
-						name = source.displayName,
-						color = source.color,
-						textStyle = MaterialTheme.typography.bodySmall,
-						textColor = MaterialTheme.colorScheme.onSurfaceVariant
-					)
-				}
-			}
-		}
-		if (targetCalendars.isNotEmpty()) {
-			Text(
-				text = stringResource(R.string.text_synced_output),
-				style = MaterialTheme.typography.bodySmall,
-				color = MaterialTheme.colorScheme.onSurfaceVariant
-			)
-			Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-				targetCalendars.distinctBy { it.id }.forEach { target ->
-					CalendarLabel(
-						name = target.displayName,
-						color = target.color,
-						textStyle = MaterialTheme.typography.bodySmall,
-						textColor = MaterialTheme.colorScheme.onSurfaceVariant
-					)
-				}
-			}
-		}
-		AccountDetailsSection(calendar = calendar)
+	if (sourceCalendars.isNotEmpty()) {
+		CalendarLinkRow(
+			label = stringResource(R.string.text_synced_input),
+			calendars = sourceCalendars
+		)
 	}
+	if (targetCalendars.isNotEmpty()) {
+		CalendarLinkRow(
+			label = stringResource(R.string.text_synced_output),
+			calendars = targetCalendars
+		)
+	}
+	AccountDetailsSection(calendar = calendar)
+}
 }
 
 @Composable
@@ -249,6 +192,42 @@ fun ActionRow(
 			style = MaterialTheme.typography.bodyMedium,
 			modifier = Modifier.padding(start = 12.dp)
 		)
+	}
+}
+
+@Composable
+private fun CalendarLinkRow(
+	label: String,
+	calendars: List<CalendarInfo>
+) {
+	val uniqueCalendars = calendars.distinctBy { it.id }
+	if (uniqueCalendars.isEmpty()) return
+	Row(
+		modifier = Modifier.fillMaxWidth(),
+		verticalAlignment = Alignment.CenterVertically
+	) {
+		Text(
+			text = label,
+			style = MaterialTheme.typography.bodySmall,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+			modifier = Modifier.padding(end = 6.dp)
+		)
+		Row(
+			modifier = Modifier
+				.weight(1f)
+				.horizontalScroll(rememberScrollState()),
+			horizontalArrangement = Arrangement.spacedBy(8.dp),
+			verticalAlignment = Alignment.CenterVertically
+		) {
+			uniqueCalendars.forEach { calendar ->
+				CalendarLabel(
+					name = calendar.displayName,
+					color = calendar.color,
+					textStyle = MaterialTheme.typography.bodySmall,
+					textColor = MaterialTheme.colorScheme.onSurfaceVariant
+				)
+			}
+		}
 	}
 }
 
