@@ -61,6 +61,24 @@ jobs:
       - name: Build release APK
         run: ./gradlew assembleRelease --no-daemon --stacktrace
 
+      - name: Sign release APK
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          # Decode the keystore from base64 secret
+          echo "${{ secrets.SIGNING_KEYSTORE }}" | base64 -d > release.keystore
+
+          # Sign the APK
+          $ANDROID_HOME/build-tools/36.1.0/apksigner sign \
+            --ks release.keystore \
+            --ks-key-alias ${{ secrets.SIGNING_KEY_ALIAS }} \
+            --ks-pass pass:${{ secrets.SIGNING_KEYSTORE_PASSWORD }} \
+            --key-pass pass:${{ secrets.SIGNING_KEY_PASSWORD }} \
+            --out app/build/outputs/apk/release/app-release-signed.apk \
+            app/build/outputs/apk/release/app-release-unsigned.apk
+
+          # Replace unsigned with signed
+          mv app/build/outputs/apk/release/app-release-signed.apk app/build/outputs/apk/release/app-release.apk
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
@@ -71,7 +89,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: calsynx-release
-          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          path: app/build/outputs/apk/release/app-release*.apk
 
   release:
     name: Create Release and Update F-Droid Repo
@@ -110,30 +128,27 @@ jobs:
           # Create fdroid directory structure
           mkdir -p fdroid/repo
 
-          # Copy APK to repo and rename to include version
+          # Extract version from gradle
           VERSION=$(grep 'versionName' app/build.gradle.kts | sed 's/.*versionName = "\(.*\)"/\1/')
-          cp app-release-unsigned.apk fdroid/repo/calsynx-${VERSION}.apk
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+          # Copy signed APK to repo
+          cp app-release*.apk fdroid/repo/calsynx-${VERSION}.apk
 
       - name: Initialize or update F-Droid repository
         run: |
           cd fdroid
 
-          # Check if we have existing config from fdroid branch
-          git checkout fdroid -- config.yml keystore.p12 2>/dev/null || true
-
-          # If no config exists, create minimal one
-          if [ ! -f config.yml ]; then
-            cat > config.yml << 'EOF'
+          # Create config
+          cat > config.yml << 'EOF'
           repo_name: Calsynx F-Droid Repository
           repo_description: Personal F-Droid repository for Calsynx calendar sync app
           repo_url: https://raw.githubusercontent.com/${{ github.repository }}/fdroid/repo
-          repo_icon: icon.png
           archive_name: Calsynx Archive
           archive_description: Archived versions of Calsynx
           EOF
-          fi
 
-          # Update repo (creates index without signing)
+          # Update repo (creates index without signing the repo itself)
           fdroid update --nosign --create-metadata
 
           cd ..
@@ -149,7 +164,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: app-release-unsigned.apk
+          files: app-release*.apk
           draft: false
           prerelease: false
           generate_release_notes: true
