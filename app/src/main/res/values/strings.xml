@@ -23,6 +23,8 @@
 	<string name="action_sync">Sync</string>
 	<string name="action_share">Share</string>
 	<string name="action_clear_logs">Clear logs</string>
+	<string name="action_export_calendar">Export calendar</string>
+	<string name="action_import_calendar">Import from file</string>
 	<string name="title_clear_logs">Clear logs?</string>
 	<string name="message_clear_logs">This will permanently delete all sync logs.</string>
 	<string name="action_repair_existing">Re-pair existing events</string>
@@ -107,6 +109,10 @@
 	<string name="message_battery_optimization_warning">To keep background sync reliable, you can exclude Calsynx from battery optimizations. Without it, syncs may be delayed.</string>
 	<string name="message_share_logs_failed">Unable to share logs.</string>
 	<string name="message_sync_job_save_failed">Unable to save sync job.</string>
+	<string name="message_export_calendar_success">Exported %1$d events.</string>
+	<string name="message_export_calendar_failed">Unable to export calendar.</string>
+	<string name="message_import_calendar_success">Imported %1$d events.</string>
+	<string name="message_import_calendar_failed">Unable to import calendar.</string>
 	<string name="message_unknown_calendar">Unknown (%1$d)</string>
 	<string name="message_unable_change_color">Unable to change calendar color.</string>
 	<string name="message_unable_create_calendar">Unable to create calendar.</string>

@@ -106,14 +106,16 @@ fun CalsynxAppRoute() {
 			calendarViewModel.clearSelection()
 			currentScreen = AppScreen.CalendarManagement
 		},
-	onCreateCalendar = calendarViewModel::createCalendar,
-	onCalendarToastShown = calendarViewModel::clearToast,
-	onOpenLogs = { currentScreen = AppScreen.SyncLogs },
-	logState = logState,
-	onClearLogToast = logViewModel::clearToast,
-	onClearLogs = logViewModel::clearLogs,
-	onShareLogs = logViewModel::shareLogs,
-	onRefreshLogs = logViewModel::loadLogs
+		onCreateCalendar = calendarViewModel::createCalendar,
+		onImportCalendar = calendarViewModel::importCalendar,
+		onExportCalendar = calendarViewModel::exportCalendar,
+		onCalendarToastShown = calendarViewModel::clearToast,
+		onOpenLogs = { currentScreen = AppScreen.SyncLogs },
+		logState = logState,
+		onClearLogToast = logViewModel::clearToast,
+		onClearLogs = logViewModel::clearLogs,
+		onShareLogs = logViewModel::shareLogs,
+		onRefreshLogs = logViewModel::loadLogs
 )
 }
 
@@ -137,6 +139,8 @@ fun CalsynxApp(
 	onPurgeCalendar: (net.amunak.calsynx.calendar.CalendarInfo) -> Unit,
 	onDeleteCalendar: (net.amunak.calsynx.calendar.CalendarInfo) -> Unit,
 	onCreateCalendar: (String, Int) -> Unit,
+	onImportCalendar: (android.net.Uri, String, Int) -> Unit,
+	onExportCalendar: (net.amunak.calsynx.calendar.CalendarInfo, android.net.Uri) -> Unit,
 	onCalendarToastShown: () -> Unit,
 	onOpenLogs: () -> Unit,
 	logState: net.amunak.calsynx.ui.logs.SyncLogUiState,
@@ -203,7 +207,8 @@ fun CalsynxApp(
 					onBack = { onNavigate(AppScreen.SyncJobs) },
 					onRefresh = onRefreshCalendarsManagement,
 					onSelectCalendar = onSelectCalendar,
-					onCreateCalendar = onCreateCalendar
+					onCreateCalendar = onCreateCalendar,
+					onImportCalendar = onImportCalendar
 				)
 			}
 			AppScreen.CalendarDetail -> {
@@ -216,7 +221,8 @@ fun CalsynxApp(
 					onUpdateName = onUpdateCalendarName,
 					onUpdateColor = onUpdateCalendarColor,
 					onPurge = onPurgeCalendar,
-					onDelete = onDeleteCalendar
+					onDelete = onDeleteCalendar,
+					onExport = onExportCalendar
 				)
 			}
 			AppScreen.SyncLogs -> {
@@ -259,6 +265,8 @@ private fun CalsynxAppPreview() {
 			onPurgeCalendar = {},
 			onDeleteCalendar = {},
 			onCreateCalendar = { _, _ -> },
+			onImportCalendar = { _, _, _ -> },
+			onExportCalendar = { _, _ -> },
 			onCalendarToastShown = {},
 			onOpenLogs = {},
 			logState = net.amunak.calsynx.ui.logs.SyncLogUiState(),

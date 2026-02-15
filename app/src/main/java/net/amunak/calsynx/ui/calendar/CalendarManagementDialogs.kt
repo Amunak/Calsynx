@@ -41,7 +41,8 @@ import net.amunak.calsynx.ui.components.stripCalendarNewlines
 @Composable
 	fun CreateCalendarDialog(
 		onDismiss: () -> Unit,
-		onCreate: (String, Int) -> Unit
+		onCreate: (String, Int) -> Unit,
+		onImport: (String, Int) -> Unit
 	) {
 		val colorRows = remember { defaultCalendarColorRows() }
 		val defaultColor = colorRows.first().first()
@@ -73,6 +74,13 @@ import net.amunak.calsynx.ui.components.stripCalendarNewlines
 					selectedColor = selectedColor,
 					onSelect = { selectedColor = it }
 				)
+				Button(
+					onClick = { onImport(name.trim(), selectedColor) },
+					enabled = name.isNotBlank(),
+					modifier = Modifier.fillMaxWidth()
+				) {
+					Text(stringResource(R.string.action_import_calendar))
+				}
 			}
 		},
 		confirmButton = {
@@ -266,7 +274,7 @@ private fun defaultCalendarColorRows(): List<List<Int>> {
 @Preview(showBackground = true)
 @Composable
 private fun CreateCalendarDialogPreview() {
-	CreateCalendarDialog(onDismiss = {}, onCreate = { _, _ -> })
+	CreateCalendarDialog(onDismiss = {}, onCreate = { _, _ -> }, onImport = { _, _ -> })
 }
 
 @Preview(showBackground = true)

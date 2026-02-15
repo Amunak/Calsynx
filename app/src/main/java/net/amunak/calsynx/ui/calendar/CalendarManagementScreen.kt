@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
@@ -37,6 +38,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import net.amunak.calsynx.ui.components.ScreenSurface
@@ -60,10 +64,21 @@ fun CalendarManagementScreen(
 	onBack: () -> Unit,
 	onRefresh: () -> Unit,
 	onSelectCalendar: (Long) -> Unit,
-	onCreateCalendar: (String, Int) -> Unit
+	onCreateCalendar: (String, Int) -> Unit,
+	onImportCalendar: (Uri, String, Int) -> Unit
 ) {
 	var showCreateDialog by remember { mutableStateOf(false) }
+	var pendingImport by remember { mutableStateOf<ImportRequest?>(null) }
 	val navBar = rememberNavBarPadding()
+	val importLauncher = rememberLauncherForActivityResult(
+		ActivityResultContracts.OpenDocument()
+	) { uri ->
+		val request = pendingImport
+		if (uri != null && request != null) {
+			onImportCalendar(uri, request.name, request.color)
+		}
+		pendingImport = null
+	}
 
 	LaunchedEffect(Unit) {
 		onRefresh()
@@ -190,6 +205,11 @@ fun CalendarManagementScreen(
 			onCreate = { name, color ->
 				onCreateCalendar(name, color)
 				showCreateDialog = false
+			},
+			onImport = { name, color ->
+				pendingImport = ImportRequest(name = name, color = color)
+				importLauncher.launch(arrayOf("text/calendar", "text/*", "application/octet-stream"))
+				showCreateDialog = false
 			}
 		)
 	}
@@ -203,7 +223,8 @@ fun CalendarDetailScreen(
 	onUpdateName: (CalendarInfo, String) -> Unit,
 	onUpdateColor: (CalendarInfo, Int) -> Unit,
 	onPurge: (CalendarInfo) -> Unit,
-	onDelete: (CalendarInfo) -> Unit
+	onDelete: (CalendarInfo) -> Unit,
+	onExport: (CalendarInfo, Uri) -> Unit
 ) {
 	val row = state.selectedCalendar ?: return
 	val calendar = row.calendar
@@ -220,6 +241,13 @@ fun CalendarDetailScreen(
 	var showColorDialog by remember { mutableStateOf(false) }
 	var showPurgeDialog by remember { mutableStateOf(false) }
 	var showDeleteDialog by remember { mutableStateOf(false) }
+	val exportLauncher = rememberLauncherForActivityResult(
+		ActivityResultContracts.CreateDocument("text/calendar")
+	) { uri ->
+		if (uri != null) {
+			onExport(calendar, uri)
+		}
+	}
 
 	Scaffold(
 		topBar = {
@@ -287,6 +315,14 @@ fun CalendarDetailScreen(
 								onClick = { showColorDialog = true }
 							)
 						}
+						ActionRow(
+							icon = Icons.Default.FileDownload,
+							label = stringResource(R.string.action_export_calendar),
+							onClick = {
+								val exportName = "${sanitizeCalendarName(calendar.displayName).ifBlank { "calendar" }}.ics"
+								exportLauncher.launch(exportName)
+							}
+						)
 						if (canWriteEvents) {
 							ActionRow(
 								icon = Icons.Default.Warning,
@@ -387,7 +423,8 @@ private fun CalendarManagementScreenPreview() {
 		onBack = {},
 		onRefresh = {},
 		onSelectCalendar = {},
-		onCreateCalendar = { _, _ -> }
+		onCreateCalendar = { _, _ -> },
+		onImportCalendar = { _, _, _ -> }
 	)
 }
 
@@ -409,6 +446,12 @@ private fun CalendarDetailScreenPreview() {
 		onUpdateName = { _, _ -> },
 		onUpdateColor = { _, _ -> },
 		onPurge = {},
-		onDelete = {}
+		onDelete = {},
+		onExport = { _, _ -> }
 	)
 }
+
+private data class ImportRequest(
+	val name: String,
+	val color: Int
+)

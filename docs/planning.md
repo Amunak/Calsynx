@@ -57,6 +57,7 @@
 - Background sync errors reuse existing string resources for consistency.
 - Calendar management stats use batched event counts and precomputed job mappings.
 - Remap recurring exceptions to the target master event and attempt to repair missing mappings before creating new targets.
+- Add calendar export/import with raw event fields for debugging.
 
 ## Rejected
 - Move “Sync now” into an overflow-only action.
