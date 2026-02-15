@@ -3,6 +3,22 @@
 Calsynx is an Android app that copies events from one calendar into another, on your device.
 It runs a simple one-way sync (source → target) and does not use any servers or cloud accounts.
 
+## Installation
+
+### F-Droid Repository
+
+Add this as a custom repository to F-Droid or a compatible app:
+
+```
+https://raw.githubusercontent.com/amunak/calsynx/fdroid/repo
+```
+
+Then refresh repositories and search for "Calsynx".
+
+### Manual Installation
+
+Download the latest APK from the [Releases](https://github.com/amunak/calsynx/releases) page.
+
 ## What it does
 - One-way sync jobs between calendars.
 - Tracks last sync time, counts, and errors per job.
