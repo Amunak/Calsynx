@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 
 @Database(
 	entities = [SyncJob::class, EventMapping::class],
-	version = 11,
+	version = 1,
 	exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
