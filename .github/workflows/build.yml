@@ -4,7 +4,7 @@ on:
   push:
     branches: [ master, main ]
     tags:
-      - 'v*'
+      - '[0-9]+.[0-9]+.[0-9]+'
   pull_request:
     branches: [ master, main ]
   workflow_dispatch:
@@ -65,34 +65,91 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: calsynx-debug
-          path: build/app/outputs/apk/debug/calsynx-*-debug.apk
+          path: app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
           name: calsynx-release
-          path: build/app/outputs/apk/release/calsynx-*-release.apk
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
 
   release:
-    name: Create Release
+    name: Create Release and Update F-Droid Repo
     runs-on: ubuntu-latest
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout F-Droid branch
+        run: |
+          git fetch origin fdroid:fdroid || git checkout --orphan fdroid
+          git checkout master
 
       - name: Download release APK
         uses: actions/download-artifact@v4
         with:
           name: calsynx-release
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          files: calsynx-*-release.apk
+          python-version: '3.x'
+
+      - name: Install fdroidserver
+        run: |
+          pip install fdroidserver
+
+      - name: Setup F-Droid repository structure
+        run: |
+          # Create fdroid directory structure
+          mkdir -p fdroid/repo
+
+          # Copy APK to repo and rename to include version
+          VERSION=$(grep 'versionName' app/build.gradle.kts | sed 's/.*versionName = "\(.*\)"/\1/')
+          cp app-release-unsigned.apk fdroid/repo/calsynx-${VERSION}.apk
+
+      - name: Initialize or update F-Droid repository
+        run: |
+          cd fdroid
+
+          # Check if we have existing config from fdroid branch
+          git checkout fdroid -- config.yml keystore.p12 2>/dev/null || true
+
+          # If no config exists, create minimal one
+          if [ ! -f config.yml ]; then
+            cat > config.yml << 'EOF'
+          repo_name: Calsynx F-Droid Repository
+          repo_description: Personal F-Droid repository for Calsynx calendar sync app
+          repo_url: https://raw.githubusercontent.com/${{ github.repository }}/fdroid/repo
+          repo_icon: icon.png
+          archive_name: Calsynx Archive
+          archive_description: Archived versions of Calsynx
+          EOF
+          fi
+
+          # Update repo (creates index without signing)
+          fdroid update --nosign --create-metadata
+
+          cd ..
+
+      - name: Deploy F-Droid repo to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./fdroid
+          publish_branch: fdroid
+          enable_jekyll: false
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app-release-unsigned.apk
           draft: false
           prerelease: false
           generate_release_notes: true
