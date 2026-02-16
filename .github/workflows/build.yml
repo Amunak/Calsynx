@@ -126,8 +126,9 @@ jobs:
           repo_url: https://raw.githubusercontent.com/${{ github.repository }}/fdroid/repo
           archive_name: Calsynx Archive
           archive_description: Archived versions of Calsynx
+          make_current_version_link: false
           EOF
-          fdroid update --nosign --create-metadata
+          fdroid update --nosign --create-metadata --use-date-from-apk
           cd ..
 
       - name: Deploy F-Droid repo
