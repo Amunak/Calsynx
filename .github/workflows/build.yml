@@ -81,6 +81,9 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
+    env:
+      FDROID_REPO_PUBKEY: ${{ secrets.FDROID_REPO_PUBKEY }}
+      FDROID_KEYSTORE_PASS: ${{ secrets.FDROID_KEYSTORE_PASS }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -117,6 +120,7 @@ jobs:
           fi
 
       - name: Update F-Droid repository
+        if: env.FDROID_REPO_PUBKEY != '' || env.FDROID_KEYSTORE_PASS != ''
         run: |
           cd fdroid
           cat > config.yml << 'EOF'
@@ -126,12 +130,15 @@ jobs:
           archive_name: Calsynx Archive
           archive_description: Archived versions of Calsynx
           make_current_version_link: false
+          repo_pubkey: ${FDROID_REPO_PUBKEY}
+          keystorepass: ${FDROID_KEYSTORE_PASS}
           EOF
           fdroid update --nosign --create-metadata --use-date-from-apk
           cd ..
 
       - name: Deploy F-Droid repo
         uses: peaceiris/actions-gh-pages@v4
+        if: env.FDROID_REPO_PUBKEY != '' || env.FDROID_KEYSTORE_PASS != ''
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./fdroid
