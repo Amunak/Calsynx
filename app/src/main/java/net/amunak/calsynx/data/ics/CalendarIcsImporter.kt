@@ -33,9 +33,7 @@ class CalendarIcsImporter {
 		val pendingOriginal = mutableListOf<OriginalReference>()
 
 		parsed.forEach { event ->
-			val values = ContentValues().apply {
-				put(CalendarContract.Events.CALENDAR_ID, calendarId)
-			}
+			val values = ContentValues()
 			event.standardValues.forEach { (column, value) ->
 				putParsedValue(values, column, value)
 			}
@@ -43,6 +41,7 @@ class CalendarIcsImporter {
 				putParsedValue(values, column, value)
 			}
 			clearUnsafeColumns(values)
+			ensureCalendarId(values, calendarId)
 
 			val originalSourceId = event.originalSourceId
 			val originalInstanceTime = event.originalInstanceTime
@@ -349,6 +348,10 @@ private fun clearUnsafeColumns(values: ContentValues) {
 		CalendarContract.Events.SYNC_DATA10
 	)
 	blocked.forEach { values.remove(it) }
+}
+
+private fun ensureCalendarId(values: ContentValues, calendarId: Long) {
+	values.put(CalendarContract.Events.CALENDAR_ID, calendarId)
 }
 
 private fun clearUnsafeReminderColumns(values: ContentValues) {
