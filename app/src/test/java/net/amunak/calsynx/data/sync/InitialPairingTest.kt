@@ -252,6 +252,7 @@ class InitialPairingTest {
 	): SourceEvent {
 		return SourceEvent(
 			id = id,
+			uid = "uid-$id",
 			title = title,
 			startMillis = dateTime.atZone(zone).toInstant().toEpochMilli(),
 			endMillis = null,

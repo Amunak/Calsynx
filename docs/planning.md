@@ -9,6 +9,10 @@
 - Recurring event exception handling with mapping repair
 - Battery optimization warnings and exemption logging
 
+## Decisions Log
+- Default missing event time zones to system default for sync writes.
+- Preserve or generate event UID_2445 on sync to stabilize cloud de-duplication.
+
 ## Future Enhancements
 - [ ] Configurable periodic sync cadence per job
 - [ ] Sync job configuration backup/restore

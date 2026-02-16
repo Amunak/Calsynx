@@ -63,6 +63,7 @@ class SyncPlannerTest {
 	private fun sourceEvent(id: Long): SourceEvent {
 		return SourceEvent(
 			id = id,
+			uid = "uid-$id",
 			title = "Event $id",
 			startMillis = 1_000L,
 			endMillis = 2_000L,

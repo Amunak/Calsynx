@@ -160,17 +160,18 @@ class CalendarSyncer(
 		)
 	}
 
-	private fun querySourceEvents(
-		sourceCalendarId: Long,
-		window: SyncWindow,
-		syncAllEvents: Boolean
-	): List<SourceEvent> {
-		val projection = arrayOf(
-			CalendarContract.Events._ID,
-			CalendarContract.Events.TITLE,
-			CalendarContract.Events.DTSTART,
-			CalendarContract.Events.DTEND,
-			CalendarContract.Events.DURATION,
+private fun querySourceEvents(
+	sourceCalendarId: Long,
+	window: SyncWindow,
+	syncAllEvents: Boolean
+): List<SourceEvent> {
+	val projection = arrayOf(
+		CalendarContract.Events._ID,
+		CalendarContract.Events.UID_2445,
+		CalendarContract.Events.TITLE,
+		CalendarContract.Events.DTSTART,
+		CalendarContract.Events.DTEND,
+		CalendarContract.Events.DURATION,
 			CalendarContract.Events.ALL_DAY,
 			CalendarContract.Events.EVENT_TIMEZONE,
 			CalendarContract.Events.EVENT_END_TIMEZONE,
@@ -207,6 +208,7 @@ class CalendarSyncer(
 
 		return cursor.use {
 			val idIndex = it.getColumnIndexOrThrow(CalendarContract.Events._ID)
+			val uidIndex = it.getColumnIndexOrThrow(CalendarContract.Events.UID_2445)
 			val titleIndex = it.getColumnIndexOrThrow(CalendarContract.Events.TITLE)
 			val startIndex = it.getColumnIndexOrThrow(CalendarContract.Events.DTSTART)
 			val endIndex = it.getColumnIndexOrThrow(CalendarContract.Events.DTEND)
@@ -237,6 +239,7 @@ class CalendarSyncer(
 				events.add(
 					SourceEvent(
 						id = it.getLong(idIndex),
+						uid = it.getString(uidIndex),
 						title = it.getString(titleIndex),
 						startMillis = it.getLong(startIndex),
 						endMillis = if (it.isNull(endIndex)) null else it.getLong(endIndex),
@@ -762,6 +765,7 @@ data class SyncWindow(
 
 internal data class SourceEvent(
 	val id: Long,
+	val uid: String?,
 	val title: String?,
 	val startMillis: Long,
 	val endMillis: Long?,
@@ -932,6 +936,11 @@ internal fun resolveEventTimeZones(source: SourceEvent): Pair<String?, String?> 
 	return startZone to endZone
 }
 
+internal fun resolveEventUid(job: SyncJob, source: SourceEvent): String? {
+	if (!source.uid.isNullOrBlank()) return source.uid
+	return "calsynx-${job.sourceCalendarId}-${source.id}"
+}
+
 internal fun buildEventContentValues(
 	job: SyncJob,
 	targetCalendarId: Long?,
@@ -959,6 +968,12 @@ internal fun buildEventContentValues(
 		val (startZone, endZone) = resolveEventTimeZones(source)
 		put(CalendarContract.Events.EVENT_TIMEZONE, startZone)
 		put(CalendarContract.Events.EVENT_END_TIMEZONE, endZone)
+		val uid = resolveEventUid(job, source)
+		if (uid.isNullOrBlank()) {
+			putNull(CalendarContract.Events.UID_2445)
+		} else {
+			put(CalendarContract.Events.UID_2445, uid)
+		}
 		put(CalendarContract.Events.RRULE, source.rrule)
 		put(CalendarContract.Events.EXDATE, source.exdate)
 		put(CalendarContract.Events.EXRULE, source.exrule)

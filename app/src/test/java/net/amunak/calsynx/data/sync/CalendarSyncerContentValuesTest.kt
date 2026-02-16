@@ -48,6 +48,7 @@ class CalendarSyncerContentValuesTest {
 	): SourceEvent {
 		return SourceEvent(
 			id = 1L,
+			uid = "uid-1",
 			title = "Test",
 			startMillis = 100L,
 			endMillis = endMillis,
