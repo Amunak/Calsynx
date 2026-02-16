@@ -132,8 +132,11 @@ jobs:
           VERSION=$(grep 'versionName' app/build.gradle.kts | sed 's/.*versionName = "\(.*\)"/\1/')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-          # Copy signed APK to repo
-          cp app-release*.apk fdroid/repo/calsynx-${VERSION}.apk
+          # List downloaded artifacts for debugging
+          ls -la
+
+          # Copy signed APK to repo (artifact downloads to current directory)
+          cp *.apk fdroid/repo/calsynx-${VERSION}.apk
 
       - name: Initialize or update F-Droid repository
         run: |
@@ -164,7 +167,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: app-release*.apk
+          files: "*.apk"
           draft: false
           prerelease: false
           generate_release_notes: true
