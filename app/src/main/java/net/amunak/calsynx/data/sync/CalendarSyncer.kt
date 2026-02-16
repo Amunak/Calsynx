@@ -925,6 +925,13 @@ internal fun resolveEventTimeFields(source: SourceEvent): EventTimeFields {
 	}
 }
 
+internal fun resolveEventTimeZones(source: SourceEvent): Pair<String?, String?> {
+	val defaultZone = ZoneId.systemDefault().id
+	val startZone = source.timeZone ?: defaultZone
+	val endZone = source.endTimeZone ?: startZone
+	return startZone to endZone
+}
+
 internal fun buildEventContentValues(
 	job: SyncJob,
 	targetCalendarId: Long?,
@@ -949,8 +956,9 @@ internal fun buildEventContentValues(
 			put(CalendarContract.Events.DTEND, timeFields.dtEnd)
 		}
 		put(CalendarContract.Events.ALL_DAY, if (source.allDay) 1 else 0)
-		put(CalendarContract.Events.EVENT_TIMEZONE, source.timeZone)
-		put(CalendarContract.Events.EVENT_END_TIMEZONE, source.endTimeZone)
+		val (startZone, endZone) = resolveEventTimeZones(source)
+		put(CalendarContract.Events.EVENT_TIMEZONE, startZone)
+		put(CalendarContract.Events.EVENT_END_TIMEZONE, endZone)
 		put(CalendarContract.Events.RRULE, source.rrule)
 		put(CalendarContract.Events.EXDATE, source.exdate)
 		put(CalendarContract.Events.EXRULE, source.exrule)

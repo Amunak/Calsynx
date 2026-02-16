@@ -16,7 +16,6 @@
 - **Target event cleanup**: When copy options are disabled, clear organizer/privacy/color and remove attendees on sync updates
 - **Background sync**: WorkManager periodic tasks with flex windows; battery optimization warnings shown as top-of-list card
 - **Initial pairing**: Optional title/date matching for existing target events; exclude already-mapped targets
-
 ## Testing
 - Run unit tests (`./gradlew test`) for logic verification
 - Avoid instrumented tests unless high risk of breakage (they wipe app storage)
