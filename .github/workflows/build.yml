@@ -140,6 +140,13 @@ jobs:
           mkdir -p fdroid/repo
           cp app-release-${VERSION}.apk fdroid/repo/calsynx-${VERSION}.apk
 
+      - name: Add F-Droid repo icon
+        run: |
+          mkdir -p fdroid/repo/icons
+          unzip -p app-release-${VERSION}.apk \
+            $(unzip -Z1 app-release-${VERSION}.apk | rg -m 1 'res/mipmap-.*/ic_launcher(_round)?\\.png$') \
+            > fdroid/repo/icons/icon.png
+
       - name: Update F-Droid repository
         if: env.SIGNING_KEYSTORE != '' && env.SIGNING_KEYSTORE_PASSWORD != '' && (env.SIGNING_KEY_ALIAS != '' || env.FDROID_KEY_ALIAS != '')
         run: |
