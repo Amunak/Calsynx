@@ -10,7 +10,7 @@ It runs a simple one-way sync (source → target) and does not use any servers o
 Add this as a custom repository to F-Droid or a compatible app:
 
 ```
-https://raw.githubusercontent.com/amunak/calsynx/fdroid/repo
+https://amunak.github.io/Calsynx/repo
 ```
 
 Then refresh repositories and search for "Calsynx".

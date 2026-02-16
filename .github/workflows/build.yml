@@ -9,6 +9,15 @@ on:
     branches: [ master, main ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
   test:
     name: Run Tests
@@ -55,6 +64,12 @@ jobs:
       - name: Build release APK
         run: ./gradlew assembleRelease --build-cache
 
+      - name: Set release version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VERSION=$(grep 'versionName' app/build.gradle.kts | sed 's/.*versionName = "\(.*\)"/\1/')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
       - name: Sign release APK
         if: startsWith(github.ref, 'refs/tags/')
         run: |
@@ -64,15 +79,16 @@ jobs:
             --ks-key-alias ${{ secrets.SIGNING_KEY_ALIAS }} \
             --ks-pass pass:${{ secrets.SIGNING_KEYSTORE_PASSWORD }} \
             --key-pass pass:${{ secrets.SIGNING_KEY_PASSWORD }} \
-            --out app/build/outputs/apk/release/app-release-signed.apk \
+            --out app/build/outputs/apk/release/app-release-${VERSION}.apk \
             app/build/outputs/apk/release/app-release-unsigned.apk
-          mv app/build/outputs/apk/release/app-release-signed.apk app/build/outputs/apk/release/app-release.apk
+          rm -f app/build/outputs/apk/release/app-release-unsigned.apk
 
       - name: Upload release APK
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v4
         with:
-          name: calsynx-release
-          path: app/build/outputs/apk/release/app-release*.apk
+          name: calsynx-release-${{ env.VERSION }}
+          path: app/build/outputs/apk/release/app-release-${{ env.VERSION }}.apk
 
   release:
     name: Create Release and Update F-Droid Repo
@@ -81,24 +97,35 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
+      pages: write
+      id-token: write
     env:
+      SIGNING_KEYSTORE: ${{ secrets.SIGNING_KEYSTORE }}
+      SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+      SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+      SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+      FDROID_KEY_ALIAS: ${{ secrets.FDROID_KEY_ALIAS }}
+      FDROID_KEY_PASSWORD: ${{ secrets.FDROID_KEY_PASSWORD }}
       FDROID_REPO_PUBKEY: ${{ secrets.FDROID_REPO_PUBKEY }}
-      FDROID_KEYSTORE_PASS: ${{ secrets.FDROID_KEYSTORE_PASS }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Checkout F-Droid branch
+      - name: Set release version
         run: |
-          git fetch origin fdroid:fdroid || git checkout --orphan fdroid
-          git checkout master
+          VERSION=$(grep 'versionName' app/build.gradle.kts | sed 's/.*versionName = "\(.*\)"/\1/')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Download release APK
         uses: actions/download-artifact@v4
         with:
-          name: calsynx-release
+          name: calsynx-release-${{ env.VERSION }}
+
+      - name: Prepare repo keystore
+        if: env.SIGNING_KEYSTORE != '' && env.SIGNING_KEYSTORE_PASSWORD != ''
+        run: echo "${{ secrets.SIGNING_KEYSTORE }}" | base64 -d > release.keystore
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -111,46 +138,66 @@ jobs:
       - name: Setup F-Droid repository
         run: |
           mkdir -p fdroid/repo
-          VERSION=$(grep 'versionName' app/build.gradle.kts | sed 's/.*versionName = "\(.*\)"/\1/')
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          if [ -f app-release.apk ]; then
-            cp app-release.apk fdroid/repo/calsynx-${VERSION}.apk
-          else
-            cp app-release-unsigned.apk fdroid/repo/calsynx-${VERSION}.apk
-          fi
+          cp app-release-${VERSION}.apk fdroid/repo/calsynx-${VERSION}.apk
 
       - name: Update F-Droid repository
-        if: env.FDROID_REPO_PUBKEY != '' || env.FDROID_KEYSTORE_PASS != ''
+        if: env.SIGNING_KEYSTORE != '' && env.SIGNING_KEYSTORE_PASSWORD != '' && (env.SIGNING_KEY_ALIAS != '' || env.FDROID_KEY_ALIAS != '')
         run: |
           cd fdroid
-          cat > config.yml << 'EOF'
+          umask 077
+          FDROID_KEYSTORE_PATH="${FDROID_KEYSTORE_PATH:-../release.keystore}"
+          FDROID_KEY_ALIAS_VALUE="${FDROID_KEY_ALIAS:-$SIGNING_KEY_ALIAS}"
+          FDROID_KEY_PASSWORD_VALUE="${FDROID_KEY_PASSWORD:-$SIGNING_KEY_PASSWORD}"
+          FDROID_KEYSTORE_PASS_VALUE="${SIGNING_KEYSTORE_PASSWORD}"
+          cat > config.yml << EOF
           repo_name: Calsynx F-Droid Repository
           repo_description: Personal F-Droid repository for Calsynx calendar sync app
-          repo_url: https://raw.githubusercontent.com/${{ github.repository }}/fdroid/repo
+          repo_url: https://amunak.github.io/Calsynx/repo
           archive_name: Calsynx Archive
           archive_description: Archived versions of Calsynx
           make_current_version_link: false
-          repo_pubkey: ${FDROID_REPO_PUBKEY}
-          keystorepass: ${FDROID_KEYSTORE_PASS}
+          keystore: ${FDROID_KEYSTORE_PATH}
+          keystorepass: ${FDROID_KEYSTORE_PASS_VALUE}
+          keyalias: ${FDROID_KEY_ALIAS_VALUE}
+          keypass: ${FDROID_KEY_PASSWORD_VALUE}
+          repo_keyalias: ${FDROID_KEY_ALIAS_VALUE}
+          repo_keypass: ${FDROID_KEY_PASSWORD_VALUE}
           EOF
-          fdroid update --nosign --create-metadata --use-date-from-apk
+          if [ -n "$FDROID_REPO_PUBKEY" ]; then
+            echo "repo_pubkey: $FDROID_REPO_PUBKEY" >> config.yml
+          fi
+          chmod 600 config.yml
+          fdroid update --create-metadata --use-date-from-apk
           cd ..
 
-      - name: Deploy F-Droid repo
-        uses: peaceiris/actions-gh-pages@v4
-        if: env.FDROID_REPO_PUBKEY != '' || env.FDROID_KEYSTORE_PASS != ''
+      - name: Clean F-Droid secrets
+        if: env.SIGNING_KEYSTORE != '' && env.SIGNING_KEYSTORE_PASSWORD != '' && (env.SIGNING_KEY_ALIAS != '' || env.FDROID_KEY_ALIAS != '')
+        run: |
+          rm -f fdroid/config.yml release.keystore
+          rm -rf fdroid_publish
+          mkdir -p fdroid_publish/repo
+          cp -a fdroid/repo/. fdroid_publish/repo/
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        if: env.SIGNING_KEYSTORE != '' && env.SIGNING_KEYSTORE_PASSWORD != '' && (env.SIGNING_KEY_ALIAS != '' || env.FDROID_KEY_ALIAS != '')
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        if: env.SIGNING_KEYSTORE != '' && env.SIGNING_KEYSTORE_PASSWORD != '' && (env.SIGNING_KEY_ALIAS != '' || env.FDROID_KEY_ALIAS != '')
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./fdroid
-          publish_branch: fdroid
-          enable_jekyll: false
+          path: ./fdroid_publish
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        if: env.SIGNING_KEYSTORE != '' && env.SIGNING_KEYSTORE_PASSWORD != '' && (env.SIGNING_KEY_ALIAS != '' || env.FDROID_KEY_ALIAS != '')
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            app-release.apk
-            app-release-unsigned.apk
+            app-release-${{ env.VERSION }}.apk
           draft: false
           prerelease: false
           generate_release_notes: true
