@@ -8,7 +8,7 @@ The project uses GitHub Actions to automatically build, sign, and publish releas
 
 1. Generate a signing keystore (one-time setup):
 ```bash
-./generate-signing-key.sh
+./scripts/generate-signing-key.sh
 ```
 
 2. Add the following secrets to your GitHub repository:

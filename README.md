@@ -1,3 +1,5 @@
+![Calsynx icon](docs/icon.svg)
+
 # Calsynx
 
 Calsynx is an Android app that copies events from one calendar into another, on your device.

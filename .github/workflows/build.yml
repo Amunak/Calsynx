@@ -100,6 +100,8 @@ jobs:
       pages: write
       id-token: write
     env:
+      PROJECT_URL: https://github.com/Amunak/Calsynx
+      FDROID_REPO_URL: https://amunak.github.io/Calsynx/repo
       SIGNING_KEYSTORE: ${{ secrets.SIGNING_KEYSTORE }}
       SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
       SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
@@ -116,7 +118,9 @@ jobs:
       - name: Set release version
         run: |
           VERSION=$(grep 'versionName' app/build.gradle.kts | sed 's/.*versionName = "\(.*\)"/\1/')
+          VERSION_CODE=$(grep 'versionCode' app/build.gradle.kts | sed 's/.*versionCode = //')
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
 
       - name: Download release APK
         uses: actions/download-artifact@v4
@@ -132,20 +136,62 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-fdroid-${{ hashFiles('.github/workflows/build.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-fdroid-
+
       - name: Install fdroidserver
-        run: pip install fdroidserver
+        run: pip install fdroidserver cairosvg
+
+      - name: Restore published repo APKs
+        run: |
+          mkdir -p fdroid/repo
+          if curl -fsSL "$FDROID_REPO_URL/index-v1.json" -o /tmp/index-v1.json; then
+            python scripts/restore_fdroid_repo.py
+          fi
 
       - name: Setup F-Droid repository
         run: |
           mkdir -p fdroid/repo
           cp app-release-${VERSION}.apk fdroid/repo/calsynx-${VERSION}.apk
 
+      - name: Generate F-Droid metadata
+        run: |
+          mkdir -p fdroid/metadata
+          cat > fdroid/metadata/net.amunak.calsynx.yml << EOF
+          License: GPL-3.0-or-later
+          Summary: One-way calendar sync on-device
+          Description: |
+            Sync events from one calendar to another on-device with configurable options.
+            No accounts or servers required.
+          Categories:
+            - Productivity
+          RepoType: git
+          Repo: ${PROJECT_URL}
+          CurrentVersion: ${VERSION}
+          CurrentVersionCode: ${VERSION_CODE}
+          WebSite: ${PROJECT_URL}
+          SourceCode: ${PROJECT_URL}
+          IssueTracker: ${PROJECT_URL}/issues
+          EOF
+
+      - name: Add F-Droid changelog
+        run: |
+          mkdir -p fdroid/metadata/net.amunak.calsynx/changelogs
+          PREV_TAG=$(git tag --sort=-v:refname | grep -v "^${GITHUB_REF_NAME}$" | head -n 1 || true)
+          if [ -n "$PREV_TAG" ]; then
+            git log --pretty=format:"- %s" "${PREV_TAG}..HEAD" > fdroid/metadata/net.amunak.calsynx/changelogs/${VERSION_CODE}.txt
+          else
+            git log -1 --pretty=format:"- %s" > fdroid/metadata/net.amunak.calsynx/changelogs/${VERSION_CODE}.txt
+          fi
+
       - name: Add F-Droid repo icon
         run: |
-          mkdir -p fdroid/repo/icons
-          unzip -p app-release-${VERSION}.apk \
-            $(unzip -Z1 app-release-${VERSION}.apk | rg -m 1 'res/mipmap-.*/ic_launcher(_round)?\\.png$') \
-            > fdroid/repo/icons/icon.png
+          python scripts/render_fdroid_icon.py
 
       - name: Update F-Droid repository
         if: env.SIGNING_KEYSTORE != '' && env.SIGNING_KEYSTORE_PASSWORD != '' && (env.SIGNING_KEY_ALIAS != '' || env.FDROID_KEY_ALIAS != '')
@@ -159,10 +205,11 @@ jobs:
           cat > config.yml << EOF
           repo_name: Calsynx F-Droid Repository
           repo_description: Personal F-Droid repository for Calsynx calendar sync app
-          repo_url: https://amunak.github.io/Calsynx/repo
+          repo_url: ${FDROID_REPO_URL}
           archive_name: Calsynx Archive
           archive_description: Archived versions of Calsynx
           make_current_version_link: false
+          repo_icon: icon.png
           keystore: ${FDROID_KEYSTORE_PATH}
           keystorepass: ${FDROID_KEYSTORE_PASS_VALUE}
           keyalias: ${FDROID_KEY_ALIAS_VALUE}
